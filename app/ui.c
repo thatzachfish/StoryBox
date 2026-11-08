@@ -42,22 +42,23 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
 /* the screen's colours: the cover of Ambient 1: Music for Airports (1978), as the web app and the site.
  * The map's paper, its ink; the land's greens for the pad (the chord) and the scale, its rivers for the
  * bells; the bass and the pulse in darker inks. Each layer has a pale tint for the shapes at rest. */
-#define K_BG RGB(246, 238, 181)
-#define K_PANEL RGB(255, 251, 224)
-#define K_LINE RGB(208, 214, 150)
-#define K_DIM RGB(112, 106, 58)
-#define K_TEXT RGB(29, 27, 2)
-#define K_ACC RGB(64, 128, 124)          /* the accent: the page, the knob being turned, a message's word */
-#define K_BELL RGB(84, 153, 149)
-#define K_BELL_T RGB(176, 214, 206)
-#define K_PAD RGB(112, 142, 62)
-#define K_PAD_T RGB(208, 220, 146)
-#define K_PULSE RGB(70, 66, 28)
-#define K_PULSE_T RGB(214, 214, 160)
-#define K_BASS RGB(138, 128, 52)
-#define K_BASS_T RGB(222, 218, 160)
-#define K_FROST RGB(60, 132, 160)
-#define K_FROST_T RGB(170, 210, 216)
+/* StoryBox: a night palette (dark ground, warm low ink) so the screen stays quiet in a dark room. */
+#define K_BG RGB(14, 16, 24)
+#define K_PANEL RGB(30, 33, 46)
+#define K_LINE RGB(48, 52, 70)
+#define K_DIM RGB(110, 108, 120)
+#define K_TEXT RGB(226, 214, 186)
+#define K_ACC RGB(214, 160, 96)          /* the accent: the page, the knob being turned, a message's word */
+#define K_BELL RGB(120, 176, 196)
+#define K_BELL_T RGB(42, 62, 76)
+#define K_PAD RGB(150, 172, 110)
+#define K_PAD_T RGB(48, 60, 42)
+#define K_PULSE RGB(196, 150, 120)
+#define K_PULSE_T RGB(60, 48, 44)
+#define K_BASS RGB(190, 170, 110)
+#define K_BASS_T RGB(60, 54, 38)
+#define K_FROST RGB(140, 160, 220)
+#define K_FROST_T RGB(44, 50, 78)
 
 static struct {
     uint8_t view;
