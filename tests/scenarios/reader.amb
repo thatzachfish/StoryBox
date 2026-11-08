@@ -3,7 +3,7 @@
 wait 200
 listen
 wait 100
-said Garden page: Tempo 72, Evolve 35, Motion 50, Drift 39 seconds. Piece Garden, D Dorian, growing
+said Story page: Act Doors, Mode Perform
 # (the garden follows, queued: the chord, how far to the next, the scale from the root up)
 listen
 where
@@ -11,7 +11,7 @@ said Scale D, E, F, G, A, B, C
 # a page settles before it is said
 tap ENV
 wait 300
-said Pad page: Level 60, Swell 60, Bright 40, Colour Rhodes
+said Pad page: Level 50, Swell 45, Bright 45, Colour Rhodes
 tap GLO
 wait 300
 said Setup page: Root D, Tune 0, MIDI out On, Lights On
@@ -27,22 +27,22 @@ wait 300
 # SELECT turns the pages
 turn SELECT -1
 wait 300
-said Space page: Echo 45, Echo time 1 bar, Reverb 65, Size 80
+said Space page: Echo 40, Echo time 1/2., Reverb 50, Size 65
 spin K2 -1
 wait 300
-said Echo time 1/2.
+said Echo time 1/2
 tap HOME
 wait 300
 said Garden page
 spin K4 20
 wait 300
-said Drift 1 minute 8 seconds
+said Drift 1 minute 17 seconds
 # HOME + SELECT: the tempo (the Garden's first knob says it)
 press HOME
 turn SELECT 2 200
 release HOME
 wait 300
-said Tempo 74
+said Tempo 86
 # the keys: a note out of the scale and back in; the root stays
 tapkey w1
 said REMOVED G
@@ -54,17 +54,17 @@ tapkey b3
 said REMOVED C#
 tapkey w5
 said THE ROOT STAYS (SETUP)
-# the encoders: the mode, the piece (with its key and tempo)
+# the encoders: the mode, the story
 turn ALGO 1
 said MODE Phrygian
 turn ALGO -1
 said MODE Dorian
 turn PRESET 1
-said PIECE Departures, C# Ionian, tempo 60
+said STORY Sleep
 wait 300
 unsaid Level
 turn PRESET -1
-said PIECE Garden, D Dorian, tempo 74
+said STORY Pre-show
 wait 300
 # the buttons' messages, said once
 tap REC
@@ -88,7 +88,7 @@ said NEXT CHORD ON THE BAR
 # a help card: its button, then its lines
 press SAVE
 wait 1000
-said SAVE button. SAVES ALL EIGHT PIECES. KEEP HOLDING: THE PIECE BACK TO ITS RECIPE
+said SAVE button. SAVES EVERY ACT. KEEP HOLDING: THE ACT BACK TO ITS RECIPE
 release SAVE
 tap SAVE
 said SAVED
@@ -109,7 +109,7 @@ midi FC 00 00
 wait 300
 said RESTING
 wait 1000
-said Tempo 74
+said Tempo 86
 # WHERE: everything again
 where
-said Garden page: Tempo 74, Evolve 35, Motion 50, Drift 1 minute 8 seconds. Piece Garden, D Dorian, resting
+said Garden page: Tempo 86, Evolve 30, Motion 40

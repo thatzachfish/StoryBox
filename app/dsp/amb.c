@@ -34,32 +34,57 @@ static const en_param_t PARAMS[P_NPARAMS] = {
 };
 const en_param_t *en_param_info(int i) { return (i >= 0 && i < P_NPARAMS) ? &PARAMS[i] : &PARAMS[0]; }
 
-/* the pieces: eight recipes for the whole garden (the FM-1's PRESETS, the web app's cards). Tune and
- * MIDI out are taken from here by neither: they belong to the player, not the piece */
-/*                     Pad Bel Bas Pul  Den Evo Dri Hit  Ech ET Rev Siz  Bri Swe Ton Mot  Tun MI Tem Rt Md Oc  PT  BO Gli Fif  Swi Hat
- * (PT: the pad's colour, 0 Rhodes, 1 Voices; BO: the bass's octave) */
+/* StoryBox: the stories. Each is four acts, and each act a recipe for every parameter (Tune, MIDI out and Root
+ * are the player's, not the act's). A piece, below, is one act of one story: piece = story * EN_NACT + act.
+ *                     Pad Bel Bas Pul  Den Evo Dri Hit  Ech ET Rev Siz  Bri Swe Ton Mot  Tun MI Tem Rt Md Oc  PT  BO Gli Fif  Swi Hat
+ * (Md: 0 Ionian 1 Dorian 2 Phrygian 3 Lydian 4 Mixolydian 5 Aeolian 6 pent. major 7 pent. minor; PT: the pad's colour,
+ * 0 Rhodes, 1 Voices; Oc: the bells' octave; BO: the bass's octave) */
 static const struct {
     const char *name;
-    int8_t v[P_NPARAMS];
-} PIECES[EN_NPIECES] = {
-    {"Garden",       {60, 65, 45, 40, 40, 35, 25, 35, 45, 3, 65, 80, 40, 60, 50, 50, 0, 1, 72, 2, 1, 0, 0, 0, 20, 35, 0, 50}},
-    {"Departures",   {35, 75, 0, 0, 35, 30, 40, 0, 30, 3, 70, 85, 20, 55, 5, 40, 0, 1, 60, 1, 0, -1, 0, 0, 30, 25, 0, 40}},
-    {"Voices",       {85, 0, 25, 0, 30, 30, 50, 0, 20, 5, 80, 90, 67, 70, 30, 55, 0, 1, 56, 5, 5, 0, 1, -1, 45, 30, 0, 40}},
-    {"Afternoon",    {50, 65, 35, 25, 55, 45, 20, 30, 50, 2, 60, 75, 60, 50, 60, 55, 0, 1, 84, 7, 3, 0, 0, 0, 15, 40, 15, 65}},
-    {"Night Bus",    {45, 55, 55, 60, 45, 50, 15, 55, 55, 1, 55, 70, 35, 40, 75, 70, 0, 1, 96, 9, 5, 0, 0, 0, 10, 45, 30, 70}},
-    {"Shoreline",    {40, 60, 30, 0, 30, 40, 40, 0, 85, 4, 55, 95, 30, 80, 0, 85, 0, 1, 64, 4, 6, 0, 0, 0, 40, 20, 0, 30}},
-    {"Glass",        {35, 80, 30, 20, 60, 55, 25, 25, 45, 2, 65, 80, 55, 45, 90, 50, 0, 1, 76, 3, 7, 1, 0, 1, 10, 30, 10, 85}},
-    {"Tides",        {55, 60, 40, 35, 45, 75, 10, 40, 50, 3, 65, 85, 60, 60, 55, 95, 0, 1, 70, 10, 4, 0, 1, 0, 25, 55, 10, 50}},
+    const char *act[EN_NACT];
+    int8_t v[EN_NACT][P_NPARAMS];
+} STORIES[EN_NSTORY] = {
+    {"Pre-show", {"Doors", "Warm Up", "Lounge", "Lights Down"}, {
+        {50, 40, 40, 30, 30, 30, 30, 30, 40, 2, 50, 65, 45, 45, 55, 40, 0, 1, 84, 2, 1, 0, 0, 0, 15, 30, 70, 55},
+        {55, 55, 55, 55, 45, 40, 25, 55, 40, 2, 45, 60, 55, 40, 60, 50, 0, 1, 84, 2, 1, 0, 0, 0, 10, 40, 70, 65},
+        {55, 70, 50, 50, 55, 50, 25, 50, 50, 1, 50, 65, 60, 45, 70, 55, 0, 1, 84, 2, 4, 0, 0, 0, 15, 40, 65, 70},
+        {50, 35, 40, 25, 25, 30, 35, 25, 50, 3, 60, 75, 35, 55, 45, 40, 0, 1, 80, 2, 1, 0, 0, 0, 20, 30, 70, 45}}},
+    {"Sleep", {"Dusk", "Drifting", "Deep", "Stillness"}, {
+        {60, 45, 30, 0, 30, 30, 55, 0, 40, 4, 75, 90, 35, 70, 30, 45, 0, 1, 56, 2, 6, 0, 0, 0, 40, 25, 0, 40},
+        {65, 35, 25, 0, 25, 25, 65, 0, 35, 5, 80, 92, 28, 75, 20, 50, 0, 1, 52, 2, 6, -1, 1, -1, 45, 20, 0, 40},
+        {70, 20, 20, 0, 18, 20, 75, 0, 25, 5, 85, 95, 20, 80, 10, 45, 0, 1, 50, 2, 6, -1, 1, -1, 50, 15, 0, 40},
+        {60, 10, 10, 0, 12, 15, 85, 0, 20, 5, 88, 97, 15, 85, 5, 35, 0, 1, 48, 2, 6, -1, 1, -1, 50, 10, 0, 40}}},
+    {"Lighthouse", {"Fog", "Signal", "Storm", "Dawn"}, {
+        {55, 30, 35, 0, 25, 30, 45, 0, 55, 4, 75, 90, 25, 70, 20, 60, 0, 1, 66, 2, 5, -1, 1, 0, 35, 25, 0, 40},
+        {45, 70, 40, 20, 40, 40, 35, 25, 50, 3, 65, 85, 40, 55, 80, 55, 0, 1, 66, 2, 5, 1, 1, 0, 25, 30, 0, 60},
+        {55, 65, 60, 60, 60, 70, 15, 70, 60, 1, 60, 80, 50, 35, 70, 90, 0, 1, 76, 2, 2, 0, 0, 0, 15, 45, 20, 80},
+        {50, 60, 35, 15, 40, 35, 40, 15, 40, 3, 70, 85, 65, 60, 40, 50, 0, 1, 66, 2, 3, 0, 1, 0, 30, 30, 0, 40}}},
+    {"Market Day", {"Morning", "Crowds", "Siesta", "Lanterns"}, {
+        {50, 55, 35, 25, 40, 35, 30, 25, 35, 2, 50, 65, 55, 45, 60, 45, 0, 1, 92, 2, 0, 0, 0, 0, 15, 35, 40, 60},
+        {45, 75, 55, 60, 65, 60, 20, 70, 40, 1, 45, 60, 65, 35, 70, 65, 0, 1, 96, 2, 4, 0, 0, 0, 10, 45, 55, 75},
+        {55, 40, 30, 15, 25, 25, 45, 15, 50, 3, 60, 75, 40, 65, 40, 40, 0, 1, 84, 2, 6, -1, 1, 0, 30, 25, 30, 40},
+        {55, 60, 50, 40, 45, 45, 30, 45, 55, 2, 60, 75, 45, 50, 55, 55, 0, 1, 88, 2, 4, 0, 0, 0, 20, 40, 50, 55}}},
+    {"Deep Forest", {"Path", "Hollow", "Spirits", "Clearing"}, {
+        {50, 50, 35, 25, 35, 40, 35, 30, 45, 3, 65, 80, 40, 55, 50, 50, 0, 1, 70, 2, 1, 0, 0, 0, 25, 30, 15, 45},
+        {60, 35, 45, 20, 30, 45, 40, 20, 50, 2, 75, 90, 25, 65, 30, 65, 0, 1, 64, 2, 2, -1, 1, -1, 30, 35, 10, 35},
+        {55, 70, 25, 10, 50, 60, 30, 10, 80, 4, 80, 95, 45, 60, 85, 80, 0, 1, 70, 2, 7, 1, 1, 0, 40, 20, 0, 30},
+        {50, 65, 40, 30, 45, 40, 30, 35, 45, 3, 65, 80, 65, 50, 55, 50, 0, 1, 72, 2, 6, 0, 0, 0, 20, 35, 15, 50}}},
 };
 
-const char *en_piece_name(int i) { return PIECES[(unsigned)i < EN_NPIECES ? i : 0].name; }
+const char *en_story_name(int s) { return STORIES[(unsigned)s < EN_NSTORY ? s : 0].name; }
+const char *en_act_name(int i)
+{
+    i = (unsigned)i < EN_NPIECES ? i : 0;
+    return STORIES[i / EN_NACT].act[i % EN_NACT];
+}
+const char *en_piece_name(int i) { return en_story_name(((unsigned)i < EN_NPIECES ? i : 0) / EN_NACT); }
 void en_piece(int i, int16_t *par, uint16_t *pool)
 {
     int p;
     i = (unsigned)i < EN_NPIECES ? i : 0;
     for (p = 0; p < P_NPARAMS; p++)
-        par[p] = PIECES[i].v[p];
-    *pool = EN_MODE_POOL[PIECES[i].v[P_MODE]];
+        par[p] = STORIES[i / EN_NACT].v[i % EN_NACT][p];
+    *pool = EN_MODE_POOL[par[P_MODE]];
 }
 
 static const char *const ETIME_NAME[6] = {"1/4.", "1/2", "1/2.", "1 bar", "2 bars", "4 bars"};

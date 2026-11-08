@@ -1,20 +1,14 @@
-# a project saved by 0.9 before the layer pages (format 3) loads with its settings; the bass's and
-# the pulse's new ones come from each piece's recipe
+# an AMB-1 project in the same place is not read: StoryBox starts from its defaults (and keeps its own after)
 wait 300
-turn PRESET 4
-expect piece 4
-storev3 33
+storeamb
 reboot
 wait 300
+expect piece 0
+expect par18 84
+turn PRESET 1
+wait 15000
 expect piece 4
-expect par0 33
-expect par23 0
-expect par24 10
-expect par25 45
-expect par26 30
-expect par27 70
 tap SAVE
 reboot
 wait 300
-expect par0 33
-expect par26 30
+expect piece 4

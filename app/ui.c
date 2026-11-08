@@ -15,12 +15,13 @@
 #include "fastmath.h"
 
 /* the pages, one a layer (a button each); SELECT steps through them in this order */
-enum { V_GARDEN, V_PAD, V_BELLS, V_BASS, V_PULSE, V_SPACE, V_SETUP, NVIEWS };
-static const char *const VIEW_NAME[NVIEWS] = {"Garden", "Pad", "Bells", "Bass", "Pulse", "Space", "Setup"};
-static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, B_ENV, B_ARP, B_LFO, B_SEQ, B_FX, B_GLO};
+enum { V_STORY, V_GARDEN, V_PAD, V_BELLS, V_BASS, V_PULSE, V_SPACE, V_SETUP, NVIEWS };
+static const char *const VIEW_NAME[NVIEWS] = {"Story", "Garden", "Pad", "Bells", "Bass", "Pulse", "Space", "Setup"};
+static const uint8_t VIEW_BTN[NVIEWS] = {B_SEL, B_HOME, B_ENV, B_ARP, B_LFO, B_SEQ, B_FX, B_GLO};
 /* the four knobs of each page: a parameter, or one of these; and what the knob is called there */
-enum { K_LEDS = 100, K_CPU, K_NONE };
+enum { K_LEDS = 100, K_CPU, K_NONE, K_PLAYMODE, K_WANDER, K_FADE, K_ACT };
 static const uint8_t VIEW_KNOB[NVIEWS][4] = {
+    {K_ACT, K_PLAYMODE, K_WANDER, K_FADE},
     {P_TEMPO, P_EVOLVE, P_MOTION, P_DRIFT},
     {P_PAD, P_SWELL, P_BRIGHT, P_PADTONE},
     {P_BELLS, P_DENSITY, P_BTONE, P_BOCT},
@@ -30,6 +31,7 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_ROOT, P_TUNE, P_MIDI, K_LEDS},
 };
 static const char *const KNOB_LABEL[NVIEWS][4] = {
+    {"Act", "Mode", "Wander", "Fade"},
     {"Tempo", "Evolve", "Motion", "Drift"},
     {"Level", "Swell", "Bright", "Colour"},
     {"Level", "Density", "Tone", "Octave"},
@@ -60,7 +62,10 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
 #define K_FROST RGB(140, 160, 220)
 #define K_FROST_T RGB(44, 50, 78)
 
+#define KEY_HOLD 450u                          /* ACTS: a key held this long fades slowly instead */
 static struct {
+    uint8_t acts;                      /* ACTS (SEL): the keys pick acts and stories, not notes */
+    uint32_t key_t[NKEYS], key_held;
     uint8_t view;
     uint32_t btn, keys, btn_used;
     uint32_t enc_t[NE];
@@ -156,6 +161,151 @@ static const char *mode_name(void)
     return proj.pool == EN_MODE_POOL[proj.par[P_MODE]] ? EN_MODE_NAME[proj.par[P_MODE]] : "Custom";
 }
 
+/* -------------------------------------------------------- transitions --- */
+/* StoryBox: moving between acts (and stories). Every setting glides from where it is to the new act's;
+ * the switches among them (the mode, the pad's colour, the echo time, the octaves) change halfway.
+ *   queued (a tap): starts on the next phrase (PHRASE sixteenths), gliding over one phrase
+ *   slow (a hold): starts now, over Fade (5 s .. 2 min)
+ * A knob turned meanwhile stays where it is put. Vibe moves on to another act of the story by itself every
+ * few phrases (Wander), slowly. */
+#define PHRASE 32u                             /* sixteenths: two bars */
+static struct {
+    uint8_t on, mid;                           /* gliding; the switches done */
+    int8_t pending;                            /* a piece waiting for the next phrase, or -1 */
+    uint8_t piece;                             /* the piece gliding to */
+    int16_t from[P_NPARAMS], to[P_NPARAMS];
+    uint16_t to_pool;
+    float t, rate;                             /* 0..1; per ms */
+    uint32_t last_ms, last_phrase, phrases;    /* phrases since the act last changed (Vibe) */
+    uint32_t rng;
+} tr;
+
+static int global_p(int p) { return p == P_TUNE || p == P_MIDI || p == P_ROOT; }
+static int switch_p(int p)
+{
+    return p == P_MODE || p == P_PADTONE || p == P_ETIME || p == P_BOCT || p == P_BASSOCT;
+}
+static uint32_t fade_ms(void)                  /* Fade 0..100: 5 s .. 2 min, as a curve */
+{
+    float f = (float)proj.fade / 100.0f;
+    return 5000u + (uint32_t)(115000.0f * f * f);
+}
+static uint32_t wander_phrases(void) { return 2u + (uint32_t)(100 - proj.wander) * 14u / 100u; }   /* 16 .. 2 */
+static uint32_t phrase_ms(void) { return PHRASE * 60000u / ((uint32_t)proj.par[P_TEMPO] * 4u); }
+static int tr_shown_act(void)                  /* the act the screen shows: where it is going, else where it is */
+{
+    return (tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : proj.piece) % EN_NACT;
+}
+
+static void tr_start(int piece, uint32_t ms)
+{
+    int p;
+    project_keep();                            /* the act we leave, as it is (unless a glide is already under way) */
+    proj_hold_keep = 1;
+    for (p = 0; p < P_NPARAMS; p++)
+        tr.from[p] = proj.par[p];
+    project_target(piece, tr.to, &tr.to_pool);
+    tr.piece = (uint8_t)piece;
+    tr.t = 0.0f;
+    tr.rate = 1.0f / (float)(ms ? ms : 1u);
+    tr.on = 1;
+    tr.mid = 0;
+    tr.last_ms = plat_ms();
+    tr.phrases = 0;
+}
+
+/* to piece i: on the next phrase (slow 0), or now over Fade (slow 1) */
+static void tr_queue(int piece, int slow)
+{
+    piece = (piece % NPIECES + NPIECES) % NPIECES;
+    if (slow || !en_playing) {
+        tr.pending = -1;
+        tr_start(piece, slow ? fade_ms() : 600u);
+        say_as(slow ? "FADING TO" : "ACT", en_act_name(piece), 0);
+    } else {
+        tr.pending = (int8_t)piece;
+        say_as("NEXT", en_act_name(piece), 0);
+    }
+    mark_dirty();
+}
+
+static void tr_hands_on(int p, int v)
+{
+    if (tr.on) {
+        tr.from[p] = tr.to[p] = (int16_t)v;
+    }
+}
+
+static void tr_tick(void)
+{
+    uint32_t now = plat_ms(), phrase = en_bars / PHRASE;
+    int p;
+    if (phrase != tr.last_phrase) {             /* a new phrase: a queued act starts, Vibe counts */
+        tr.last_phrase = phrase;
+        if (tr.pending >= 0) {
+            int i = tr.pending;
+            tr.pending = -1;
+            tr_start(i, phrase_ms());
+        } else if (proj.vibe && !tr.on && en_playing && ++tr.phrases >= wander_phrases()) {
+            int a = proj.piece % EN_NACT, b;
+            tr.rng = tr.rng * 1664525u + 1013904223u + now;
+            b = (a + 1 + (int)(tr.rng >> 16) % (EN_NACT - 1)) % EN_NACT;
+            tr_start(proj.piece / EN_NACT * EN_NACT + b, fade_ms());
+            say_as("DRIFTING TO", en_act_name(proj.piece / EN_NACT * EN_NACT + b), 0);
+        }
+    }
+    if (!tr.on)
+        return;
+    tr.t += (float)(now - tr.last_ms) * tr.rate;
+    tr.last_ms = now;
+    if (tr.t > 1.0f)
+        tr.t = 1.0f;
+    {
+        float e = tr.t * tr.t * (3.0f - 2.0f * tr.t);   /* eased */
+        for (p = 0; p < P_NPARAMS; p++) {
+            int v;
+            if (global_p(p))
+                continue;
+            if (switch_p(p))
+                v = tr.t >= 0.5f ? tr.to[p] : tr.from[p];
+            else
+                v = tr.from[p] + (int)((float)(tr.to[p] - tr.from[p]) * e + (tr.to[p] >= tr.from[p] ? 0.5f : -0.5f));
+            if (v != proj.par[p]) {
+                proj.par[p] = (int16_t)v;
+                en_set(p, v);
+            }
+        }
+    }
+    if (!tr.mid && tr.t >= 0.5f) {             /* halfway: the new act's scale */
+        tr.mid = 1;
+        proj.pool = tr.to_pool;
+        en_pool(proj.pool);
+    }
+    if (tr.t >= 1.0f) {
+        int story = proj.piece / EN_NACT;
+        tr.on = 0;
+        proj.piece = tr.piece;
+        proj_hold_keep = 0;
+        if (proj.piece / EN_NACT != story)
+            say_as("STORY", en_story_name(proj.piece / EN_NACT), 0);
+        mark_dirty();
+    }
+}
+
+/* ACTS: the white keys F G A B are the story's four acts; from C up the white keys are the stories. Black keys:
+ * nothing (-1); out of ACTS: -2 (the scale) */
+static const int8_t KEY_ACT[NKEYS] = {0, -1, 1, -1, 2, -1, 3, 10, -1, 11, -1, 12, 13, -1, 14, -1, 15, -1, 16, 17, -1, -1, -1, -1, -1, -1, -1};
+static int key_target(int k)
+{
+    int v = (unsigned)k < NKEYS ? KEY_ACT[k] : -1;
+    if (v < 0)
+        return -1;
+    if (v < EN_NACT)                            /* an act of the story playing (or about to) */
+        return (tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : proj.piece) / EN_NACT * EN_NACT + v;
+    v -= 10;                                    /* a story, from its first act */
+    return v < EN_NSTORY ? v * EN_NACT : -1;
+}
+
 /* ------------------------------------------------------------ values --- */
 static int knob_get(int k)
 {
@@ -165,6 +315,14 @@ static int knob_get(int k)
         return proj.leds;
     if (k == K_CPU)
         return (int)plat_cpu_pct();
+    if (k == K_PLAYMODE)
+        return proj.vibe;
+    if (k == K_WANDER)
+        return proj.wander;
+    if (k == K_FADE)
+        return proj.fade;
+    if (k == K_ACT)
+        return tr_shown_act();
     return 0;
 }
 static void knob_range(int k, int *lo, int *hi)
@@ -174,14 +332,16 @@ static void knob_range(int k, int *lo, int *hi)
         *hi = en_param_info(k)->hi;
     } else {
         *lo = 0;
-        *hi = k == K_LEDS ? 2 : k == K_CPU ? 100 : 0;
+        *hi = k == K_LEDS ? 2 : k == K_CPU || k == K_WANDER || k == K_FADE ? 100 : k == K_PLAYMODE ? 1 :
+              k == K_ACT ? EN_NACT - 1 : 0;
     }
 }
 static const char *knob_name(int k)
 {
     if (k < P_NPARAMS)
         return en_param_info(k)->name;
-    return k == K_LEDS ? "Lights" : k == K_CPU ? "CPU" : "";
+    return k == K_LEDS ? "Lights" : k == K_CPU ? "CPU" : k == K_PLAYMODE ? "Mode" : k == K_WANDER ? "Wander" :
+           k == K_FADE ? "Fade" : k == K_ACT ? "Act" : "";
 }
 static void knob_text(int k, char *b)
 {
@@ -198,6 +358,39 @@ static void knob_text(int k, char *b)
             b++;
         *b++ = '%';
         *b = 0;
+    } else if (k == K_PLAYMODE || k == K_ACT) {
+        const char *n = k == K_ACT ? en_act_name(proj.piece / EN_NACT * EN_NACT + v) : v ? "Vibe" : "Perform";
+        int j = 0;
+        while (n[j] && j < 9) {
+            b[j] = n[j];
+            j++;
+        }
+        b[j] = 0;
+    } else if (k == K_WANDER) {                   /* Vibe: moves on every N phrases */
+        itoa_u((uint32_t)wander_phrases(), b);
+        while (*b)
+            b++;
+        *b++ = ' ';
+        *b++ = 'p';
+        *b++ = 'h';
+        *b = 0;
+    } else if (k == K_FADE) {
+        uint32_t sec = fade_ms() / 1000u;
+        if (sec < 60u) {
+            itoa_u(sec, b);
+            while (*b)
+                b++;
+            *b++ = 's';
+            *b = 0;
+        } else {
+            itoa_u(sec / 60u, b);
+            while (*b)
+                b++;
+            *b++ = ':';
+            *b++ = (char)('0' + sec % 60u / 10u);
+            *b++ = (char)('0' + sec % 10u);
+            *b = 0;
+        }
     } else {
         b[0] = 0;
     }
@@ -215,8 +408,20 @@ static void knob_set(int k, int v)
     if (k < P_NPARAMS) {
         proj.par[k] = (int16_t)v;
         en_set(k, v);
+        tr_hands_on(k, v);                       /* a transition leaves a knob you turn where you put it */
     } else if (k == K_LEDS) {
         proj.leds = (uint8_t)v;
+    } else if (k == K_PLAYMODE) {
+        proj.vibe = (uint8_t)v;
+        tr.phrases = 0;
+        say("MODE", v ? "VIBE" : "PERFORM");
+    } else if (k == K_WANDER) {
+        proj.wander = (uint8_t)v;
+    } else if (k == K_FADE) {
+        proj.fade = (uint8_t)v;
+    } else if (k == K_ACT) {
+        tr_queue(proj.piece / EN_NACT * EN_NACT + v, 0);
+        return;
     }
     mark_dirty();
 }
@@ -302,6 +507,13 @@ static void set_view(int v)
 static void button(int b)
 {
     int v;
+    if (b == B_SEL) {                            /* ACTS: on, the Story page with it; off */
+        ui.acts = !ui.acts;
+        if (ui.acts)
+            set_view(V_STORY);
+        say("ACTS", ui.acts ? "ON THE KEYS" : "OFF");
+        return;
+    }
     for (v = 0; v < NVIEWS; v++)                 /* a page's button: its page */
         if (VIEW_BTN[v] == b) {
             set_view(v);
@@ -380,7 +592,7 @@ static void help_tick(uint32_t btn, uint32_t keys)
     if (!btn || (btn & (btn - 1u)) || keys)
         return;
     for (i = 0; i < NB; i++)
-        if (btn == 1u << i && i != B_PLAY && i != B_SEL && !(ui.btn_used & btn) && now - ui.down_t[i] >= HELP_HOLD &&
+        if (btn == 1u << i && i != B_PLAY && !(ui.btn_used & btn) && now - ui.down_t[i] >= HELP_HOLD &&
             (int32_t)(ui.turn_t - ui.down_t[i]) <= 0) {
             ui.help = (uint8_t)(i + 1);
             ui.btn_used |= btn;                  /* its release now does nothing */
@@ -410,9 +622,23 @@ static void input(void)
     }
     ch = keys ^ ui.keys;
     ui.keys = keys;
-    for (i = 0; i < NKEYS; i++)
-        if ((ch & keys) >> i & 1u)
-            toggle_note((int)((5u + i) % 12u));  /* key 0 is F3 */
+    for (i = 0; i < NKEYS; i++) {
+        int t = ui.acts ? key_target((int)i) : -2;
+        if (t == -2) {                           /* the scale */
+            if ((ch & keys) >> i & 1u)
+                toggle_note((int)((5u + i) % 12u));  /* key 0 is F3 */
+        } else if (t >= 0) {                     /* ACTS: a tap queues, a hold fades now */
+            if ((ch & keys) >> i & 1u) {
+                ui.key_t[i] = plat_ms();
+                ui.key_held &= ~(1u << i);
+            } else if ((keys >> i & 1u) && !(ui.key_held >> i & 1u) && plat_ms() - ui.key_t[i] >= KEY_HOLD) {
+                ui.key_held |= 1u << i;
+                tr_queue(t, 1);
+            } else if ((ch >> i & 1u) && !(keys >> i & 1u) && !(ui.key_held >> i & 1u)) {
+                tr_queue(t, 0);
+            }
+        }
+    }
     if (btn || keys || ch)
         ui.act_t = plat_ms();
     midi_in();
@@ -439,8 +665,11 @@ static void input(void)
         set_mode(proj.par[P_MODE] + (e > 0 ? 1 : -1));
         ui.turn_t = plat_ms();
     }
-    if ((e = plat_enc(EN_PRESET)) != 0) {
-        set_piece(proj.piece + (e > 0 ? 1 : -1));
+    if ((e = plat_enc(EN_PRESET)) != 0) {       /* PRESETS: the next / previous story, from its first act */
+        int st = (tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : proj.piece) / EN_NACT;
+        st = ((st + (e > 0 ? 1 : -1)) % EN_NSTORY + EN_NSTORY) % EN_NSTORY;
+        tr_queue(st * EN_NACT, 0);
+        say("STORY", en_story_name(st));
         ui.turn_t = plat_ms();
     }
     if ((btn >> B_SAVE & 1u) && !ui.reset_done && plat_ms() - ui.down_t[B_SAVE] > RESET_HOLD) {
@@ -671,6 +900,7 @@ static void draw_header(void)
                       (uint32_t)(batt() + 1) << 24);
     if (msg)
         h = hash(hash(h, (uint32_t)ui.msg[0][0] << 8 | ui.msg[0][1]), ui.msg_until);
+    h = hash(h, (uint32_t)(tr.pending >= 0 ? plat_ms() / 400u & 1u : 0u) << 30 | (uint32_t)(tr.pending + 1) | (uint32_t)tr.on << 8 | (uint32_t)tr.piece << 9 | (uint32_t)(tr.t * 20.0f) << 16);
     if (en_playing)
         h = hash(h, (en_bars / 4u) & 1u);
     if (h == ui.sig[0])
@@ -720,9 +950,26 @@ static void draw_header(void)
         w = text_w(&FONT_B, piece_name(proj.piece)) + 12;   /* the piece, in a coral tag */
         cv_round(4, 4, w, 20, 6, K_TEXT);
         cv_text(10, 6, &FONT_B, piece_name(proj.piece), K_BG);
-        w += 10;                                  /* the root, then the mode, where they clear the right side */
-        if (w + text_w(&FONT_XS, EN_NOTE_NAME[proj.par[P_ROOT]]) + 4 <= x) {
-            w = cv_text(w, 8, &FONT_XS, EN_NOTE_NAME[proj.par[P_ROOT]], K_TEXT);
+        w += 8;                                   /* the act; where it is going (blinking while it waits, a bar as it
+                                                   * glides); then the root, where it clears the right side */
+        w = cv_text(w, 8, &FONT_XS, en_act_name(proj.piece), K_ACC);
+        if (tr.pending >= 0 || tr.on) {
+            int goal = tr.pending >= 0 ? tr.pending : tr.piece;
+            const char *g = goal / EN_NACT != proj.piece / EN_NACT ? en_story_name(goal / EN_NACT) : en_act_name(goal);
+            if (w + 14 + text_w(&FONT_XS, g) + 4 <= x) {
+                int32_t gx = w + 4;
+                cv_rect(gx, 14, 6, 1, K_DIM);         /* an arrow */
+                cv_rect(gx + 4, 12, 1, 5, K_DIM);
+                cv_rect(gx + 5, 13, 1, 3, K_DIM);
+                if (tr.on) {                          /* the glide's progress, under the name */
+                    int32_t gw = text_w(&FONT_XS, g);
+                    cv_rect(gx + 10, 22, gw, 1, K_LINE);
+                    cv_rect(gx + 10, 22, (int32_t)((float)gw * tr.t), 1, K_ACC);
+                }
+                w = cv_text(gx + 10, 8, &FONT_XS, g, tr.pending >= 0 && (plat_ms() / 400u & 1u) ? K_DIM : K_TEXT);
+            }
+        } else if (w + 6 + text_w(&FONT_XS, EN_NOTE_NAME[proj.par[P_ROOT]]) + 4 <= x) {
+            w = cv_text(w + 6, 8, &FONT_XS, EN_NOTE_NAME[proj.par[P_ROOT]], K_TEXT);
             if (w + 3 + text_w(&FONT_XS, mode_name()) + 4 <= x)
                 cv_text(w + 3, 8, &FONT_XS, mode_name(), K_DIM);
         }
@@ -855,6 +1102,7 @@ static int help_lines(int b, const char *l[HELP_LINES])
     int n = 0;
 #define L(t) (l[n++] = (t))
     switch (b) {
+    case B_SEL: L("ACTS: THE KEYS F G A B"); L("ARE THE ACTS, C UP THE STORIES"); L("TAP: NEXT PHRASE. HOLD: FADE"); break;
     case B_HOME: L("THE GARDEN"); L("TEMPO, EVOLVE, MOTION, DRIFT"); L("+ SELECT: TEMPO"); break;
     case B_ENV: L("THE PAD"); L("LEVEL, SWELL, BRIGHT,"); L("COLOUR"); break;
     case B_ARP: L("THE BELLS"); L("LEVEL, DENSITY, TONE,"); L("OCTAVE"); break;
@@ -866,7 +1114,7 @@ static int help_lines(int b, const char *l[HELP_LINES])
     case B_REC: L("FREEZE: THE CHORD HOLDS"); L(" AND THE REVERB RINGS ON"); L("AGAIN: THAW"); break;
     case B_OCTDN: L("THE BELLS AN OCTAVE DOWN"); L("WITH OCT+, 5 S: UPDATE MODE"); break;
     case B_OCTUP: L("THE BELLS AN OCTAVE UP"); L("WITH OCT-, 5 S: UPDATE MODE"); break;
-    case B_SAVE: L("SAVES ALL EIGHT PIECES"); L("KEEP HOLDING: THE PIECE"); L(" BACK TO ITS RECIPE"); break;
+    case B_SAVE: L("SAVES EVERY ACT"); L("KEEP HOLDING: THE ACT"); L(" BACK TO ITS RECIPE"); break;
     default: break;
     }
 #undef L
@@ -994,7 +1242,20 @@ static void leds(void)
         b |= 1u << B_PLAY;
     if (en_frozen)
         b |= 1u << B_REC;
-    if (proj.leds)
+    if (ui.acts) {                               /* ACTS: the act and story playing lit, where it goes blinking */
+        int goal = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : -1, blink = (plat_ms() / 250u) & 1u;
+        b |= 1u << B_SEL;
+        for (i = 0; i < NKEYS; i++) {
+            int t = key_target((int)i), lit;
+            if (t < 0)
+                continue;
+            lit = KEY_ACT[i] < EN_NACT ? t == proj.piece : t / EN_NACT == proj.piece / EN_NACT;
+            if (goal >= 0 && (KEY_ACT[i] < EN_NACT ? t == goal : t / EN_NACT == goal / EN_NACT && t != proj.piece / EN_NACT * EN_NACT))
+                lit = blink;
+            if (lit)
+                k |= 1u << i;
+        }
+    } else if (proj.leds)
         for (i = 0; i < NKEYS; i++)
             if (ap >> ((5u + i) % 12u) & 1u)
                 k |= 1u << i;
@@ -1452,6 +1713,8 @@ void ui_init(void)
 {
     memset(&ui, 0, sizeof ui);
     ui.touched = -1;
+    memset(&tr, 0, sizeof tr);
+    tr.pending = -1;
     lcd_fill(0, 0, 240, 240, K_BG);
     if (!en_playing)
         en_play(1);                              /* it grows from the start */
@@ -1462,6 +1725,7 @@ void ui_init(void)
 void ui_frame(void)
 {
     input();
+    tr_tick();
     autosave();
     draw_header();
     draw_main();
@@ -1472,4 +1736,8 @@ void ui_frame(void)
     ui.frame++;
 }
 
-void ui_input_only(void) { input(); }
+void ui_input_only(void)
+{
+    input();
+    tr_tick();
+}

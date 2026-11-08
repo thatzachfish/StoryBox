@@ -1,60 +1,57 @@
-# the pieces: PRESETS picks one, each remembers its settings, SAVE held resets one, all saved
+# StoryBox's stories and acts: ACTS (SEL) puts the acts on the white keys F G A B and the stories from C up;
+# a tap moves on the next phrase, a hold fades over Fade; each act keeps its own settings; SAVE held resets one
 wait 500
 expect piece 0
-# Garden's pad down (the Pad page: ENV)
-tap ENV
-spin K1 -10
-expect par0 50
-# the next piece: Departures, its recipe (tempo 60, no pulse, C# Ionian)
-turn PRESET 1
-expect piece 1
-expect par18 60
-expect par3 0
-expect par19 1
-expect pool 0xAB5
-wait 8000
-shot departures.png
-# and Voices
-turn PRESET 1
-expect piece 2
-expect par1 0
-wait 20000
-shot voices.png
-expect pad_level >10
-# the pad's colour (the Pad page's fourth knob), kept with the piece (Voices starts as Voices)
-expect par22 1
-spin K4 -1
-expect par22 0
-wait 3000
-# back to Garden: as it was left
-turn PRESET -2
-expect par22 0
+expect view 0
+tap SEL
+expect view 0
+# a tap on G3 (act 2, Warm Up): it waits for the next phrase, then glides over one
+tapkey 2
+wait 100
 expect piece 0
-expect par0 50
-spin K4 1
-expect par22 1
-turn PRESET 2
-expect par22 0
-turn PRESET -2
-expect par22 1
-# SAVE held: Garden's recipe again
+wait 13000
+expect piece 1
+expect par3 55
+shot warmup.png
+# the bells' level on this act (the Bells page), kept with it
+tap ARP
+spin K1 -5
+expect par1 50
+# a hold on B3 (act 4, Lights Down): it fades over Fade, starting now
+key 6 down
+wait 600
+key 6 up
+wait 3000
+expect piece 1
+wait 120000
+expect piece 3
+expect par3 25
+# back to Warm Up: as it was left
+tapkey 2
+wait 15000
+expect piece 1
+expect par1 50
+# SAVE held: Warm Up's recipe again
 press SAVE
 wait 1700
 release SAVE
-expect par0 60
-expect par22 0
-expect store_writes 0
-# a tweak, saved, survives a reboot, on the piece it was made on (the Bells page: ARP)
-tap ARP
-spin K1 5
-expect par1 70
-turn PRESET 6
-expect piece 6
+expect par1 55
+# the stories: the white key E4 is the third story (Lighthouse), from its first act
+tapkey 11
+wait 15000
+expect piece 8
+expect par18 66
+shot lighthouse.png
+# PRESETS: the next story (Market Day)
+turn PRESET 1
+wait 15000
+expect piece 12
+# a key while ACTS is off plays the scale again
+tap SEL
+tapkey 2
+expect pool 0xA95
+# saved, and still there after a restart
 tap SAVE
-expect store_writes 1
 reboot
 wait 300
-expect piece 6
-turn PRESET 2
-expect piece 0
-expect par1 70
+expect piece 12
