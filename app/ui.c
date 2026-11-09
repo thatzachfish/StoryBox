@@ -2555,6 +2555,82 @@ static void draw_fx_page_c(void)                 /* C: the effect as columns acr
     }
 }
 
+/* D / E: B's cards, their pictures drawn in columns, each effect its own shape (E: its own colour too) */
+static uint16_t fx_col(int i) { static const uint16_t C[4] = {K_FROST, K_BASS, K_PULSE, K_BELL}; return fx_style == 4 ? C[i] : K_ALERT; }
+static float fx_shape(int i, int k, int n, uint32_t t)   /* column k of n: how tall (0..1) */
+{
+    float x = (float)k / (float)(n - 1);
+    switch (i) {
+    case 0:                                       /* Reverse: a swell, then cut (a note backwards) */
+        return 0.08f + 0.92f * x * x;
+    case 1: {                                     /* Stutter: the same slice again and again, each a sharp start */
+        int sl = 1 + n / (2 + proj.par[P_STRATE]), j = k % sl;
+        return j == sl - 1 ? 0.0f : 0.95f - 0.6f * (float)j / (float)sl;
+    }
+    case 2: {                                     /* Filter: flat, a bump at the cutoff, then falling away */
+        float fc = 0.15f + 0.7f * (float)proj.par[P_FLCUT] * 0.01f, q = (float)proj.par[P_FLRES] * 0.004f, d = x - fc;
+        return x < fc ? 0.55f + q * fm_expf(-d * d * 300.0f) : fm_maxf(0.04f, 0.55f + q * fm_expf(-d * d * 300.0f) - (x - fc) * 2.2f);
+    }
+    default: {                                    /* Sparkle: short bright grains, high, scattered */
+        uint32_t h = (uint32_t)(k * 2654435761u) ^ (t / 3u * 40503u);
+        return (h >> 7 & 3u) == 0u ? 0.0f : 0.25f + (float)(h >> 9 & 15u) * 0.045f;
+    }
+    }
+}
+static void fx_cols(int i, int32_t x0, int32_t y0, int32_t w, int32_t h, int n, int segs, int on)
+{
+    int k, s;
+    uint32_t t = on ? plat_ms() / 70u : 0u;
+    int32_t cw = w / n, sh = h / segs;
+    uint16_t c = fx_col(i);
+    for (k = 0; k < n; k++) {
+        int kk = i == 1 || i == 3 || !on ? k : k, lit;
+        float v = fx_shape(i, kk, n, t);
+        if (on && i == 0)                         /* (Reverse: the swell runs while it is on) */
+            v = fx_shape(0, (k + (int)t) % n, n, t);
+        lit = (int)(fm_clampf(v, 0.0f, 1.0f) * (float)segs + 0.5f);
+        for (s = 0; s < segs; s++)
+            cv_round(x0 + k * cw, y0 + h - (s + 1) * sh + 1, cw - 1 > 1 ? cw - 1 : 1, sh - 1, 1,
+                     s < lit ? (on ? mix(K_BG, c, (uint32_t)(7 + s * 9 / (segs > 1 ? segs - 1 : 1))) : mix(K_PANEL, c, 6)) :
+                               (on ? mix(K_BG, K_PANEL, 12) : mix(K_BG, K_PANEL, 14)));
+    }
+}
+static void draw_fx_list_d(void)
+{
+    int i;
+    for (i = 0; i < EN_NFX; i++) {
+        int on = ((ui.fx_held | ui.fx_latch) >> i) & 1u, lat = ui.fx_latch >> i & 1u;
+        int32_t x = 4 + i * 59, cx = x + 26;
+        uint16_t c = fx_col(i);
+        cv_round(x, 4, 53, 118, 8, on ? mix(K_BG, c, 4) : K_PANEL);
+        fx_cols(i, x + 5, 12, 44, 40, 11, 8, on);
+        text_c(cx, 58, &FONT_S, VIEW_NAME[V_REV + i], on ? K_TEXT : K_DIM);
+        cv_round(cx - 16, 78, 32, 15, 4, on ? c : K_BG);
+        text_c(cx, 78, &FONT_XS, BTN_LABEL[FX_BTN[i]], on ? K_BG : K_ACC);
+        text_c(cx, 100, &FONT_XS, lat ? "latched" : on ? "on" : "hold", on ? c : K_LINE);
+    }
+    cv_text(8, 128, &FONT_XS, "hold a button, or double-tap to latch", K_LINE);
+}
+static void draw_fx_page_d(void)
+{
+    static const uint8_t PP[4][2] = {{P_RVLEN, P_RVMIX}, {P_STRATE, P_STMIX}, {P_FLCUT, P_FLRES}, {P_SCSIZE, P_SCMIX}};
+    static const char *const SH[4][2] = {{"Len", "Mix"}, {"Rate", "Mix"}, {"Cut", "Res"}, {"Size", "Mix"}};
+    int i = ui.view - V_REV, on = ((ui.fx_held | ui.fx_latch) >> i) & 1u, lat = ui.fx_latch >> i & 1u, k;
+    uint16_t c = fx_col(i);
+    cv_round(4, 4, 164, 126, 10, on ? mix(K_BG, c, 3) : K_PANEL);
+    fx_cols(i, 12, 12, 148, 62, 21, 10, on);
+    text_c(86, 80, &FONT_B, VIEW_NAME[ui.view], on ? K_TEXT : K_DIM);
+    cv_round(86 - 42, 104, 36, 17, 4, on ? c : K_BG);
+    text_c(86 - 24, 105, &FONT_XS, BTN_LABEL[FX_BTN[i]], on ? K_BG : K_ACC);
+    text_c(86 + 22, 105, &FONT_XS, lat ? "latched" : on ? "on" : "hold", on ? c : K_LINE);
+    for (k = 0; k < 2; k++) {
+        int lo, hi, v = proj.par[PP[i][k]];
+        int32_t x = 178 + k * 30;
+        knob_range(PP[i][k], &lo, &hi);
+        vmeter(x, 8, 22, 112, 12, hi > lo ? (float)(v - lo) / (float)(hi - lo) : 0.0f, on ? c : K_LINE, 0);
+        text_c(x + 11, 116, &FONT_XS, SH[i][k], K_DIM);
+    }
+}
 static int ring_focus(void)                      /* an instrument's page: its ring */
 {
     return ui.view == V_PAD ? 0 : ui.view == V_BELLS ? 1 : ui.view == V_BASS ? 2 : ui.view == V_PULSE ? 3 : -1;
@@ -2638,8 +2714,8 @@ static void draw_main(void)
     case 1: draw_help(); break;
     case 2: draw_map(); break;
     case 3: draw_lead(); break;
-    case 4: fx_style == 1 ? draw_fx_list_b() : fx_style == 2 ? draw_fx_list_c() : draw_fx_list(); break;
-    case 5: fx_style == 1 ? draw_fx_page_b() : fx_style == 2 ? draw_fx_page_c() : draw_fx_page(); break;
+    case 4: fx_style == 1 ? draw_fx_list_b() : fx_style == 2 ? draw_fx_list_c() : fx_style >= 3 ? draw_fx_list_d() : draw_fx_list(); break;
+    case 5: fx_style == 1 ? draw_fx_page_b() : fx_style == 2 ? draw_fx_page_c() : fx_style >= 3 ? draw_fx_page_d() : draw_fx_page(); break;
     case 6: draw_feel(); break;
     case 7: draw_setup(); break;
     case 8: draw_system(); break;
