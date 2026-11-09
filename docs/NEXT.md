@@ -112,3 +112,5 @@ Sound notes (2026-11-09):
 - [ ] Colours more saturated (mockups-0.4: yellow 255,212,58; fuchsia 255,62,178; pad 104,232,84; melody 64,214,240;
       bass 255,140,52; drums 194,142,255; frost 120,170,255)
 - [ ] Mockups sent (2026-11-09): Mixer channel strips, Colours, Lead's melody trace, Feel without the tide
+- [ ] Feel: "Right now" is called Energy: one Energy meter (ALGORITHM's setting lit; a marker riding on it where the
+      swell has the music now)
