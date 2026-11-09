@@ -30,7 +30,11 @@ int app_expect(const char *what, int *got)
     else if (!strcmp(what, "answer"))             /* the Answer setting */
         g = proj.answer;
     else if (!strcmp(what, "btout"))              /* the sound to the speaker (1) or the FM-1 (0) */
+#if FM1B_BT_AUDIO
         g = plat_bta_out_device();
+#else
+        g = 0;
+#endif
     else if (!strcmp(what, "dark"))               /* StoryBox: the screen dark (the sleep timer's) */
         g = ui.dark;
     else if (!strcmp(what, "mutes"))              /* the layers muted, then soloed << 4 */

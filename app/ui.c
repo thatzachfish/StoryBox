@@ -410,6 +410,20 @@ static int key_target(int k)
  * Speaker picks one, SAVE connects it or lets it go, SAVE held forgets it. Sound to: the speaker or the FM-1's own
  * (the link kept). At power-on the last speaker is called again. While it streams the FM-1's own output is quiet,
  * and the sound comes 150-300 ms late (the speaker's buffer). */
+#if !FM1B_BT_AUDIO                              /* (a build without it, the .rfm1: nothing there) */
+#define plat_bta_on(x) ((void)(x))
+#define plat_bta_scan(x) ((void)(x))
+#define plat_bta_found(i, n) ((void)(i), (void)(n), 0)
+#define plat_bta_known(i, n) ((void)(i), (void)(n), 0)
+#define plat_bta_pick(i) ((void)(i))
+#define plat_bta_reconnect(i) ((void)(i), -1)
+#define plat_bta_forget(i) ((void)(i))
+#define plat_bta_hangup() ((void)0)
+#define plat_bta_state() PLAT_BTA_OFF
+#define plat_bta_output(x) ((void)(x))
+#define plat_bta_out_device() 0
+#define plat_bta_lost() PLAT_BTA_LOST_NONE
+#endif
 #define BT_N 8
 static struct {
     int sel, n, last_state, boot_tries, asked;   /* asked: a connect asked for (its no answer said) */
