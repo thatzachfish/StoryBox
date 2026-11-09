@@ -116,4 +116,4 @@ API int app_mode_pool(int m) { return EN_MODE_POOL[(unsigned)m < EN_NMODES ? m :
 API int app_nmodes(void) { return EN_NMODES; }
 API const char *app_note_name(int n) { return EN_NOTE_NAME[((n % 12) + 12) % 12]; }
 API int app_loop_len(int l) { return EN_LOOP_LEN[l % EN_NLOOP]; }
-API int app_drum_n(int d) { return EN_DRUM_N[d % EN_NDRUM]; }
+API int app_drum_n(int d) { return en_drum_n[d % EN_NDRUM]; }

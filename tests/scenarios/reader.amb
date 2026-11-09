@@ -3,7 +3,7 @@
 wait 200
 listen
 wait 100
-said Story page: Act Doors, Freedom 30, Wander Perform
+said Story page: Act Doors, Freedom 30, Tension 0, Wander Perform
 # (the garden follows, queued: the chord, how far to the next, the scale from the root up)
 listen
 where
@@ -14,9 +14,9 @@ wait 300
 said Pad page: Level 50, Swell 45, Bright 45, Colour Rhodes
 tap GLO
 wait 300
-said Setup page: Root D, Tune 0, MIDI out On, Lights On
+said Setup page: Root D, Fade 19s, Tune 0, Lights On
 # a knob: its name and value, once it settles
-spin K2 3
+spin K3 3
 wait 300
 said Tune +3
 spin K4 1

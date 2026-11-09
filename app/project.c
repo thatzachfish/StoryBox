@@ -113,8 +113,8 @@ void project_target(int i, int16_t *par, uint16_t *pool)
 {
     int p;
     i = (i % NPIECES + NPIECES) % NPIECES;
-    for (p = 0; p < P_NPARAMS; p++)
-        par[p] = global_par(p) ? proj.par[p] : proj.slot[i].par[p];
+    for (p = 0; p < P_NPARAMS; p++)               /* Root: a new story brings its own key */
+        par[p] = global_par(p) && !(p == P_ROOT && i / EN_NACT != proj.piece / EN_NACT) ? proj.par[p] : proj.slot[i].par[p];
     *pool = proj.slot[i].pool;
 }
 

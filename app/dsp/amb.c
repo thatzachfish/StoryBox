@@ -13,14 +13,18 @@
 
 const char *const EN_NOTE_NAME[12] = {"C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"};
 const char *const EN_MODE_NAME[EN_NMODES] = {"Ionian", "Dorian", "Phrygian", "Lydian", "Mixolyd.", "Aeolian",
-                                             "Pent maj", "Pent min"};
+                                             "Pent maj", "Pent min", "Mel. min"};
 #define B(a, b, c, d, e, f, g) (1u << (a) | 1u << (b) | 1u << (c) | 1u << (d) | 1u << (e) | 1u << (f) | 1u << (g))
 const uint16_t EN_MODE_POOL[EN_NMODES] = {
     B(0, 2, 4, 5, 7, 9, 11), B(0, 2, 3, 5, 7, 9, 10), B(0, 1, 3, 5, 7, 8, 10), B(0, 2, 4, 6, 7, 9, 11),
-    B(0, 2, 4, 5, 7, 9, 10), B(0, 2, 3, 5, 7, 8, 10), B(0, 2, 4, 7, 9, 9, 9),  B(0, 3, 5, 7, 10, 10, 10)};
+    B(0, 2, 4, 5, 7, 9, 10), B(0, 2, 3, 5, 7, 8, 10), B(0, 2, 4, 7, 9, 9, 9),  B(0, 3, 5, 7, 10, 10, 10),
+    B(0, 2, 3, 5, 7, 9, 11)};
 #undef B
 const uint8_t EN_LOOP_LEN[EN_NLOOP] = {13, 17, 23, 29};
 const uint8_t EN_DRUM_N[EN_NDRUM] = {16, 12, 7};
+volatile uint8_t en_drum_n[EN_NDRUM] = {16, 12, 7};
+volatile uint8_t en_bar_len = 16;
+volatile uint32_t en_barno;
 
 static const en_param_t PARAMS[P_NPARAMS] = {
     {"Pad", 0, 100, 60},      {"Bells", 0, 100, 65},    {"Bass", 0, 100, 45},     {"Pulse", 0, 100, 40},
@@ -31,6 +35,7 @@ static const en_param_t PARAMS[P_NPARAMS] = {
     {"Mode", 0, EN_NMODES - 1, 1}, {"Bell oct", -2, 2, 0}, {"Pad tone", 0, 1, 0},
     {"Bass oct", -1, 1, 0},   {"Glide", 0, 100, 20},    {"Fifth", 0, 100, 35},
     {"Swing", 0, 100, 0},     {"Hats", 0, 100, 50},     {"Freedom", 0, 100, 100},
+    {"Tension", 0, 100, 0},   {"Meter", 0, 1, 0},
 };
 const en_param_t *en_param_info(int i) { return (i >= 0 && i < P_NPARAMS) ? &PARAMS[i] : &PARAMS[0]; }
 
@@ -39,64 +44,143 @@ const en_param_t *en_param_info(int i) { return (i >= 0 && i < P_NPARAMS) ? &PAR
  *                     Pad Bel Bas Pul  Den Evo Dri Hit  Ech ET Rev Siz  Bri Swe Ton Mot  Tun MI Tem Rt Md Oc  PT  BO Gli Fif  Swi Hat
  * (Md: 0 Ionian 1 Dorian 2 Phrygian 3 Lydian 4 Mixolydian 5 Aeolian 6 pent. major 7 pent. minor; PT: the pad's colour,
  * 0 Rhodes, 1 Voices; Oc: the bells' octave; BO: the bass's octave) */
-/* Each act may have a progression: "degree:bars ..." in the act's scale, 1 its first (the root's) chord, as
- * "1:2 4:2 7:2 3:2" (two bars each); 0 or "" none (free). Freedom (the last column) blends it: 0 as written,
- * more and more reharmonised (a chord a third away, a chord held) toward 100, where it is ignored. */
-#define PROG_MAX 8
+/* Each act may have a progression of up to PROG_MAX chords, each "CHORD:bars" (bars 1 if left out), 0 or "" none
+ * (free). A CHORD is either a degree of the act's scale (1 its first chord: "1:2 4:2 7:2 3:2"), or a name in the
+ * story's key (key: G for Inside), moved with the player's Root: a root (C D E F G A B, # or b), a quality
+ * (none major, m, 7, m7, maj7, dim, aug, sus2, sus4, add9, 6, m6, magic: root, fifth, sixth and major seventh) and
+ * a bass (/F#): "G:2 Bm/F#:2 Em:2 D:2". Named chords need not be in the scale: the bells bend to them.
+ * Freedom blends it: 0 as written, more and more varied (a chord a third away, a chord held, a bar longer or
+ * shorter) toward 100, where it is ignored.
+ * Stings: notes with octaves ("G6", "G3 G3 D4 E4 F#4 G4"), in the story's key, moved with Root. */
+#define PROG_MAX 12
+#define STING_MAX 6
 static const struct {
     const char *name;
     const char *act[EN_NACT];
     int8_t v[EN_NACT][P_NPARAMS];
     const char *prog[EN_NACT];
+    int8_t key;
+    const char *sting[EN_NSTING];
+    const char *sting_name[EN_NSTING];
 } STORIES[EN_NSTORY] = {
     {"Pre-show", {"Doors", "Warm Up", "Lounge", "Lights Down"}, {
         {50, 40, 40, 30, 30, 30, 30, 30, 40, 2, 50, 65, 45, 45, 55, 40, 0, 1, 84, 2, 1, 0, 0, 0, 15, 30, 70, 55, 30},
         {55, 55, 55, 55, 45, 40, 25, 55, 40, 2, 45, 60, 55, 40, 60, 50, 0, 1, 84, 2, 1, 0, 0, 0, 10, 40, 70, 65, 15},
         {55, 70, 50, 50, 55, 50, 25, 50, 50, 1, 50, 65, 60, 45, 70, 55, 0, 1, 84, 2, 4, 0, 0, 0, 15, 40, 65, 70, 40},
         {50, 35, 40, 25, 25, 30, 35, 25, 50, 3, 60, 75, 35, 55, 45, 40, 0, 1, 80, 2, 1, 0, 0, 0, 20, 30, 70, 45, 100}},
-        {"1:2 4:2", "1:2 4:2 7:2 3:2", "1:2 7:2 4:2 1:2", 0}},
+        {"1:2 4:2", "1:2 4:2 7:2 3:2", "1:2 7:2 4:2 1:2", 0}, 2, {0}, {0}},
     {"Sleep", {"Dusk", "Drifting", "Deep", "Stillness"}, {
         {60, 45, 30, 0, 30, 30, 55, 0, 40, 4, 75, 90, 35, 70, 30, 45, 0, 1, 56, 2, 6, 0, 0, 0, 40, 25, 0, 40, 100},
         {65, 35, 25, 0, 25, 25, 65, 0, 35, 5, 80, 92, 28, 75, 20, 50, 0, 1, 52, 2, 6, -1, 1, -1, 45, 20, 0, 40, 100},
         {70, 20, 20, 0, 18, 20, 75, 0, 25, 5, 85, 95, 20, 80, 10, 45, 0, 1, 50, 2, 6, -1, 1, -1, 50, 15, 0, 40, 100},
-        {60, 10, 10, 0, 12, 15, 85, 0, 20, 5, 88, 97, 15, 85, 5, 35, 0, 1, 48, 2, 6, -1, 1, -1, 50, 10, 0, 40, 100}}, {0}},
+        {60, 10, 10, 0, 12, 15, 85, 0, 20, 5, 88, 97, 15, 85, 5, 35, 0, 1, 48, 2, 6, -1, 1, -1, 50, 10, 0, 40, 100}}, {0}, 2, {0}, {0}},
     {"Lighthouse", {"Fog", "Signal", "Storm", "Dawn"}, {
         {55, 30, 35, 0, 25, 30, 45, 0, 55, 4, 75, 90, 25, 70, 20, 60, 0, 1, 66, 2, 5, -1, 1, 0, 35, 25, 0, 40, 100},
         {45, 70, 40, 20, 40, 40, 35, 25, 50, 3, 65, 85, 40, 55, 80, 55, 0, 1, 66, 2, 5, 1, 1, 0, 25, 30, 0, 60, 100},
         {55, 65, 60, 60, 60, 70, 15, 70, 60, 1, 60, 80, 50, 35, 70, 90, 0, 1, 76, 2, 2, 0, 0, 0, 15, 45, 20, 80, 100},
-        {50, 60, 35, 15, 40, 35, 40, 15, 40, 3, 70, 85, 65, 60, 40, 50, 0, 1, 66, 2, 3, 0, 1, 0, 30, 30, 0, 40, 100}}, {0}},
+        {50, 60, 35, 15, 40, 35, 40, 15, 40, 3, 70, 85, 65, 60, 40, 50, 0, 1, 66, 2, 3, 0, 1, 0, 30, 30, 0, 40, 100}}, {0}, 2, {0}, {0}},
     {"Market Day", {"Morning", "Crowds", "Siesta", "Lanterns"}, {
         {50, 55, 35, 25, 40, 35, 30, 25, 35, 2, 50, 65, 55, 45, 60, 45, 0, 1, 92, 2, 0, 0, 0, 0, 15, 35, 40, 60, 100},
         {45, 75, 55, 60, 65, 60, 20, 70, 40, 1, 45, 60, 65, 35, 70, 65, 0, 1, 96, 2, 4, 0, 0, 0, 10, 45, 55, 75, 100},
         {55, 40, 30, 15, 25, 25, 45, 15, 50, 3, 60, 75, 40, 65, 40, 40, 0, 1, 84, 2, 6, -1, 1, 0, 30, 25, 30, 40, 100},
-        {55, 60, 50, 40, 45, 45, 30, 45, 55, 2, 60, 75, 45, 50, 55, 55, 0, 1, 88, 2, 4, 0, 0, 0, 20, 40, 50, 55, 100}}, {0}},
+        {55, 60, 50, 40, 45, 45, 30, 45, 55, 2, 60, 75, 45, 50, 55, 55, 0, 1, 88, 2, 4, 0, 0, 0, 20, 40, 50, 55, 100}}, {0}, 2, {0}, {0}},
     {"Deep Forest", {"Path", "Hollow", "Spirits", "Clearing"}, {
         {50, 50, 35, 25, 35, 40, 35, 30, 45, 3, 65, 80, 40, 55, 50, 50, 0, 1, 70, 2, 1, 0, 0, 0, 25, 30, 15, 45, 100},
         {60, 35, 45, 20, 30, 45, 40, 20, 50, 2, 75, 90, 25, 65, 30, 65, 0, 1, 64, 2, 2, -1, 1, -1, 30, 35, 10, 35, 100},
         {55, 70, 25, 10, 50, 60, 30, 10, 80, 4, 80, 95, 45, 60, 85, 80, 0, 1, 70, 2, 7, 1, 1, 0, 40, 20, 0, 30, 100},
-        {50, 65, 40, 30, 45, 40, 30, 35, 45, 3, 65, 80, 65, 50, 55, 50, 0, 1, 72, 2, 6, 0, 0, 0, 20, 35, 15, 50, 100}}, {0}},
+        {50, 65, 40, 30, 45, 40, 30, 35, 45, 3, 65, 80, 65, 50, 55, 50, 0, 1, 72, 2, 6, 0, 0, 0, 20, 35, 15, 50, 100}}, {0}, 2, {0}, {0}},
+    /* Inside (The Story of the Inside): a waltz in G. A magician who makes the inside, his apprentice, her years
+     * outside (G with a B flat everywhere: melodic minor; a slide down by half steps, Tension for the storm), her
+     * return, and the magic chord (G, D, E, F#: no third) */
+    {"Inside", {"Magician", "Apprentice", "Outside", "Return"}, {
+        {50, 60, 45, 35, 45, 30, 40, 40, 35, 2, 55, 70, 55, 40, 35, 45, 0, 1, 96, 7, 0, 0, 0, 0, 10, 30, 0, 40, 10, 0, 1},
+        {55, 45, 40, 25, 35, 30, 40, 30, 45, 3, 65, 80, 40, 55, 30, 45, 0, 1, 92, 7, 0, 0, 1, 0, 15, 25, 0, 35, 15, 0, 1},
+        {50, 60, 55, 45, 50, 60, 30, 55, 60, 1, 65, 85, 35, 35, 75, 75, 0, 1, 96, 7, 8, 0, 1, -1, 20, 20, 0, 70, 25, 35, 1},
+        {55, 65, 45, 35, 50, 35, 40, 40, 40, 2, 60, 75, 60, 45, 40, 50, 0, 1, 96, 7, 0, 0, 0, 0, 10, 30, 0, 40, 10, 0, 1}},
+        {"G:2 Bm/F#:2 Em:2 D:2", "G:2 Em:2 D:2 Em:2", "Gm:1 F#:1 F:1 Em:1 F:1 F#:1",
+         "G:2 Bm/F#:2 Em:2 D:2 G:2 Em:2 D:2 Gmagic:4"},
+        7, {"G6", "G2 G3 D4 E4 F#4 G4"}, {"High G", "Magic"}},
 };
 
-static int8_t prog_deg[EN_NPIECES][PROG_MAX];
-static uint8_t prog_bars[EN_NPIECES][PROG_MAX], prog_n[EN_NPIECES], prog_parsed;
-static void prog_parse(void)                    /* the stories' progressions, once */
+/* the progressions and stings, parsed once. A step: a degree (prog_deg >= 0), or a named chord: its root and bass
+ * as semitones above the story's key (bass -1: the root), its tones as intervals */
+static int8_t prog_deg[EN_NPIECES][PROG_MAX], prog_off[EN_NPIECES][PROG_MAX], prog_bass[EN_NPIECES][PROG_MAX];
+static uint8_t prog_q[EN_NPIECES][PROG_MAX], prog_bars[EN_NPIECES][PROG_MAX], prog_n[EN_NPIECES], prog_parsed;
+static uint8_t sting_note[EN_NSTORY][EN_NSTING][STING_MAX], sting_n[EN_NSTORY][EN_NSTING];
+/* the qualities: a suffix and up to four intervals (0xFF: none) */
+#define NQUAL 13
+static const char *const QUAL_NAME[NQUAL] = {"magic", "maj7", "sus2", "sus4", "add9", "dim", "aug", "m7", "m6", "m", "7",
+                                             "6", ""};
+static const uint8_t QUAL_IV[NQUAL][4] = {{0, 7, 9, 11}, {0, 4, 7, 11}, {0, 2, 7, 0xFF}, {0, 5, 7, 0xFF}, {0, 4, 7, 2},
+                                          {0, 3, 6, 0xFF}, {0, 4, 8, 0xFF}, {0, 3, 7, 10}, {0, 3, 7, 9}, {0, 3, 7, 0xFF},
+                                          {0, 4, 7, 10}, {0, 4, 7, 9}, {0, 4, 7, 0xFF}};
+
+static int note_pc(const char **tp)             /* "F#", "Bb", "C": its pitch class, -1 none */
 {
-    int i;
+    static const int8_t L[7] = {9, 11, 0, 2, 4, 5, 7};   /* A .. G */
+    const char *t = *tp;
+    int pc;
+    if (*t < 'A' || *t > 'G')
+        return -1;
+    pc = L[*t++ - 'A'];
+    if (*t == '#')
+        pc++, t++;
+    else if (*t == 'b')
+        pc += 11, t++;
+    *tp = t;
+    return pc % 12;
+}
+
+static int starts(const char *t, const char *w)
+{
+    while (*w)
+        if (*t++ != *w++)
+            return 0;
+    return 1;
+}
+
+static void prog_parse(void)
+{
+    int i, s, k;
     for (i = 0; i < EN_NPIECES; i++) {
         const char *t = STORIES[i / EN_NACT].prog[i % EN_NACT];
-        int n = 0;
+        int key = STORIES[i / EN_NACT].key, n = 0;
         while (t && *t && n < PROG_MAX) {
-            int d = 0, b = 0;
+            int b = 0, q;
             while (*t == ' ')
                 t++;
-            while (*t >= '0' && *t <= '9')
-                d = d * 10 + (*t++ - '0');
+            if (!*t)
+                break;
+            prog_bass[i][n] = -1;
+            if (*t >= '0' && *t <= '9') {        /* a degree */
+                int d = 0;
+                while (*t >= '0' && *t <= '9')
+                    d = d * 10 + (*t++ - '0');
+                prog_deg[i][n] = (int8_t)(d < 1 ? 0 : d - 1);
+            } else {                             /* a name */
+                int pc = note_pc(&t);
+                if (pc < 0)
+                    break;
+                prog_deg[i][n] = -1;
+                prog_off[i][n] = (int8_t)((pc - key + 12) % 12);
+                for (q = 0; q < NQUAL - 1 && !starts(t, QUAL_NAME[q]); q++)
+                    ;
+                prog_q[i][n] = (uint8_t)q;
+                while (*t && *t != '/' && *t != ':' && *t != ' ')   /* past the suffix */
+                    t++;
+                if (*t == '/') {
+                    int bp;
+                    t++;
+                    bp = note_pc(&t);
+                    if (bp >= 0)
+                        prog_bass[i][n] = (int8_t)((bp - key + 12) % 12);
+                }
+            }
+            while (*t && *t != ':' && *t != ' ')
+                t++;
             if (*t == ':')
                 for (t++; *t >= '0' && *t <= '9';)
                     b = b * 10 + (*t++ - '0');
-            if (d < 1)
-                break;
-            prog_deg[i][n] = (int8_t)(d - 1);
             prog_bars[i][n] = (uint8_t)(b < 1 ? 1 : b > 16 ? 16 : b);
             n++;
             while (*t && *t != ' ')
@@ -104,6 +188,24 @@ static void prog_parse(void)                    /* the stories' progressions, on
         }
         prog_n[i] = (uint8_t)n;
     }
+    for (s = 0; s < EN_NSTORY; s++)
+        for (k = 0; k < EN_NSTING; k++) {
+            const char *t = STORIES[s].sting[k];
+            int n = 0;
+            while (t && *t && n < STING_MAX) {
+                int pc, o = 0;
+                while (*t == ' ')
+                    t++;
+                if ((pc = note_pc(&t)) < 0)
+                    break;
+                while (*t >= '0' && *t <= '9')
+                    o = o * 10 + (*t++ - '0');
+                sting_note[s][k][n++] = (uint8_t)(12 * (o + 1) + pc);
+                while (*t && *t != ' ')
+                    t++;
+            }
+            sting_n[s][k] = (uint8_t)n;
+        }
     prog_parsed = 1;
 }
 int en_prog_len(int piece)
@@ -111,6 +213,18 @@ int en_prog_len(int piece)
     if (!prog_parsed)
         prog_parse();
     return (unsigned)piece < EN_NPIECES ? prog_n[piece] : 0;
+}
+int en_story_key(int s) { return STORIES[(unsigned)s < EN_NSTORY ? s : 0].key; }
+int en_sting_len(int piece, int k)
+{
+    if (!prog_parsed)
+        prog_parse();
+    return (unsigned)piece < EN_NPIECES && (unsigned)k < EN_NSTING ? sting_n[piece / EN_NACT][k] : 0;
+}
+const char *en_sting_name(int piece, int k)
+{
+    const char *n = (unsigned)piece < EN_NPIECES && (unsigned)k < EN_NSTING ? STORIES[piece / EN_NACT].sting_name[k] : 0;
+    return n ? n : "Sting";
 }
 
 const char *en_story_name(int s) { return STORIES[(unsigned)s < EN_NSTORY ? s : 0].name; }
@@ -160,6 +274,8 @@ void en_param_text(int i, int v, char *b)
         s = ETIME_NAME[(unsigned)v < 6u ? v : 0];
     else if (i == P_MIDI)
         s = ONOFF[v ? 1 : 0];
+    else if (i == P_METER)
+        s = v ? "3/4" : "4/4";
     else if (i == P_PADTONE)
         s = v ? "Voices" : "Rhodes";
     else if (i == P_MODE)
@@ -341,7 +457,7 @@ const char *en_chord_name(const int *pcs, int n, char *buf)
 }
 
 /* ------------------------------------------------------------ commands --- */
-enum { C_SET, C_POOL, C_PLAY, C_NEXT, C_FREEZE, C_SEED, C_PANIC, C_CLOCK, C_REGROW, C_PROG };
+enum { C_SET, C_POOL, C_PLAY, C_NEXT, C_FREEZE, C_SEED, C_PANIC, C_CLOCK, C_REGROW, C_PROG, C_STING };
 #define QN 64u
 static uint32_t q[QN];
 static volatile uint32_t q_w, q_r;
@@ -363,6 +479,12 @@ void en_seed(uint32_t s) { post(C_SEED, 0, (int)(s & 0xFFFFu)); }
 void en_panic(void) { post(C_PANIC, 0, 0); }
 void en_clock(int msg) { post(C_CLOCK, msg, 0); }
 void en_regrow(void) { post(C_REGROW, 0, 0); }
+void en_sting(int piece, int k)
+{
+    if (!prog_parsed)
+        prog_parse();
+    post(C_STING, k & 1, piece);
+}
 void en_prog(int piece)
 {
     if (!prog_parsed)
@@ -389,6 +511,9 @@ volatile float en_pad_amp[EN_NPAD];
 static int16_t par[P_NPARAMS];
 static uint32_t pool = 0xAADu;                  /* Ionian until told */
 static int nsteps, steps[12];                   /* the scale */
+/* StoryBox: a named chord in play (chord_x): its tones and its bass (-1: the root), absolute pitch classes */
+static int chord_x, x_pcs[4], x_n, x_bass = -1;
+static float tension;                           /* Tension, 0..1 */
 static int deg;                                 /* the chord's scale degree */
 static int chord_pcs[4], chord_nt;
 static float tunefac = 1.0f;
@@ -625,6 +750,7 @@ typedef struct {
 static drum_t drum[EN_NDRUM];
 static uint8_t drum_pos[EN_NDRUM];
 static uint32_t drum_pat[EN_NDRUM];
+static uint8_t drum_n[EN_NDRUM] = {16, 12, 7};  /* StoryBox: each pulse's cycle (the thump's is the bar) */
 static float pulse_vol, swing, hat_f = 0.9f, hat_open = 0.42f;
 static float step_len, pulse_left;               /* a sixteenth, in samples; to the next MIDI clock pulse */
 static uint32_t noise = 22222u;
@@ -652,13 +778,40 @@ static int bell_note(int l, int off)            /* a loop slot's note, from the 
         n -= 12;
     while (n < 36)
         n += 12;
+    if (chord_x) {                              /* a named chord: a scale note a semitone from one of its tones bends to it */
+        int pc = n % 12, i, in = 0;
+        for (i = 0; i < chord_nt; i++)
+            in |= chord_pcs[i] == pc;
+        for (i = 0; i < chord_nt && !in; i++)
+            if ((chord_pcs[i] - pc + 12) % 12 == 1 || (pc - chord_pcs[i] + 12) % 12 == 1) {
+                n += (chord_pcs[i] - pc + 12) % 12 == 1 ? 1 : -1;
+                in = 1;
+            }
+    }
+    if (tension > 0.0f && frand() < tension * 0.45f)   /* Tension: a semitone off */
+        n += frand() < 0.5f ? 1 : -1;
     return n;
 }
 
 static void pad_retarget(void)                  /* the chord's tones to the four voices */
 {
     int from[4], to[4], i;
-    chord_nt = en_chord_tones(pool, par[P_ROOT], deg, chord_pcs);
+    if (chord_x) {
+        for (i = 0; i < x_n; i++)
+            chord_pcs[i] = x_pcs[i];
+        chord_nt = x_n;
+    } else {
+        chord_nt = en_chord_tones(pool, par[P_ROOT], deg, chord_pcs);
+    }
+    if (tension > 0.45f) {                      /* Tension: a flat ninth in the chord, then a tritone too */
+        int b9 = (chord_pcs[0] + 1) % 12, tt = (chord_pcs[0] + 6) % 12;
+        if (chord_nt < 4)
+            chord_pcs[chord_nt++] = b9;
+        else
+            chord_pcs[3] = b9;
+        if (tension > 0.75f)
+            chord_pcs[2] = tt;
+    }
     for (i = 0; i < EN_NPAD; i++)
         from[i] = (int)(pad[i].target + 0.5f);
     en_voice_lead(from, chord_pcs, chord_nt, to, 48, 77);
@@ -668,6 +821,14 @@ static void pad_retarget(void)                  /* the chord's tones to the four
     }
     en_chord_root = (uint8_t)chord_pcs[0];
     en_chord_n = (uint8_t)chord_nt;
+}
+
+static int bass_pc(void)                        /* the chord's bass: a slash chord's, else its root; Tension leans on the b2 */
+{
+    int pc = chord_x && x_bass >= 0 ? x_bass : chord_pcs[0];
+    if (tension > 0.6f && frand() < (tension - 0.6f) * 1.5f)
+        pc = (pc + 1) % 12;
+    return pc;
 }
 
 static void bass_to(int pc)
@@ -698,6 +859,23 @@ volatile int8_t en_prog_step = -1;
 static void chord_to(int i);
 static int prog_on(void) { return prog_cur >= 0 && prog_n[prog_cur] && freedom < 0.995f; }
 
+static void chord_named(int off, int q, int bass)   /* a named chord, off semitones above the key (Root) */
+{
+    int i, r = (par[P_ROOT] + off) % 12, best = 0, bd = 99;
+    x_n = 0;
+    for (i = 0; i < 4 && QUAL_IV[q][i] != 0xFF; i++)
+        x_pcs[x_n++] = (r + QUAL_IV[q][i]) % 12;
+    x_bass = bass >= 0 ? (par[P_ROOT] + bass) % 12 : -1;
+    for (i = 0; i < nsteps; i++) {              /* the bells' degree: the scale's note nearest the root */
+        int d = ((par[P_ROOT] + steps[i]) % 12 - r + 12) % 12;
+        d = d > 6 ? 12 - d : d;
+        if (d < bd)
+            bd = d, best = i;
+    }
+    chord_x = 1;
+    chord_to(best);
+}
+
 static void prog_advance(void)                  /* the next step, on a bar: as written, or (with Freedom) a variation */
 {
     int d, b;
@@ -705,6 +883,12 @@ static void prog_advance(void)                  /* the next step, on a bar: as w
     d = prog_deg[prog_cur][prog_i];
     b = prog_bars[prog_cur][prog_i];
     en_prog_step = (int8_t)prog_i;
+    if (d < 0) {                                /* a named chord: as written, or (with Freedom) the last one held */
+        prog_left = b + (frand() < freedom * 0.25f ? (b > 1 && frand() < 0.5f ? -1 : 1) : 0);
+        if (!(frand() < freedom * 0.3f))
+            chord_named(prog_off[prog_cur][prog_i], prog_q[prog_cur][prog_i], prog_bass[prog_cur][prog_i]);
+        return;
+    }
     if (frand() < freedom * 0.55f) {            /* a variation: a chord a third away, or the last one held */
         float r = frand();
         if (r < 0.45f)
@@ -718,8 +902,10 @@ static void prog_advance(void)                  /* the next step, on a bar: as w
         b += b > 1 && frand() < 0.5f ? -1 : 1;
     prog_left = b;
     d = ((d % nsteps) + nsteps) % nsteps;
-    if (d != deg)
+    if (d != deg || chord_x) {
+        chord_x = 0;
         chord_to(d);
+    }
 }
 
 static void chord_change(void)                  /* to another degree: the near, strong moves first */
@@ -743,6 +929,7 @@ static void chord_change(void)                  /* to another degree: the near, 
     }
     if (i >= nsteps)
         i = deg == 0 ? (nsteps > 1 ? 1 : 0) : 0;
+    chord_x = 0;
     chord_to(i);
 }
 
@@ -751,7 +938,7 @@ static void chord_to(int i)
     deg = i;
     pad_retarget();
     pad_leave();
-    bass_to(chord_pcs[0]);
+    bass_to(bass_pc());
     /* Evolve: the bass sometimes sits a chord out, more often when the arc is sparse */
     bass.rest = frand() < evolve * 0.3f + 0.25f * fm_maxf(-arcm, 0.0f);
     drift_reset();
@@ -902,7 +1089,11 @@ static int drum_k[EN_NDRUM], drum_kb[EN_NDRUM], drum_rot[EN_NDRUM], pulse_rest; 
 
 static void drum_publish(int d)
 {
-    drum_pat[d] = en_euclid(drum_k[d], EN_DRUM_N[d], drum_rot[d]);
+    drum_pat[d] = en_euclid(drum_k[d], drum_n[d], drum_rot[d]);
+    if (en_bar_len == 12 && d == 0)              /* 3/4: the thump always on the one */
+        drum_pat[0] = en_euclid(drum_k[0] < 1 ? 1 : drum_k[0], 12, 0) | 1u;
+    else if (en_bar_len == 12 && d == 1)         /* and the closed hat on two and three (oom-pah-pah), more with Hits */
+        drum_pat[1] = (en_euclid(drum_k[1], 12, drum_rot[1]) | 0x110u) & ~1u;
     en_drum_pat[d] = drum_pat[d];
 }
 
@@ -918,7 +1109,7 @@ static void drums_pattern(void)                 /* Hits: the patterns' home */
 
 static void drums_evolve(void)                  /* a bar: a pattern turns, or gains or loses a hit */
 {
-    int d = irand(EN_NDRUM), n = EN_DRUM_N[d];
+    int d = irand(EN_NDRUM), n = drum_n[d];
     if (!drum_kb[d])
         return;
     if (frand() < 0.5f) {
@@ -994,11 +1185,43 @@ static void drums_wait_step(int32_t k)          /* k samples went by: hits whose
 
 /* the grid: one call a sixteenth (MIDI clock: 6 ticks) */
 static uint32_t sixteenth;
+static uint8_t bar_pos, meter_next;             /* StoryBox: the sixteenth in the bar; 3/4 asked for (from the next bar) */
+static void meter_bar(void)                      /* a bar starts: the meter asked for takes over */
+{
+    uint8_t len = meter_next ? 12 : 16;
+    if (len != en_bar_len) {
+        en_bar_len = len;
+        en_drum_n[0] = drum_n[0] = len;         /* the thump's cycle is the bar */
+        drum_pos[0] = 0;
+        drums_pattern();
+    }
+}
+static int sting_pend = -1;                     /* a sting waiting for the beat: story * EN_NSTING + which */
+static void sting_fire(void)                     /* its notes as bells, moved with Root, struck together (a hand's spread) */
+{
+    int st = sting_pend / EN_NSTING, k = sting_pend % EN_NSTING, i, mv = (par[P_ROOT] - STORIES[st].key + 12) % 12;
+    if (mv > 6)
+        mv -= 12;
+    for (i = 0; i < sting_n[st][k]; i++) {
+        int n = sting_note[st][k][i] + mv;
+        while (n > 103)
+            n -= 12;
+        while (n < 36)
+            n += 12;
+        bell_voice(i % 2 ? 1 : 2, n, 0.95f, (int32_t)i * 300);
+    }
+    sting_pend = -1;
+}
 static void tick(void)
 {
     int d, l;
     const float pa = fm_clampf(1.0f + 1.3f * arcm, 0.3f, 1.15f);   /* the arc: the pulse fades (never out) */
-    if ((sixteenth & 15u) == 0u) {              /* a bar: Evolve's rests and turns */
+    const int bar = bar_pos == 0;
+    if (bar) {
+        meter_bar();
+        en_barno++;
+    }
+    if (bar) {                                  /* a bar: Evolve's rests and turns */
         if (pulse_rest > 0)
             pulse_rest--;
         else if (frand() < evolve * 0.015f)
@@ -1011,7 +1234,7 @@ static void tick(void)
         if (drum_pat[d] >> drum_pos[d] & 1u && !pulse_rest)
             drum_hit(d, ((drum_pos[d] == 0 ? 0.95f : 0.6f) + 0.25f * frand()) * pa, (int)(sixteenth & 1u));
         en_drum_pos[d] = drum_pos[d];
-        if (++drum_pos[d] >= EN_DRUM_N[d])
+        if (++drum_pos[d] >= drum_n[d])
             drum_pos[d] = 0;
     }
     if ((sixteenth & 3u) == 0u) {               /* the loops step in quarter notes */
@@ -1026,12 +1249,16 @@ static void tick(void)
             }
         }
     }
-    if ((sixteenth & 15u) == 0u && change_pending && !en_frozen) {   /* chords move on the bar */
+    if (bar && change_pending && !en_frozen) {  /* chords move on the bar */
         change_pending = 0;
         chord_change();
-    } else if ((sixteenth & 15u) == 0u && prog_on() && !en_frozen && --prog_left <= 0) {
+    } else if (bar && prog_on() && !en_frozen && --prog_left <= 0) {
         prog_advance();                          /* a progression: its chords on their bars */
     }
+    if (sting_pend >= 0 && (bar_pos & 3u) == 0u)
+        sting_fire();                            /* a sting: on the beat */
+    if (++bar_pos >= en_bar_len)
+        bar_pos = 0;
     sixteenth++;
     en_bars = sixteenth;
 }
@@ -1291,6 +1518,8 @@ static void apply(int p, int v)
     case P_GLIDE: glide_k = 1.0f / ((0.02f + 0.012f * (float)v) * EN_SR); break;   /* 20 ms .. 1.2 s */
     case P_SWING: swing = (float)v * 0.005f; break;      /* the off sixteenths up to half a step late */
     case P_FREEDOM: freedom = (float)v * 0.01f; break;
+    case P_TENSION: tension = (float)v * 0.01f; break;
+    case P_METER: meter_next = (uint8_t)(v != 0); break;
     case P_HATS:
         hat_f = 0.55f + 0.0070f * (float)v;               /* the high-pass: ~4 kHz dark .. ~10 kHz bright */
         hat_open = 0.6f - 0.0035f * (float)v;             /* the open hat: long and soft .. short and crisp */
@@ -1365,6 +1594,7 @@ static void regrow(void)                        /* a new piece: fresh loops, hom
         loop_rest[l] = 0;
     }
     deg = 0;
+    chord_x = 0;
     pad_retarget();
     pad_handoff();
     bass_to(chord_pcs[0]);
@@ -1461,6 +1691,7 @@ static void play_start(int from_top)
     if (from_top) {
         pulse = 0;
         sixteenth = 0;
+        bar_pos = 0;
         for (i = 0; i < EN_NDRUM; i++)
             drum_pos[i] = 0;
         for (i = 0; i < EN_NLOOP; i++)
@@ -1520,6 +1751,13 @@ static void drain(void)
                 chord_change();
             break;
         case C_FREEZE: en_frozen = (uint8_t)(a != 0); break;
+        case C_STING:                            /* on the next beat (now while resting) */
+            if ((unsigned)b < EN_NPIECES && sting_n[b / EN_NACT][a & 1]) {
+                sting_pend = b / EN_NACT * EN_NSTING + (a & 1);
+                if (!en_playing)
+                    sting_fire();
+            }
+            break;
         case C_PROG:                             /* from the progression's start, on the next bar */
             prog_cur = (unsigned)b < EN_NPIECES && prog_n[b] ? b : -1;
             prog_i = -1;

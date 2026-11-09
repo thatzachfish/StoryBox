@@ -38,7 +38,7 @@
 
 /* modes: pools relative to the root (bit i: root + i semitones) */
 enum { MODE_IONIAN, MODE_DORIAN, MODE_PHRYGIAN, MODE_LYDIAN, MODE_MIXOLYDIAN, MODE_AEOLIAN, MODE_PENT_MAJ,
-       MODE_PENT_MIN, EN_NMODES };
+       MODE_PENT_MIN, MODE_MEL_MIN, EN_NMODES };
 extern const char *const EN_MODE_NAME[EN_NMODES];
 extern const uint16_t EN_MODE_POOL[EN_NMODES];
 extern const char *const EN_NOTE_NAME[12];
@@ -57,6 +57,9 @@ enum {
     P_SWING, P_HATS,                                  /* pulse: swing, the hats' colour */
     P_FREEDOM,                                        /* StoryBox: the chords, 0 the act's progression as written ..
                                                        * 100 free (the progression ignored) */
+    P_TENSION,                                        /* dissonance: bells off by a semitone, a b9 and a tritone in the
+                                                       * chord, the bass on the b2 */
+    P_METER,                                          /* 0 4/4, 1 3/4 (from the next bar) */
     P_NPARAMS
 };
 typedef struct {
@@ -103,6 +106,9 @@ extern volatile uint8_t en_drum_pos[EN_NDRUM];
 extern volatile uint32_t en_drum_pat[EN_NDRUM];/* bit i: a hit on step i */
 extern volatile float en_drum_glow[EN_NDRUM];
 extern volatile uint32_t en_bars;              /* sixteenths played since start (for tests) */
+extern volatile uint32_t en_barno;             /* bars played since start (StoryBox: phrases are two of them) */
+extern volatile uint8_t en_bar_len;            /* sixteenths in a bar: 16 (4/4) or 12 (3/4) */
+extern volatile uint8_t en_drum_n[EN_NDRUM];   /* each pulse's cycle now (the thump's follows the bar) */
 extern volatile float en_arc;                  /* the arc, -1 sparse .. +1 full (times Motion) */
 extern volatile uint8_t en_pulse_rest;         /* the pulse is sitting a few bars out */
 extern volatile uint8_t en_pad_note[EN_NPAD];  /* the note each voice sings now (MIDI) */
@@ -119,10 +125,16 @@ const char *en_chord_name(const int *pcs, int n, char *buf);   /* "Em7", "Dsus4"
 
 /* StoryBox: stories of EN_NACT acts; a piece is one act of one story (piece = story * EN_NACT + act), its recipe
  * for every parameter (Tune, MIDI out and Root included, but they are the player's) */
-#define EN_NSTORY 5
+#define EN_NSTORY 6
 #define EN_NACT 4
 #define EN_NPIECES (EN_NSTORY * EN_NACT)
 const char *en_story_name(int s);
+int en_story_key(int s);                       /* the key its chords and stings are written in (pitch class) */
+/* StoryBox stings: two one-shots a story (a note or a chord on bells, ringing long), on the next beat */
+#define EN_NSTING 2
+int en_sting_len(int piece, int k);            /* its notes, 0 none */
+const char *en_sting_name(int piece, int k);
+void en_sting(int piece, int k);
 const char *en_act_name(int piece);
 const char *en_piece_name(int i);              /* the piece's story */
 void en_piece(int i, int16_t *par, uint16_t *pool);

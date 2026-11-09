@@ -21,24 +21,24 @@ static const uint8_t VIEW_BTN[NVIEWS] = {B_SEL, B_HOME, B_ENV, B_ARP, B_LFO, B_S
 /* the four knobs of each page: a parameter, or one of these; and what the knob is called there */
 enum { K_LEDS = 100, K_CPU, K_NONE, K_PLAYMODE, K_WANDER, K_FADE, K_ACT };
 static const uint8_t VIEW_KNOB[NVIEWS][4] = {
-    {K_ACT, P_FREEDOM, K_WANDER, K_FADE},
+    {K_ACT, P_FREEDOM, P_TENSION, K_WANDER},
     {P_TEMPO, P_EVOLVE, P_MOTION, P_DRIFT},
     {P_PAD, P_SWELL, P_BRIGHT, P_PADTONE},
     {P_BELLS, P_DENSITY, P_BTONE, P_BOCT},
     {P_BASS, P_BASSOCT, P_GLIDE, P_FIFTH},
     {P_PULSE, P_HITS, P_SWING, P_HATS},
     {P_ECHO, P_ETIME, P_REVERB, P_SIZE},
-    {P_ROOT, P_TUNE, P_MIDI, K_LEDS},
+    {P_ROOT, K_FADE, P_TUNE, K_LEDS},
 };
 static const char *const KNOB_LABEL[NVIEWS][4] = {
-    {"Act", "Freedom", "Wander", "Fade"},
+    {"Act", "Freedom", "Tension", "Wander"},
     {"Tempo", "Evolve", "Motion", "Drift"},
     {"Level", "Swell", "Bright", "Colour"},
     {"Level", "Density", "Tone", "Octave"},
     {"Level", "Octave", "Glide", "Fifth"},
     {"Level", "Hits", "Swing", "Hats"},
     {"Echo", "Echo time", "Reverb", "Size"},
-    {"Root", "Tune", "MIDI out", "Lights"},
+    {"Root", "Fade", "Tune", "Lights"},
 };
 
 /* the screen's colours: the cover of Ambient 1: Music for Airports (1978), as the web app and the site.
@@ -168,7 +168,7 @@ static const char *mode_name(void)
  *   slow (a hold): starts now, over Fade (5 s .. 2 min)
  * A knob turned meanwhile stays where it is put. Vibe moves on to another act of the story by itself every
  * few phrases (Wander), slowly. */
-#define PHRASE 32u                             /* sixteenths: two bars */
+#define PHRASE_BARS 2u                         /* a phrase: two bars (of 4/4 or 3/4) */
 static struct {
     uint8_t on, mid;                           /* gliding; the switches done */
     int8_t pending;                            /* a piece waiting for the next phrase, or -1 */
@@ -180,10 +180,13 @@ static struct {
     uint32_t rng;
 } tr;
 
-static int global_p(int p) { return p == P_TUNE || p == P_MIDI || p == P_ROOT; }
+static int global_p(int p)                     /* the player's: Root only within a story (a new story brings its key) */
+{
+    return p == P_TUNE || p == P_MIDI || (p == P_ROOT && tr.piece / EN_NACT == proj.piece / EN_NACT);
+}
 static int switch_p(int p)
 {
-    return p == P_MODE || p == P_PADTONE || p == P_ETIME || p == P_BOCT || p == P_BASSOCT;
+    return p == P_MODE || p == P_PADTONE || p == P_ETIME || p == P_BOCT || p == P_BASSOCT || p == P_ROOT || p == P_METER;
 }
 static uint32_t fade_ms(void)                  /* Fade 0..100: 5 s .. 2 min, as a curve */
 {
@@ -191,7 +194,7 @@ static uint32_t fade_ms(void)                  /* Fade 0..100: 5 s .. 2 min, as 
     return 5000u + (uint32_t)(115000.0f * f * f);
 }
 static uint32_t wander_phrases(void) { return 2u + (uint32_t)(100 - proj.wander) * 14u / 99u; }   /* 16 .. 2 */
-static uint32_t phrase_ms(void) { return PHRASE * 60000u / ((uint32_t)proj.par[P_TEMPO] * 4u); }
+static uint32_t phrase_ms(void) { return PHRASE_BARS * en_bar_len * 60000u / ((uint32_t)proj.par[P_TEMPO] * 4u); }
 static int tr_shown_act(void)                  /* the act the screen shows: where it is going, else where it is */
 {
     return (tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : proj.piece) % EN_NACT;
@@ -238,7 +241,7 @@ static void tr_hands_on(int p, int v)
 
 static void tr_tick(void)
 {
-    uint32_t now = plat_ms(), phrase = en_bars / PHRASE;
+    uint32_t now = plat_ms(), phrase = en_barno / PHRASE_BARS;
     int p;
     if (phrase != tr.last_phrase) {             /* a new phrase: a queued act starts, Vibe counts */
         tr.last_phrase = phrase;
@@ -295,11 +298,12 @@ static void tr_tick(void)
 
 /* ACTS: the white keys F G A B are the story's four acts; from C up the white keys are the stories. Black keys:
  * nothing (-1); out of ACTS: -2 (the scale) */
-static const int8_t KEY_ACT[NKEYS] = {0, -1, 1, -1, 2, -1, 3, 10, -1, 11, -1, 12, 13, -1, 14, -1, 15, -1, 16, 17, -1, -1, -1, -1, -1, -1, -1};
+static const int8_t KEY_ACT[NKEYS] = {0, 30, 1, 31, 2, -1, 3, 10, -1, 11, -1, 12, 13, -1, 14, -1, 15, -1, 16, 17, -1, -1, -1, -1, -1, -1, -1};
+#define KEY_STING 30                          /* KEY_ACT: the black keys F#3 and G#3, the story's two stings */
 static int key_target(int k)
 {
     int v = (unsigned)k < NKEYS ? KEY_ACT[k] : -1;
-    if (v < 0)
+    if (v < 0 || v >= KEY_STING)
         return -1;
     if (v < EN_NACT)                            /* an act of the story playing (or about to) */
         return (tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : proj.piece) / EN_NACT * EN_NACT + v;
@@ -635,6 +639,14 @@ static void input(void)
         if (t == -2) {                           /* the scale */
             if ((ch & keys) >> i & 1u)
                 toggle_note((int)((5u + i) % 12u));  /* key 0 is F3 */
+        } else if (KEY_ACT[i] >= KEY_STING) {    /* ACTS: a sting, on the next beat */
+            if ((ch & keys) >> i & 1u) {
+                int cur = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : proj.piece;
+                if (en_sting_len(cur, KEY_ACT[i] - KEY_STING)) {
+                    en_sting(cur, KEY_ACT[i] - KEY_STING);
+                    say("STING", en_sting_name(cur, KEY_ACT[i] - KEY_STING));
+                }
+            }
         } else if (t >= 0) {                     /* ACTS: a tap queues, a hold fades now */
             if ((ch & keys) >> i & 1u) {
                 ui.key_t[i] = plat_ms();
@@ -1079,7 +1091,7 @@ static void draw_pulse(void)                     /* right: the three Euclidean r
 {
     int d;
     for (d = 0; d < EN_NDRUM; d++) {
-        int32_t cx = 212, cy = 52 + d * 34, s, n = EN_DRUM_N[d];
+        int32_t cx = 212, cy = 52 + d * 34, s, n = en_drum_n[d];
         int g = q16(en_drum_glow[d]);
         uint32_t p = en_drum_pat[d];
         for (s = 0; s < n; s++) {
@@ -1117,7 +1129,7 @@ static int help_lines(int b, const char *l[HELP_LINES])
     case B_LFO: L("THE BASS"); L("LEVEL, OCTAVE, GLIDE, FIFTH"); break;
     case B_SEQ: L("THE PULSE"); L("LEVEL, HITS, SWING, HATS"); break;
     case B_FX: L("THE SPACE"); L("ECHO, ECHO TIME, REVERB,"); L("SIZE"); break;
-    case B_GLO: L("SETUP"); L("ROOT, TUNE, MIDI OUT, LIGHTS"); break;
+    case B_GLO: L("SETUP"); L("ROOT, FADE, TUNE, LIGHTS"); break;
     case B_EDIT: L("THE NEXT CHORD,"); L("ON THE NEXT BAR"); break;
     case B_REC: L("FREEZE: THE CHORD HOLDS"); L(" AND THE REVERB RINGS ON"); L("AGAIN: THAW"); break;
     case B_OCTDN: L("THE BELLS AN OCTAVE DOWN"); L("WITH OCT+, 5 S: UPDATE MODE"); break;
@@ -1141,12 +1153,59 @@ static void draw_help(void)
         text_c(120, 56 + k * 20, &FONT_S, l[k] + (l[k][0] == ' '), K_TEXT);
 }
 
+/* ACTS: the keys' map. Left, the story's acts on F G A B and its stings on F# G#; right, the stories on the white
+ * keys from C4. Where it is: the accent; where it is going: blinking; an empty slot: a dash */
+static const char *const MAP_KEY[8] = {"C", "D", "E", "F", "G", "A", "B", "C"};
+static void map_row(int32_t x, int32_t y, int32_t w, const char *key, const char *name, int here, int going, int empty)
+{
+    uint16_t chip = empty ? K_LINE : here ? K_ACC : going ? K_TEXT : K_DIM;
+    cv_round(x, y + 1, 18, 13, 3, chip);
+    text_c(x + 9, y, &FONT_XS, key, K_BG);
+    if (here)
+        cv_round(x + 21, y + 1, w - 21, 13, 3, K_PANEL);
+    cv_text(x + 25, y, &FONT_XS, empty ? "-" : name, empty ? K_LINE : here ? K_ACC : going ? K_TEXT : K_DIM);
+}
+static void draw_map(void)
+{
+    static const char *const AK[EN_NACT] = {"F", "G", "A", "B"};
+    static const char *const SK[EN_NSTING] = {"F#", "G#"};
+    int cur = proj.piece, goal = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : -1, blink = (plat_ms() / 300u) & 1u, i;
+    int shown = goal >= 0 ? goal : cur;                 /* the acts of the story it is in, or going to */
+    cv_text(8, 2, &FONT_XS, "ACTS", K_ACC);
+    for (i = 0; i < EN_NACT; i++) {
+        int pc = shown / EN_NACT * EN_NACT + i;
+        map_row(8, 18 + i * 16, 108, AK[i], en_act_name(pc), pc == cur, pc == goal && blink, 0);
+    }
+    cv_text(8, 86, &FONT_XS, "STINGS", K_ACC);
+    for (i = 0; i < EN_NSTING; i++) {
+        int n = en_sting_len(shown, i);
+        map_row(8, 102 + i * 16, 108, SK[i], n ? en_sting_name(shown, i) : "", 0, 0, !n);
+    }
+    cv_text(126, 2, &FONT_XS, "STORIES", K_ACC);
+    for (i = 0; i < 8; i++) {
+        int has = i < EN_NSTORY;
+        map_row(126, 18 + i * 15, 110, MAP_KEY[i], has ? en_story_name(i) : "", has && i == cur / EN_NACT,
+                has && goal >= 0 && i == goal / EN_NACT && goal / EN_NACT != cur / EN_NACT && blink, !has);
+    }
+}
+
 static void draw_main(void)
 {
     uint32_t h = hash(2166136261u, pool_abs() | (uint32_t)proj.par[P_ROOT] << 12 | (uint32_t)en_frozen << 16 | proj.piece << 24 |
                                         (uint32_t)en_playing << 17 | (uint32_t)proj.par[P_MODE] << 20), i;
     if (ui.frame % 3u)                           /* the garden moves slowly: 20 frames a second is plenty */
         return;
+    if (ui.acts && !ui.help) {                  /* ACTS: the keys' map */
+        h = hash(hash(0x4D415021u, (uint32_t)proj.piece | (uint32_t)(tr.pending + 1) << 8 | (uint32_t)tr.on << 16 |
+                                       (uint32_t)tr.piece << 17), (plat_ms() / 300u) & 1u);
+        if (h != ui.sig[1]) {
+            ui.sig[1] = h;
+            cv_begin(240, MAIN_H, K_BG);
+            draw_map();
+            cv_blit(0, MAIN_Y);
+        }
+        return;
+    }
     if (ui.help) {
         h = hash(0x48454C50u, ui.help);
         if (h != ui.sig[1]) {
@@ -1194,7 +1253,7 @@ static void draw_main(void)
  * square root and an arctangent per pixel). */
 static void draw_knobs(void)
 {
-    uint32_t h = hash(2166136261u, ui.view | (uint32_t)ui.touched << 8), i;
+    uint32_t h = hash(2166136261u, ui.view | (uint32_t)ui.touched << 8 | (uint32_t)proj.piece << 16), i;
     int now_touch = plat_ms() < ui.touch_until;
     for (i = 0; i < 4; i++)
         h = hash(h, (uint32_t)knob_get(VIEW_KNOB[ui.view][i]));
@@ -1257,6 +1316,11 @@ static void leds(void)
         b |= 1u << B_SEL;
         for (i = 0; i < NKEYS; i++) {
             int t = key_target((int)i), act = KEY_ACT[i] < EN_NACT, lit = 1;
+            if (KEY_ACT[i] >= KEY_STING) {      /* a loaded sting: lit */
+                if (en_sting_len(proj.piece, KEY_ACT[i] - KEY_STING))
+                    k |= 1u << i;
+                continue;
+            }
             if (t < 0)
                 continue;
             if (goal >= 0 && (act ? t == goal : t / EN_NACT == goal / EN_NACT && goal / EN_NACT != proj.piece / EN_NACT))
