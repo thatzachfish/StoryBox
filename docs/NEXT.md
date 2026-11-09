@@ -25,3 +25,12 @@ Decided earlier:
 - [ ] Home screen: a lean status view (story, act, chord, tracks, Energy, Tension, effects) with a legend of the buttons
 - [ ] Show a mockup of the Home screen before building it
 - [ ] Act knob shows the old story's act name during a story change (cosmetic)
+
+Later (2026-11-08 evening):
+
+- [ ] Inside Act 3 still too decoherent: restructure it
+- [ ] A top-level Structure knob (steadier drums, chords as written, less wandering)
+- [ ] Pre-show livelier, more of a hip-hop beat (needs a snare / clap)
+- [ ] UX: one job per screen (Home calm; hold HOME the buttons; SEL the acts map; EDIT the lead; FX the effects),
+      not everything on Home. Mockups in the chat, awaiting feedback
+- [ ] Looper: last, maybe not at all
