@@ -173,3 +173,5 @@ Future (Zach, 2026-11-09):
 - [x] Call and response (0.6): Answer on the System page (0 off .. 100 free); a phrase on the lead, a beat's rest,
       and StoryBox answers it (rhythm kept, notes moved along the scale, ending on the chord), in blue on the Lead page
 - [ ] Bluetooth MIDI (later)
+- [ ] The instrument pages' pictures as columns (like the Mixer's), not rings: the look the rest has now
+- [ ] The punch-in effects' pages as nice as the Colours page
