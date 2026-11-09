@@ -1564,7 +1564,11 @@ static void draw_map(void)
     int bd_on = en_bd == 1 && ui.bd_asked, bd_wait = en_bd == 2 || (en_bd == 1 && !ui.bd_asked) || (ui.bd_asked && !en_bd);
     for (r = 0; r < 4; r++) {
         int a = ROW0[r], b = ROW0[r + 1], k, wi = 0, lead = BLACK_KEY(a);
-        int32_t y0 = r * 36 + 2, ww = lead ? 232 * 2 / 9 : 58, x0 = 4 + (lead ? ww / 2 : 0), xs[8];
+        int32_t y0 = r * 36 + 2, ww = lead ? 232 * 2 / 9 : 58, x0 = 4 + (lead ? ww / 2 : 0), xs[8], nw = 0;
+        for (k = a; k < b; k++)                  /* a shorter row, centred */
+            nw += !BLACK_KEY(k);
+        if (!lead)
+            x0 += (232 - nw * ww) / 2;
         for (k = a; k < b; k++) {                /* where each key sits */
             if (BLACK_KEY(k)) {
                 xs[k - a] = x0 + wi * ww;
@@ -1591,7 +1595,12 @@ static void draw_map(void)
             cv_round(xs[k - a] - ww / 2 + 1, y0 + 12, ww - 2, 11, 2,
                      here ? c : going && blink ? mix(K_BG, c, 12) : v >= 0 ? mix(K_BG, c, 5) : K_PANEL);
             text_c(xs[k - a], y0 + 10, &FONT_XS, NOTE[(5 + k) % 12], here ? K_BG : v >= 0 ? mix(K_BG, c, 13) : K_LINE);
-            text_c(xs[k - a], y0 + 23, &FONT_XS, nm, here ? K_TEXT : going ? (blink ? K_ACC : K_DIM) : c);
+            {                                     /* a long name on a row's first key leans left, out of its neighbour's way */
+                int32_t w = text_w(&FONT_XS, nm), lx = xs[k - a] - w / 2;
+                if (k == a && w > ww - 4)
+                    lx = xs[k - a] + ww / 2 - 4 - w;
+                cv_text(lx < 2 ? 2 : lx, y0 + 23, &FONT_XS, nm, here ? K_TEXT : going ? (blink ? K_ACC : K_DIM) : c);
+            }
         }
         for (k = a; k < b; k++) {                /* the black keys, over the strip; their job above */
             int v = KEY_ACT[k];
@@ -1657,16 +1666,18 @@ static void lead_trace_tick(void)                /* the keys down and let go, in
 }
 static void draw_lead(void)
 {
-    char t[24];
-    int r = proj.par[P_ROOT], p, e;
-    uint32_t ap = pool_abs(), now = plat_ms();
+    char t[24], nm[16];
+    int r = proj.par[P_ROOT], p, e, k;
+    uint32_t ap = pool_abs(), now = plat_ms(), ct = 1u << (en_chord_root % 12u);
     const int32_t top = 10, bot = 132, x0 = 8, x1 = 232;
-    for (p = 0; p <= 26; p++) {                  /* the scale's lines */
+    for (k = 0; k < EN_NPAD; k++)                /* the chord's notes */
+        ct |= 1u << (en_chord[k] % 12);
+    for (p = 0; p <= 26; p++) {                  /* the scale's lines, the chord's notes a little warmer */
         int pc = (53 + p) % 12;
         int32_t y = bot - p * (bot - top) / 26;
         if (!(ap >> pc & 1u))
             continue;
-        cv_rect(x0, y, x1 - x0, 1, pc == r ? mix(K_BG, K_PAD, 9) : K_PANEL);
+        cv_rect(x0, y, x1 - x0, 1, pc == r ? mix(K_BG, K_PAD, 9) : ct >> pc & 1u ? mix(K_BG, K_ACC, 8) : K_PANEL);
         if (pc == r)
             cv_text(x0 + 2, y - 13, &FONT_XS, EN_NOTE_NAME[r], K_PAD);
     }
@@ -1691,6 +1702,12 @@ static void draw_lead(void)
     }
     caps(t, EN_LEAD_NAME[proj.par[P_LSOUND]], sizeof t);
     cv_text(x1 - text_w(&FONT_XS, t), 0, &FONT_XS, t, K_PAD);
+    {                                            /* the chord now, top left */
+        const char *c = chord_now(nm);
+        int32_t w = text_w(&FONT_B, c);
+        cv_round(x0 - 4, 0, w + 8, 17, 3, K_BG);
+        cv_text(x0, 0, &FONT_B, c, K_ACC);
+    }
 }
 
 /* Setup: the rings dimmed behind; the sleep timer, when it runs, as a ring of frost draining around the minutes left;
