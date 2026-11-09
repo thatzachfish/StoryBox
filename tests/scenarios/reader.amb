@@ -3,7 +3,7 @@
 wait 200
 listen
 wait 100
-said Home page: Pad 50, Melody 40, Bass 50, Drums 45. Piece Pre-show, D minor
+said Mixer page: Pad 50, Melody 40, Bass 50, Drums 45. Piece Pre-show, D minor
 # (the rings follow, queued: the chord, how far to the next, the scale from the root up)
 listen
 where
@@ -12,7 +12,7 @@ said Scale D, E, F, G, A, B, C
 tap GLO
 turn SELECT -4
 wait 300
-said Pad page: Level 50, Swell 45, Bright 45, Colour Rhodes
+said Pad page: Level 50, Swell 45, Sound Rhodes, Bright 45
 tap GLO
 wait 300
 said Setup page: Root D, Tempo 86, Sleep Off, Fade 19s
@@ -117,4 +117,4 @@ wait 1000
 said Tempo 88
 # WHERE: everything again
 where
-said Home page: Pad 50, Melody 40, Bass 50, Drums 45. Piece Pre-show
+said Mixer page: Pad 50, Melody 40, Bass 50, Drums 45. Piece Pre-show

@@ -36,6 +36,6 @@ tap GLO
 wait 100
 shot setup.png
 # SELECT steps through the pages, from the last back to the first
-turn SELECT -9 100
+turn SELECT -10 100
 expect view 0
 tap HOME

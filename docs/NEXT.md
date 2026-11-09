@@ -64,58 +64,60 @@ From Zach, after 0.3 (2026-11-08 late), for the next build:
 
 - [ ] Call and response (as NACHFAHRT's): play a melody, StoryBox answers it, improvising on it (notes kept as
       events, not audio: its rhythm with notes moved in the scale, a turn, an octave; cheap)
-- [ ] A Scatter effect (as TONITOR's) in place of the least liked punch-in (the Phaser?): the last moment cut in
+- [x] A Scatter effect (as TONITOR's) in place of the least liked punch-in (the Phaser?): the last moment cut in
       slices, replayed out of order, some reversed or an octave up (from the punch-in ring we have)
-- [ ] An effect of its own for each instrument (suggested: Pad Shimmer, Melody a ping-pong echo, Bass Drive,
+- [x] An effect of its own for each instrument (suggested: Pad Shimmer, Melody a ping-pong echo, Bass Drive,
       Drums Crush), or a Space knob each: to discuss
 
 From Zach, playing 0.3 (2026-11-09 morning):
 
-- [ ] Feel's tide picture confusing (keep Surf: loved)
-- [ ] One knob order for every instrument page, and as far as it goes every page: the same place, the same job
-- [ ] Lead mode: the keys go dark (they should light; the scale's keys at least)
-- [ ] Lights (System) seems to do nothing: in ACTS the keys ignore it; make it govern everything, say what it does
+- [x] Feel's tide picture confusing (keep Surf: loved)
+- [x] One knob order for every instrument page, and as far as it goes every page: the same place, the same job
+- [x] Lead mode: the keys go dark (they should light; the scale's keys at least)
+- [x] Lights (System) seems to do nothing: in ACTS the keys ignore it; make it govern everything, say what it does
 - [ ] Battery: read 1 of 3 bars after a night's play, and still after hours on a charger. The bars come from the
       battery's voltage, 3 steps; a wall charger isn't seen (the bolt only with a computer). Look into it
 - [ ] (Sleep timer: worked well; the lights going dark too: liked)
-- [ ] Home isn't homey: call it Mixer (it is the four levels)?
-- [ ] ACTS page: the black keys' row (tracks, breakdown) at the top, as on the keyboard (above the white keys)
-- [ ] Lead's picture distinct from the instrument pages', at a glance
-- [ ] Mixer (Home): a picture of its own too (the four tracks as a mixer: their levels and how loud each is now)
+- [x] Home isn't homey: call it Mixer (it is the four levels)?
+- [x] ACTS page: the black keys' row (tracks, breakdown) at the top, as on the keyboard (above the white keys)
+- [x] Lead's picture distinct from the instrument pages', at a glance
+- [x] Mixer (Home): a picture of its own too (the four tracks as a mixer: their levels and how loud each is now)
 
 Sound notes (2026-11-09):
 
-- [ ] Rhodes: held notes sustain while held (then ring out)
-- [ ] Flute: a slower release
-- [ ] Guitar still too loud; Slide (loved) a bit loud too
-- [ ] Violin: not string-like but liked: keep, a slower release
-- [ ] Cello: more a digital sax, but nice (keep; maybe name it so)
-- [ ] Vibes too near Marimba: make it a vibraphone (pure, long, the motor's shimmer); Harp: the least liked
-- [ ] Drums and fills: loved, Intermission's especially: keep developing the drums
+- [x] Rhodes: held notes sustain while held (then ring out)
+- [x] Flute: a slower release
+- [x] Guitar still too loud; Slide (loved) a bit loud too
+- [x] Violin: not string-like but liked: keep, a slower release
+- [x] Cello: more a digital sax, but nice (keep; maybe name it so)
+- [x] Vibes too near Marimba: make it a vibraphone (pure, long, the motor's shimmer); Harp: the least liked
+- [x] Drums and fills: loved, Intermission's especially: keep developing the drums
 - [ ] Fly: Zach to go through carefully
-- [ ] Post Show: a ninth story like Intermission (boom-bap), musically distinct, triumphant (on E5, key 23)
+- [x] Post Show: a ninth story like Intermission (boom-bap), musically distinct, triumphant (on E5, key 23)
 - [ ] Fades: good as they are
-- [ ] Stings far too loud (Intermission's especially): bring them down, level them across stories
-- [ ] Breakdown's label: with the tracks' row (the black keys), not off by the story's name
-- [ ] Fly's Buzz: a fly buzzing (a buzzy tone wobbling in pitch, swelling, flying across left to right), not bells;
+- [x] Stings far too loud (Intermission's especially): bring them down, level them across stories
+- [x] Breakdown's label: with the tracks' row (the black keys), not off by the story's name
+- [x] Fly's Buzz: a fly buzzing (a buzzy tone wobbling in pitch, swelling, flying across left to right), not bells;
       The web: liked
-- [ ] Knob layout: keep Drums' Swing and Melody's Octave (Zach). Proposal B: same order everywhere (Level, how busy,
+- [x] Knob layout: keep Drums' Swing and Melody's Octave (Zach). Proposal B: same order everywhere (Level, how busy,
       Sound, range), every control kept; the instruments' own effects (Shimmer, Echo, Drive, Crush) on one new
       page, in the Mixer's order. Awaiting Zach
 - [x] Scatter in place of Phaser: yes
-- [ ] Harp: replace it (with what: propose)
-- [ ] Mockups first: Mixer's channel strips, Lead's own picture, a clearer Feel (no tide)
-- [ ] Fly: more waltz (oom-pah-pah: the brushes' rim on 2 and 3), more Structure; Entry not scary yet; Approach's
+- [x] Harp: replace it (with what: propose)
+- [x] Mockups first: Mixer's channel strips, Lead's own picture, a clearer Feel (no tide)
+- [x] Fly: more waltz (oom-pah-pah: the brushes' rim on 2 and 3), more Structure; Entry not scary yet; Approach's
       melody instrument wrong: a slide guitar running there (a Melody sound "Slide": each note sliding into the
       next, its vibrato); Tension building across the acts (Devour higher); Good-bye liked as it is
-- [ ] Knob layout B approved: Level, how busy, Sound, range everywhere; a Colours page (Shimmer, Echo, Drive, Crush)
-- [ ] Colours more saturated (mockups-0.4: yellow 255,212,58; fuchsia 255,62,178; pad 104,232,84; melody 64,214,240;
+- [x] Knob layout B approved: Level, how busy, Sound, range everywhere; a Colours page (Shimmer, Echo, Drive, Crush)
+- [x] Colours more saturated (mockups-0.4: yellow 255,212,58; fuchsia 255,62,178; pad 104,232,84; melody 64,214,240;
       bass 255,140,52; drums 194,142,255; frost 120,170,255)
-- [ ] Mockups sent (2026-11-09): Mixer channel strips, Colours, Lead's melody trace, Feel without the tide
-- [ ] Feel: "Right now" is called Energy: one Energy meter (ALGORITHM's setting lit; a marker riding on it where the
+- [x] Mockups sent (2026-11-09): Mixer channel strips, Colours, Lead's melody trace, Feel without the tide
+- [x] Feel: "Right now" is called Energy: one Energy meter (ALGORITHM's setting lit; a marker riding on it where the
       swell has the music now)
-- [ ] Rings redrawn, option B (rings-options mockup): every ring in short segments like the meters: drums one
+- [x] Rings redrawn, option B (rings-options mockup): every ring in short segments like the meters: drums one
       segment a step (hits thick, now yellow), bass and pad segmented arcs (lit as loud as they are), the melody's
       notes as segments at their places, fading
 - [x] Lighthouse: the sea (Surf) under every act, a stronger pad, a little Tension; Market Day livelier, sparklier
       (faster, brighter, the marimba an octave up), its drums looser (Structure down, more hits)
+- [x] Banjo (lead and melody); Riebeck (C4): an original campfire-and-stars piece in Outer Wilds' spirit
+- [ ] Battery reading: still to look into (Zach to try charging it switched off)

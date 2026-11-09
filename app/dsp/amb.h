@@ -107,9 +107,9 @@ extern volatile float en_fade;                 /* StoryBox: the whole sound's le
 extern volatile uint8_t en_fx_on;              /* (UI) the effects heard now */
 /* the lead: the keys in Lead mode (and MIDI in), snapped to the scale, three notes at a time. Struck sounds ring
  * on; bowed ones (violin, cello) last while held; the flute and the slide are one voice, gliding from note to note */
-enum { LEAD_KALIMBA, LEAD_BELL, LEAD_FLUTE, LEAD_GUITAR, LEAD_RHODES, LEAD_VIOLIN, LEAD_CELLO, LEAD_SLIDE, EN_NLEAD };
+enum { LEAD_KALIMBA, LEAD_BELL, LEAD_FLUTE, LEAD_GUITAR, LEAD_RHODES, LEAD_VIOLIN, LEAD_CELLO, LEAD_SLIDE, LEAD_BANJO, EN_NLEAD };
 extern const char *const EN_LEAD_NAME[EN_NLEAD];
-enum { MEL_BELLS, MEL_KALIMBA, MEL_MARIMBA, MEL_VIBES, MEL_SLIDE, MEL_GLASS, MEL_MUSICBOX, EN_NMEL };
+enum { MEL_BELLS, MEL_KALIMBA, MEL_MARIMBA, MEL_VIBES, MEL_SLIDE, MEL_GLASS, MEL_MUSICBOX, MEL_BANJO, EN_NMEL };
 extern const char *const EN_MEL_NAME[EN_NMEL];
 int en_lead_snap(int note);                    /* the scale's note at or just below note (the main loop's view) */
 void en_lead_on(int note, int vel);
@@ -161,7 +161,7 @@ const char *en_chord_name(const int *pcs, int n, char *buf);   /* "Em7", "Dsus4"
 
 /* StoryBox: stories of EN_NACT acts; a piece is one act of one story (piece = story * EN_NACT + act), its recipe
  * for every parameter (Tune, MIDI out and Root included, but they are the player's) */
-#define EN_NSTORY 9
+#define EN_NSTORY 10
 #define EN_NACT 4
 #define EN_NPIECES (EN_NSTORY * EN_NACT)
 const char *en_story_name(int s);

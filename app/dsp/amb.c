@@ -137,6 +137,16 @@ static const struct {
         {55, 45, 50, 45, 35, 30, 30, 45, 50, 2, 50, 65, 50, 45, 55, 40, 0, 1, 90, 5, 0, 0, 0, 0, 15, 40, 30, 50, 10, 0, 0, 50, 4, 55, 45, 15, 0, 85, 1}},
         {"F:2 Bb:2 Dm7:2 C:2", "F:2 Am7:2 Bb:2 C:2", "Bb:2 C:2 Am7:2 Dm7:2 Gm7:2 C:2", "F:2 C/E:2 Dm7:2 Bbmaj7:1 C:1"},
         5, {"F5 A5 C6", "F3 C4 F4 A4 C5"}, {"Fanfare", "Bow"}},
+    /* Riebeck: an original campfire-and-stars piece in the spirit of a game Zach loves (none of its music): a banjo
+     * picking by the fire in D, the launch, drifting among the stars (no drums, a far wind), the last supernova */
+    {"Riebeck", {"Campfire", "Liftoff", "Drifting", "Supernova"}, {
+        {45, 60, 40, 20, 45, 30, 35, 25, 40, 2, 60, 75, 50, 45, 50, 40, 0, 1, 84, 2, 0, 0, 0, 0, 15, 35, 15, 40, 15, 0, 0, 50, 8, 60, 55, 10, 0, 70, 2},
+        {55, 60, 50, 45, 50, 40, 25, 45, 45, 2, 62, 80, 60, 40, 55, 50, 0, 1, 88, 2, 0, 0, 2, 0, 15, 40, 15, 55, 15, 5, 0, 55, 8, 60, 55, 10, 0, 75, 2},
+        {65, 40, 40, 0, 25, 35, 55, 0, 55, 4, 72, 92, 35, 75, 40, 50, 0, 1, 70, 2, 0, 1, 2, -1, 30, 25, 0, 0, 30, 10, 0, 50, 8, 60, 55, 10, 0, 50, 0},
+        {65, 55, 60, 55, 50, 55, 25, 60, 50, 2, 70, 90, 60, 40, 60, 75, 0, 1, 88, 2, 0, 0, 3, 0, 15, 45, 15, 65, 15, 30, 0, 60, 8, 65, 60, 10, 0, 70, 1,
+         0, 0, 0, 0, 0, 0, 0, 0, 0}},
+        {"D:2 G:2 Bm:2 A:2", "G:2 D:2 Em:2 A:2", "Bm:4 G:4 D:4 A:4", "G:2 A:2 F#m:2 Bm:2 G:2 A:2 D:4"},
+        2, {"D5 F#5 A5", "D3 A3 D4 F#4 A4"}, {"Spark", "The loop"}},
 };
 
 /* the progressions and stings, parsed once. A step: a degree (prog_deg >= 0), or a named chord: its root and bass
@@ -287,6 +297,7 @@ void en_piece(int i, int16_t *par, uint16_t *pool)
         {MEL_KALIMBA, MEL_KALIMBA, MEL_KALIMBA, MEL_KALIMBA},  {MEL_BELLS, MEL_BELLS, MEL_BELLS, MEL_BELLS},
         {MEL_MUSICBOX, MEL_SLIDE, MEL_SLIDE, MEL_GLASS},       /* Fly: the slide running through Approach, Devour */
         {MEL_VIBES, MEL_VIBES, MEL_VIBES, MEL_VIBES},          {MEL_BELLS, MEL_BELLS, MEL_KALIMBA, MEL_BELLS},
+        {MEL_BANJO, MEL_BANJO, MEL_GLASS, MEL_BANJO},          /* Riebeck: the banjo by the fire, glass among stars */
     };
     for (p = 0; p < P_NPARAMS; p++)
         par[p] = STORIES[i / EN_NACT].v[i % EN_NACT][p];
@@ -295,10 +306,12 @@ void en_piece(int i, int16_t *par, uint16_t *pool)
         static const int8_t SEA[EN_NACT] = {45, 30, 55, 25};
         par[P_SURF] = SEA[i % EN_NACT];
     }
+    if (i == 9 * EN_NACT + 2)                    /* Riebeck's Drifting: a far wind */
+        par[P_SURF] = 18;
     {   /* each story's instrument effects: Shimmer, the melody's Echo, Drive, Crush */
         static const int8_t SFX[EN_NSTORY][4] = {
             {0, 50, 0, 15}, {35, 55, 0, 0}, {25, 55, 0, 0}, {0, 50, 0, 0},
-            {15, 55, 0, 0}, {20, 50, 0, 0}, {20, 50, 10, 0}, {0, 45, 15, 30}, {10, 45, 15, 20},
+            {15, 55, 0, 0}, {20, 50, 0, 0}, {20, 50, 10, 0}, {0, 45, 15, 30}, {10, 45, 15, 20}, {30, 55, 0, 0},
         };
         par[P_SHIMMER] = SFX[i / EN_NACT][0];
         par[P_MECHO] = SFX[i / EN_NACT][1];
@@ -555,8 +568,8 @@ void en_mute(uint32_t mask) { post(C_MUTE, 0, (int)(mask & 15u)); }
 void en_fx(uint32_t mask) { post(C_FX, 0, (int)(mask & 15u)); }
 void en_lead_on(int note, int vel) { post(C_LON, note & 127, vel & 127); }
 void en_lead_off(int note) { post(C_LOFF, note & 127, 0); }
-const char *const EN_MEL_NAME[EN_NMEL] = {"Bells", "Kalimba", "Marimba", "Vibes", "Slide", "Glass", "Music box"};
-const char *const EN_LEAD_NAME[EN_NLEAD] = {"Kalimba", "Bell", "Flute", "Guitar", "Rhodes", "Violin", "Cello", "Slide"};
+const char *const EN_MEL_NAME[EN_NMEL] = {"Bells", "Kalimba", "Marimba", "Vibes", "Slide", "Glass", "Music box", "Banjo"};
+const char *const EN_LEAD_NAME[EN_NLEAD] = {"Kalimba", "Bell", "Flute", "Guitar", "Rhodes", "Violin", "Cello", "Slide", "Banjo"};
 void en_breakdown(int on) { post(C_BREAK, on ? 1 : 0, 0); }
 void en_sting(int piece, int k)
 {
@@ -851,6 +864,7 @@ static const struct {
     {1.0f, 1.5f, 0.45f, 0.9f, 0.0f, 0, 0},       /* slide: a guitar's, each note sliding from the one before */
     {1.0f, 0.25f, 0.6f, 1.4f, 0.0003f, 0, 0},    /* glass: pure, swelling in */
     {3.5f, 2.2f, 0.6f, 0.55f, 0.0f, 12, 0},      /* music box: high and small */
+    {2.0f, 2.4f, 0.1f, 0.32f, 0.0f, 0, 0},       /* banjo: a bright, nasal twang, quickly gone */
 };
 static float mel_trem, mel_vib, mel_last[EN_NLOOP + 1];   /* (the slide: each loop's last note's pitch) */
 static int bell_sting_now;                       /* (sting_fire: its notes are always bells) */
@@ -2473,6 +2487,8 @@ static const struct {
     {LK_BOWED, 0, 1, 0, 1.0f, 1.9f, 60.0f, 0.0f, 0.16f, 1.2f, 0.0065f, 0.03f, 0.0018f, 1.25f},  /* violin (a slower release) */
     {LK_BOWED, 0, 2, -1, 1.0f, 1.8f, 60.0f, 0.0f, 0.24f, 1.2f, 0.0055f, 0.025f, 0.0015f, 1.35f}, /* cello */
     {LK_STRING, 1, 0, 0, 1.0f, 0.0f, 0.0f, 10.0f, 0.001f, 0.25f, 0.0075f, 0.0f, 0.0f, 1.0f},  /* slide guitar: long (quieter) */
+    {LK_STRING, 0, 0, 0, 1.0f, 0.0f, 0.0f, 1.4f, 0.001f, 0.12f, 0.0f, 0.3f, 0.0f, 0.95f},   /* banjo: bright (breath: the
+                                                                                              * loop's brightness), short */
 };
 /* the bodies' resonances: Hz, Q, gain; and how much of the string goes straight through */
 static const float BODY[2][3][3] = {
@@ -2650,7 +2666,8 @@ static void render_lead(uint32_t n)
                 a = (float)ks[i][r0 & (KS_N - 1)] * (1.0f / 16384.0f);
                 b2 = (float)ks[i][(r0 + 1) & (KS_N - 1)] * (1.0f / 16384.0f);
                 x = a + (b2 - a) * fr;           /* the string, a period ago (between two samples) */
-                v->kslp += (x - v->kslp) * (0.6f + 0.35f * lead_tone);   /* a gentle low-pass in the loop */
+                v->kslp += (x - v->kslp) * fm_minf(0.6f + 0.35f * lead_tone + LEADS[sd].breath, 0.98f);   /* a gentle
+                                                                                         * low-pass in the loop */
                 ks[i][v->ksw & (KS_N - 1)] = (int16_t)(fm_clampf((v->kslp + x) * ksg, -1.99f, 1.99f) * 16384.0f);
                 v->ksw = (v->ksw + 1) & (KS_N - 1);
                 bhp += (x - bhp) * 0.004f;       /* (its DC, out: ~28 Hz) */
