@@ -81,3 +81,4 @@ From Zach, playing 0.3 (2026-11-09 morning):
 - [ ] Home isn't homey: call it Mixer (it is the four levels)?
 - [ ] ACTS page: the black keys' row (tracks, breakdown) at the top, as on the keyboard (above the white keys)
 - [ ] Lead's picture distinct from the instrument pages', at a glance
+- [ ] Mixer (Home): a picture of its own too (the four tracks as a mixer: their levels and how loud each is now)
