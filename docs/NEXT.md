@@ -38,20 +38,23 @@ Later (2026-11-08 evening):
 
 From Zach, playing 0.2 on the FM-1 (2026-11-08 night):
 
-- [ ] Feel second in the pages, next to Home
-- [ ] Home and Feel: a visualizer distinct from the instrument pages; an instrument page lights its part of the rings
-- [ ] Energy shown: a meter on the Feel page
+- [x] Feel second in the pages, next to Home
+- [x] Home and Feel: a visualizer distinct from the instrument pages; an instrument page lights its part of the rings
+- [x] Energy shown: a meter on the Feel page
 - [ ] (Reverse and Stutter sound amazing: keep)
-- [ ] SELECT on an effect's page (Filter ...) goes back to the Effects page
-- [ ] Double-tap latches an effect, and double-tap unlatches it
-- [ ] Swappable sounds for the non-lead tracks (to discuss)
-- [ ] Page name and dots at the top left above the knobs, the battery top right
-- [ ] SELECT wraps around: past the last page to the first, and back
-- [ ] Guitar lead a little louder
-- [ ] Piano out: a Rhodes, polyphonic
-- [ ] Strings: a bowed solo violin, polyphonic (a cello is fine; a section if much better). Try a bowed voice
+- [x] SELECT on an effect's page (Filter ...) goes back to the Effects page
+- [x] Double-tap latches an effect, and double-tap unlatches it
+- [x] Swappable sounds for the non-lead tracks (to discuss)
+- [x] Page name and dots at the top left above the knobs, the battery top right
+- [x] SELECT wraps around: past the last page to the first, and back
+- [x] Guitar lead a little louder
+- [x] Piano out: a Rhodes, polyphonic
+- [x] Strings: a bowed solo violin, polyphonic (a cello is fine; a section if much better). Try a bowed voice
       with body resonances, slow swell, delayed vibrato, bow noise; Violin and Cello registers
-- [ ] Colours a little brighter
-- [ ] Drums a little louder, more variation: Zach trusts me (fills at phrase ends, bar-to-bar variation,
+- [x] Colours a little brighter
+- [x] Drums a little louder, more variation: Zach trusts me (fills at phrase ends, bar-to-bar variation,
       human velocities, more kits). Keep the Structure knob, liked
-- [ ] A new story: Fly (Zach to describe)
+- [x] A new story: Fly (Zach to describe)
+
+Also in 0.3: Melody (the bells' page) with a Sound per act; Pad Strings and Organ; a Brushes kit; the story's path on
+Story; Lead's keyboard; Setup's sleep timer and key; System in words; a picture for each effect; RAM packed (80 KB free).
