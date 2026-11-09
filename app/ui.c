@@ -1242,16 +1242,19 @@ static void leds(void)
         b |= 1u << B_PLAY;
     if (en_frozen)
         b |= 1u << B_REC;
-    if (ui.acts) {                               /* ACTS: the act and story playing lit, where it goes blinking */
-        int goal = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : -1, blink = (plat_ms() / 250u) & 1u;
+    if (ui.acts) {                               /* ACTS: every loaded act and story lit; the one playing blinks slowly,
+                                                  * the one it is going to quickly; empty slots dark */
+        int goal = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : -1;
+        int slow = (plat_ms() / 500u) & 1u, quick = (plat_ms() / 150u) & 1u;
         b |= 1u << B_SEL;
         for (i = 0; i < NKEYS; i++) {
-            int t = key_target((int)i), lit;
+            int t = key_target((int)i), act = KEY_ACT[i] < EN_NACT, lit = 1;
             if (t < 0)
                 continue;
-            lit = KEY_ACT[i] < EN_NACT ? t == proj.piece : t / EN_NACT == proj.piece / EN_NACT;
-            if (goal >= 0 && (KEY_ACT[i] < EN_NACT ? t == goal : t / EN_NACT == goal / EN_NACT && t != proj.piece / EN_NACT * EN_NACT))
-                lit = blink;
+            if (goal >= 0 && (act ? t == goal : t / EN_NACT == goal / EN_NACT && goal / EN_NACT != proj.piece / EN_NACT))
+                lit = quick;
+            else if (act ? t == proj.piece : t / EN_NACT == proj.piece / EN_NACT)
+                lit = slow;
             if (lit)
                 k |= 1u << i;
         }
