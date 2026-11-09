@@ -18,11 +18,11 @@
 /* StoryBox's pages, in the order SELECT steps through them; then the punch-ins' (while one is held, or a latched one
  * tapped). HOME: Home; SEL: Story (the keys' map); EDIT: Lead; FX: Effects; GLO: Setup */
 enum { V_MIX, V_GARDEN, V_STORY, V_LEAD, V_SPACE, V_PAD, V_BELLS, V_BASS, V_PULSE, V_SETUP, V_SYSTEM,
-       V_REV, V_STUT, V_FILT, V_PHAS, NVIEWS };
+       V_REV, V_STUT, V_FILT, V_SCAT, NVIEWS };
 #define NPAGES V_REV
 #define NOBTN 0xFF
 static const char *const VIEW_NAME[NVIEWS] = {"Home", "Feel", "Story", "Lead", "Effects", "Pad", "Melody", "Bass", "Drums",
-                                              "Setup", "System", "Reverse", "Stutter", "Filter", "Phaser"};
+                                              "Setup", "System", "Reverse", "Stutter", "Filter", "Scatter"};
 static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, NOBTN, B_SEL, B_EDIT, B_FX, NOBTN, NOBTN, NOBTN, NOBTN, B_GLO, NOBTN,
                                          B_ENV, B_LFO, B_ARP, B_SEQ};
 /* the punch-ins: ENV Reverse, LFO Stutter, ARP Filter, SEQ Phaser (held; a double tap latches one on) */
@@ -44,7 +44,7 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_RVLEN, P_RVMIX, K_NONE, K_NONE},
     {P_STRATE, P_STMIX, K_NONE, K_NONE},
     {P_FLCUT, P_FLRES, K_NONE, K_NONE},
-    {P_PHRATE, P_PHDEPTH, K_NONE, K_NONE},
+    {P_SCSIZE, P_SCMIX, K_NONE, K_NONE},
 };
 static const char *const KNOB_LABEL[NVIEWS][4] = {
     {"Pad", "Melody", "Bass", "Drums"},
@@ -222,7 +222,7 @@ static struct {
 
 static int global_p(int p)                     /* the player's: Root and the lead only within a story (a new story brings its own) */
 {
-    return p == P_TUNE || p == P_MIDI || p == P_ENERGY || (p >= P_RVLEN && p <= P_PHDEPTH) ||
+    return p == P_TUNE || p == P_MIDI || p == P_ENERGY || (p >= P_RVLEN && p <= P_SCMIX) ||
            ((p == P_ROOT || (p >= P_LSOUND && p <= P_LOCT)) && tr.piece / EN_NACT == proj.piece / EN_NACT);
 }
 static int switch_p(int p)
@@ -365,8 +365,8 @@ static void tr_tick(void)
 /* ACTS, the keys in banks with a gap between them. White: F3 G3 A3 B3 the story's four acts; (C4 a gap); D4 .. D5 the
  * eight stories; (E5 a gap); F5 G5 the two stings. Black: F#3 G#3 A#3 C#4 the pad, bells, bass and drums; F#5 the
  * breakdown. KEY_ACT: an act 0..3; a story 10 + s; else as below; -1 nothing */
-static const int8_t KEY_ACT[NKEYS] = {0, 50, 1, 51, 2, 52, 3, -1, 53, 10, -1, 11, 12, -1, 13, -1, 14, -1, 15, 16, -1, 17, -1, -1, 30, 40, 31};
-static const char *const TRACK_NAME[4] = {"PAD", "BELLS", "BASS", "DRUMS"};
+static const int8_t KEY_ACT[NKEYS] = {0, 50, 1, 51, 2, 52, 3, -1, 53, 10, -1, 11, 12, -1, 13, -1, 14, -1, 15, 16, -1, 17, -1, 18, 30, 40, 31};
+static const char *const TRACK_NAME[4] = {"PAD", "MELODY", "BASS", "DRUMS"};
 static void mutes_apply(void)                  /* what is heard: the solos if any, else all but the mutes */
 {
     en_mute(ui.solos ? (uint32_t)(~ui.solos & 15u) : ui.mutes);
@@ -1383,7 +1383,7 @@ static void draw_feel(void)
 static const char *const BTN_LABEL[NB] = {"FX", "SEL", "ENV", "LFO", "EDIT", "GLO", "HOME", "SAVE", "ARP", "SEQ",
                                           "PLAY", "REC", "OCT-", "OCT+"};
 static const char *const BTN_DOES[12] = {"Effects", "Acts", "Reverse", "Stutter", "Lead", "Setup",
-                                         "Home", "Save", "Filter", "Phaser", "Play", "Freeze"};
+                                         "Home", "Save", "Filter", "Scatter", "Play", "Freeze"};
 static int help_lines(int b, const char *l[HELP_LINES])
 {
     int n = 0;
@@ -1445,7 +1445,7 @@ static void draw_map(void)
 {
     static const char *const AK[EN_NACT] = {"F", "G", "A", "B"};
     static const char *const SK[EN_NSTING] = {"F5", "G5"};
-    static const char *const MK[8] = {"D", "E", "F", "G", "A", "B", "C", "D"};
+    static const char *const MK[9] = {"D", "E", "F", "G", "A", "B", "C", "D", "E"};
     static const char *const TK[4] = {"F#", "G#", "A#", "C#"};
     static const char *const TN[4] = {"Pad", "Bells", "Bass", "Drums"};
     static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};

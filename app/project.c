@@ -13,12 +13,19 @@ const char *piece_name(int i) { return en_piece_name(i); }
 static int story_par(int p) { return p == P_ROOT || (p >= P_LSOUND && p <= P_LOCT); }
 static int global_par(int p)
 {
-    return p == P_TUNE || p == P_MIDI || p == P_ENERGY || (p >= P_RVLEN && p <= P_PHDEPTH) || story_par(p);
+    return p == P_TUNE || p == P_MIDI || p == P_ENERGY || (p >= P_RVLEN && p <= P_SCMIX) || story_par(p);
 }   /* the player's */
 
 int proj_hold_keep;                              /* a transition is under way: proj.par is between two acts */
 
-static void recipe(int i, slot_t *s) { en_piece(i, s->par, &s->pool); }
+static void recipe(int i, slot_t *s)
+{
+    int16_t par[P_NPARAMS];
+    int p;
+    en_piece(i, par, &s->pool);
+    for (p = 0; p < P_NPARAMS; p++)
+        s->par[p] = (int8_t)par[p];
+}
 
 static void take(const slot_t *s)                /* a piece's settings into play, the globals kept */
 {
@@ -35,7 +42,7 @@ static void keep(void)                           /* the piece playing, into its 
     if (proj_hold_keep)
         return;
     for (p = 0; p < P_NPARAMS; p++)
-        proj.slot[proj.piece].par[p] = proj.par[p];
+        proj.slot[proj.piece].par[p] = (int8_t)proj.par[p];
     proj.slot[proj.piece].pool = proj.pool;
 }
 
@@ -73,6 +80,16 @@ static int pars_ok(const int16_t *par)
     }
     return 1;
 }
+static int slot_ok(const slot_t *s)
+{
+    int i;
+    for (i = 0; i < P_NPARAMS; i++) {
+        const en_param_t *p = en_param_info(i);
+        if (s->par[i] < p->lo || s->par[i] > p->hi)
+            return 0;
+    }
+    return pool_ok(s->pool);
+}
 
 static int project_valid(void)                  /* an older format: the recipes again */
 {
@@ -82,26 +99,67 @@ static int project_valid(void)                  /* an older format: the recipes 
     if (proj.format != PROJ_FORMAT || proj.piece >= NPIECES || proj.vibe > 1 || proj.wander > 100 || proj.fade > 100)
         return 0;
     for (i = 0; i < NPIECES; i++)
-        if (!pool_ok(proj.slot[i].pool) || !pars_ok(proj.slot[i].par))
+        if (!slot_ok(&proj.slot[i]))
             return 0;
     return 1;
 }
 
+/* 0.3's project (format 7): 49 values a piece, as int16, 32 pieces (eight stories) */
+#define P7 49
+#define N7 32
+typedef struct {
+    int16_t par[P7];
+    uint16_t pool;
+} slot7_t;
+typedef struct {
+    uint32_t magic, format;
+    int16_t par[P7];
+    uint16_t pool;
+    uint8_t leds, piece, vibe, wander, fade, rsv0[3];
+    slot7_t slot[N7];
+    uint8_t rsv[16];
+} project7_t;
+
+static int from7(const project7_t *o)            /* 0.3's: its pieces kept (Fly's acts, reworked, from their recipes),
+                                                  * the new values and Post Show's from theirs */
+{
+    int i, p;
+    project_defaults();
+    for (p = 0; p < P7; p++)
+        proj.par[p] = o->par[p];
+    proj.pool = o->pool;
+    proj.leds = o->leds;
+    proj.piece = o->piece < N7 ? o->piece : 0;
+    proj.wander = o->wander;
+    proj.fade = o->fade;
+    for (i = 0; i < N7; i++) {
+        if (i / EN_NACT == 6)                    /* (Fly: 0.4 reworks it) */
+            continue;
+        for (p = 0; p < P7; p++)
+            proj.slot[i].par[p] = (int8_t)o->slot[i].par[p];
+        proj.slot[i].pool = o->slot[i].pool;
+    }
+    for (p = P7; p < P_NPARAMS; p++)             /* the new values: the piece's own */
+        proj.par[p] = proj.slot[proj.piece].par[p];
+    return project_valid() ? 0 : -1;
+}
+
 int project_load(void)
 {
-    static project_t buf;
+    static union {
+        project_t p;
+        project7_t p7;
+    } buf;
     int n;
     memset(&buf, 0, sizeof buf);
     n = plat_store_load(OBJ_PROJ, &buf, sizeof buf);
-    proj = buf;
-    if (n >= 8 && proj.magic == PROJ_MAGIC && proj.format == 6u) {   /* 0.2's: its 24 pieces kept, Fly's four added
-                                                                     * (Surf, new, 0 in them) */
-        int i;
-        for (i = 6 * EN_NACT; i < NPIECES; i++)
-            recipe(i, &proj.slot[i]);
-        memset(proj.rsv, 0, sizeof proj.rsv);
-        proj.format = PROJ_FORMAT;
+    if (n >= 8 && buf.p.magic == PROJ_MAGIC && buf.p.format == 7u && n >= (int)sizeof(project7_t) - 16) {
+        if (from7(&buf.p7) == 0)
+            return 0;
+        project_defaults();
+        return -1;
     }
+    proj = buf.p;
     if (n >= 8 && project_valid())
         return 0;
     project_defaults();

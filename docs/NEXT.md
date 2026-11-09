@@ -117,3 +117,5 @@ Sound notes (2026-11-09):
 - [ ] Rings redrawn, option B (rings-options mockup): every ring in short segments like the meters: drums one
       segment a step (hits thick, now yellow), bass and pad segmented arcs (lit as loud as they are), the melody's
       notes as segments at their places, fading
+- [x] Lighthouse: the sea (Surf) under every act, a stronger pad, a little Tension; Market Day livelier, sparklier
+      (faster, brighter, the marimba an octave up), its drums looser (Structure down, more hits)
