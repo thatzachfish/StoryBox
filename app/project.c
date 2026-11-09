@@ -9,7 +9,7 @@ project_t proj;
 
 const char *piece_name(int i) { return en_piece_name(i); }
 
-static int global_par(int p) { return p == P_TUNE || p == P_MIDI || p == P_ROOT; }   /* the player's */
+static int global_par(int p) { return p == P_TUNE || p == P_MIDI || p == P_ROOT || p == P_ENERGY; }   /* the player's */
 
 int proj_hold_keep;                              /* a transition is under way: proj.par is between two acts */
 

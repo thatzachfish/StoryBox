@@ -186,7 +186,7 @@ static struct {
 
 static int global_p(int p)                     /* the player's: Root only within a story (a new story brings its key) */
 {
-    return p == P_TUNE || p == P_MIDI || (p == P_ROOT && tr.piece / EN_NACT == proj.piece / EN_NACT);
+    return p == P_TUNE || p == P_MIDI || p == P_ENERGY || (p == P_ROOT && tr.piece / EN_NACT == proj.piece / EN_NACT);
 }
 static int switch_p(int p)
 {
@@ -491,17 +491,6 @@ static void toggle_note(int pc)                 /* a key: its note in or out of 
     mark_dirty();
 }
 
-static void set_mode(int m)
-{
-    m = (m % EN_NMODES + EN_NMODES) % EN_NMODES;
-    proj.par[P_MODE] = (int16_t)m;
-    proj.pool = EN_MODE_POOL[m];
-    en_set(P_MODE, m);
-    en_pool(proj.pool);
-    say("MODE", EN_MODE_NAME[m]);
-    mark_dirty();
-}
-
 static void set_piece(int i)                    /* the piece playing kept as it is; piece i as it was left */
 {
     project_piece(i);
@@ -685,8 +674,11 @@ static void input(void)
         }
         ui.turn_t = plat_ms();
     }
-    if ((e = plat_enc(EN_ALGO)) != 0) {
-        set_mode(proj.par[P_MODE] + (e > 0 ? 1 : -1));
+    if ((e = plat_enc(EN_ALGO)) != 0) {         /* ALGORITHM: Energy, from any page */
+        char t[8];
+        turn(EN_ALGO, P_ENERGY, e);
+        itoa_u((uint32_t)proj.par[P_ENERGY], t);
+        say("ENERGY", t);
         ui.turn_t = plat_ms();
     }
     if ((e = plat_enc(EN_PRESET)) != 0) {       /* PRESETS: the next / previous story, from its first act */

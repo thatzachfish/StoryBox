@@ -60,6 +60,8 @@ enum {
     P_TENSION,                                        /* dissonance: bells off by a semitone, a b9 and a tritone in the
                                                        * chord, the bass on the b2 */
     P_METER,                                          /* 0 4/4, 1 3/4 (from the next bar) */
+    P_ENERGY,                                         /* the player's: 50 as the act has it; lower calmer and sparser,
+                                                       * higher fuller, busier and brighter (the ALGORITHM knob) */
     P_NPARAMS
 };
 typedef struct {

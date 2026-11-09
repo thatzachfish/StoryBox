@@ -54,11 +54,11 @@ tapkey b3
 said REMOVED C#
 tapkey w5
 said THE ROOT STAYS (SETUP)
-# the encoders: the mode, the story
+# the encoders: Energy, the story
 turn ALGO 1
-said MODE Phrygian
+said ENERGY 51
 turn ALGO -1
-said MODE Dorian
+said ENERGY 50
 turn PRESET 1
 said STORY Sleep
 wait 300

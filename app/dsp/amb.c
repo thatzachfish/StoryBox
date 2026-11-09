@@ -35,7 +35,7 @@ static const en_param_t PARAMS[P_NPARAMS] = {
     {"Mode", 0, EN_NMODES - 1, 1}, {"Bell oct", -2, 2, 0}, {"Pad tone", 0, 1, 0},
     {"Bass oct", -1, 1, 0},   {"Glide", 0, 100, 20},    {"Fifth", 0, 100, 35},
     {"Swing", 0, 100, 0},     {"Hats", 0, 100, 50},     {"Freedom", 0, 100, 100},
-    {"Tension", 0, 100, 0},   {"Meter", 0, 1, 0},
+    {"Tension", 0, 100, 0},   {"Meter", 0, 1, 0},       {"Energy", 0, 100, 50},
 };
 const en_param_t *en_param_info(int i) { return (i >= 0 && i < P_NPARAMS) ? &PARAMS[i] : &PARAMS[0]; }
 
@@ -511,6 +511,7 @@ volatile float en_pad_amp[EN_NPAD];
 static int16_t par[P_NPARAMS];
 static uint32_t pool = 0xAADu;                  /* Ionian until told */
 static int nsteps, steps[12];                   /* the scale */
+static float energy;                            /* Energy, -1 (calm) .. 0 (as the act has it) .. +1 (full) */
 /* StoryBox: a named chord in play (chord_x): its tones and its bass (-1: the root), absolute pitch classes */
 static int chord_x, x_pcs[4], x_n, x_bass = -1;
 static float tension;                           /* Tension, 0..1 */
@@ -964,7 +965,7 @@ static int loop_count(int l)
 
 static int loop_target(void)                    /* 0..5 notes: Density, swelled and thinned by the arc */
 {
-    float d = (float)par[P_DENSITY] * 0.05f * (1.0f + 0.8f * arcm);
+    float d = (float)par[P_DENSITY] * 0.05f * (1.0f + 0.8f * arcm) * (1.0f + 0.7f * energy);
     return (int)(fm_clampf(d, 0.0f, 5.0f) + frand());
 }
 static uint8_t loop_rest[EN_NLOOP];             /* this pass: silent (Evolve) */
@@ -1097,11 +1098,17 @@ static void drum_publish(int d)
     en_drum_pat[d] = drum_pat[d];
 }
 
+static int energy_hits(void)                    /* Hits, through Energy */
+{
+    int h = par[P_HITS] + (int)(35.0f * energy);
+    return par[P_HITS] == 0 ? 0 : h < 0 ? 0 : h > 100 ? 100 : h;   /* a story with no pulse keeps none */
+}
+
 static void drums_pattern(void)                 /* Hits: the patterns' home */
 {
     int d;
     for (d = 0; d < EN_NDRUM; d++) {
-        drum_kb[d] = drum_k[d] = (par[P_HITS] * DRUM_KMAX[d] + 50) / 100;
+        drum_kb[d] = drum_k[d] = (energy_hits() * DRUM_KMAX[d] + 50) / 100;
         drum_rot[d] = DRUM_ROT[d];
         drum_publish(d);
     }
@@ -1507,9 +1514,16 @@ static void apply(int p, int v)
     par[p] = (int16_t)v;
     switch (p) {
     case P_PAD: pad_vol = (float)(v * v) * 0.0001f; break;
-    case P_BELLS: bell_vol = (float)(v * v) * 0.0001f; break;
+    case P_BELLS: bell_vol = (float)(v * v) * 0.0001f * (1.0f + 0.3f * energy); break;
     case P_BASS: bass_vol = (float)(v * v) * 0.0001f; break;
-    case P_PULSE: pulse_vol = (float)(v * v) * 0.0001f; break;
+    case P_PULSE: pulse_vol = (float)(v * v) * 0.0001f * (1.0f + 0.45f * energy); break;
+    case P_ENERGY:                               /* Energy: the levels, the hits and the brightness again, through it */
+        energy = (float)(v - 50) * 0.02f;
+        apply(P_BELLS, par[P_BELLS]);
+        apply(P_PULSE, par[P_PULSE]);
+        apply(P_BRIGHT, par[P_BRIGHT]);
+        drums_pattern();
+        break;
     case P_HITS: drums_pattern(); break;
     case P_BASSOCT:
         if (nsteps)
@@ -1538,7 +1552,7 @@ static void apply(int p, int v)
         pl_decay_t = 0.6f + 0.375f * (float)v * 0.01f;     /* to 0.975: a long hall */
         echo_fb = 0.5f + 0.32f * (float)v * 0.01f;
         break;
-    case P_BRIGHT: bright = (float)v; break;
+    case P_BRIGHT: bright = fm_clampf((float)v + 25.0f * energy, 0.0f, 100.0f); break;
     case P_SWELL: swell = (float)v; break;
     case P_EVOLVE: evolve = (float)v * 0.01f; break;
     case P_BTONE: btone = (float)v * 0.01f; break;
@@ -2087,7 +2101,7 @@ static void control(uint32_t n)                 /* once a chunk: the slow things
     }
     if (en_playing)
         arc += (fm_clampf(arc_tgt, -1.0f, 1.0f) - arc) * (float)n * (1.0f / (35.0f * EN_SR));
-    arcm = arc * motion;
+    arcm = fm_clampf(arc * motion + 0.45f * energy, -1.0f, 1.0f);   /* Energy leans the arc toward sparse or full */
     en_arc = arcm;
     pl_decay += ((en_frozen ? 0.9995f : pl_decay_t) - pl_decay) * 0.002f;
     pl_dd2 = fm_clampf(pl_decay + 0.15f, 0.25f, 0.5f);

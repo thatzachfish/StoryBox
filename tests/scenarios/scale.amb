@@ -1,4 +1,4 @@
-# the keys are the scale: toggles, the root stays, three notes at least; modes and the root
+# the keys are the scale: toggles, the root stays, three notes at least; the root; ALGORITHM is Energy
 wait 300
 # D Dorian: D E F G A B C. F#3 is key 1: add F# (relative 4)
 tapkey 1
@@ -8,12 +8,12 @@ expect pool 0x6AD
 # key 9 is D4: the root stays
 tapkey 9
 expect pool 0x6AD
-# the next mode: Phrygian
+# ALGORITHM: Energy (the player's, 50 as the act has it)
+expect par31 50
 turn ALGO 1
-expect par20 2
-expect pool 0x5AB
+expect par31 51
 turn ALGO -1
-expect pool 0x6AD
+expect par31 50
 # the root up a tone (Setup page, KNOB 1): E Dorian
 tap GLO
 spin K1 2
@@ -22,13 +22,11 @@ tap HOME
 expect pool 0x6AD
 wait 300
 shot e_dorian.png
-# pentatonic minor, then strip it down to three notes and try a fourth removal
-turn ALGO 6
-expect par20 7
-expect pool 0x4A9
-# E pent min: E G A B D. Remove G (key 2 = G3) and A (key 4 = A3)
+# E Dorian: E F# G A B C# D. Down to three notes (E B D): F# (key 1), G (key 2), A (key 4), C# (key 8)
+tapkey 1
 tapkey 2
 tapkey 4
+tapkey 8
 expect pool 0x481
 # B (key 6): would leave two
 tapkey 6
