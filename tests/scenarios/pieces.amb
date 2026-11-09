@@ -11,7 +11,7 @@ wait 100
 expect piece 0
 wait 13000
 expect piece 1
-expect par3 55
+expect par3 62
 shot warmup.png
 # the bells' level on this act (the Bells page), kept with it
 tap GLO
@@ -26,7 +26,7 @@ wait 3000
 expect piece 1
 wait 120000
 expect piece 3
-expect par3 25
+expect par3 40
 # back to Warm Up: as it was left
 tapkey 2
 wait 15000

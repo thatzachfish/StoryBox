@@ -42,7 +42,7 @@ enum { MODE_IONIAN, MODE_DORIAN, MODE_PHRYGIAN, MODE_LYDIAN, MODE_MIXOLYDIAN, MO
 extern const char *const EN_MODE_NAME[EN_NMODES];
 extern const uint16_t EN_MODE_POOL[EN_NMODES];
 extern const char *const EN_NOTE_NAME[12];
-extern const uint8_t EN_LOOP_LEN[EN_NLOOP];
+extern volatile uint8_t en_loop_len[EN_NLOOP];   /* (StoryBox: Structure chooses them) */
 extern const uint8_t EN_DRUM_N[EN_NDRUM];
 
 /* parameters: value ranges in en_param_info() */
@@ -64,8 +64,11 @@ enum {
                                                        * higher fuller, busier and brighter (the ALGORITHM knob) */
     P_LSOUND, P_LLEVEL, P_LTONE, P_LGLIDE, P_LOCT,    /* StoryBox's lead: its sound (EN_LEAD_NAME), level, tone (dark ..
                                                        * bright), glide (legato sounds) and octave */
-    P_GROOVE,                                         /* the pulse: 0 loose (polyrhythms that drift and turn), 100 steady
-                                                       * (every pattern a bar or two long, staying put) */
+    P_GROOVE,                                         /* Structure: 0 loose (polyrhythmic hats, prime bell loops drifting,
+                                                       * chords free to vary) .. 100 steady (patterns and bell loops a
+                                                       * bar or two long on the downbeat, chords as written) */
+    P_KIT,                                            /* the pulse's kit: 0 soft (thump, two hats), 1 backbeat (a lo-fi
+                                                       * snare and clap on two and four, a boom-bap kick; 4/4) */
     P_RVLEN, P_RVMIX, P_STRATE, P_STMIX,              /* the punch-in effects (the player's): Reverse's length and mix, */
     P_FLCUT, P_FLRES, P_PHRATE, P_PHDEPTH,            /* Stutter's rate and mix, Filter's cutoff and resonance, Phaser's */
     P_NPARAMS

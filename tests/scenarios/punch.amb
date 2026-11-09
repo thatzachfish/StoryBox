@@ -7,7 +7,7 @@ wait 300
 expect fx 4
 expect view 12
 spin K1 10
-expect par42 35
+expect par43 35
 release ARP
 wait 300
 expect fx 0

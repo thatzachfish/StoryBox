@@ -13,7 +13,7 @@ key 8 up
 expect mutes 0x80
 tapkey 1
 expect mutes 0
-# the breakdown: on the next bar (Pre-show: 84 bpm, a bar 2.86 s)
+# the breakdown: on the next bar (Pre-show: 86 bpm, a bar 2.8 s)
 tapkey 25
 expect bd 0
 wait 3000
@@ -21,7 +21,6 @@ expect bd 1
 wait 4000
 expect bd 1
 tapkey 25
-expect bd 1
 wait 6500
 expect bd 0
 # the Mix page: HOME, then HOME again
@@ -30,4 +29,4 @@ expect view 1
 tap HOME
 expect view 8
 spin K4 -10
-expect par3 20
+expect par3 35

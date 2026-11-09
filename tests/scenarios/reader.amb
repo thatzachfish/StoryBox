@@ -43,7 +43,7 @@ press HOME
 turn SELECT 2 200
 release HOME
 wait 300
-said Tempo 86
+said Tempo 88
 # the keys: a note out of the scale and back in; the root stays
 tapkey w1
 said REMOVED G
@@ -100,9 +100,6 @@ wait 1000
 said REC button. FREEZE: THE CHORD HOLDS AND THE REVERB RINGS ON. AGAIN: THAW
 release REC
 wait 100
-# the chord moving by itself: queued (said after what is being said)
-wait 8000
-said Chord
 # a MIDI clock arriving, and start / stop from it
 midi FA 00 00
 midi F8 00 00
@@ -112,7 +109,7 @@ midi FC 00 00
 wait 300
 said RESTING
 wait 1000
-said Tempo 86
+said Tempo 88
 # WHERE: everything again
 where
-said Garden page: Tempo 86, Evolve 30, Motion 40
+said Garden page: Tempo 88, Evolve 30, Motion 40

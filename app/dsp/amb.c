@@ -20,7 +20,9 @@ const uint16_t EN_MODE_POOL[EN_NMODES] = {
     B(0, 2, 4, 5, 7, 9, 10), B(0, 2, 3, 5, 7, 8, 10), B(0, 2, 4, 7, 9, 9, 9),  B(0, 3, 5, 7, 10, 10, 10),
     B(0, 2, 3, 5, 7, 9, 11)};
 #undef B
-const uint8_t EN_LOOP_LEN[EN_NLOOP] = {13, 17, 23, 29};
+/* the bells' loops, in beats: StoryBox's Structure chooses them (loops_for): drifting primes (13 17 23 29), loops that
+ * agree every few bars, or loops a bar, two or four long on the downbeat */
+volatile uint8_t en_loop_len[EN_NLOOP] = {13, 17, 23, 29};
 const uint8_t EN_DRUM_N[EN_NDRUM] = {16, 12, 7};
 volatile uint8_t en_drum_n[EN_NDRUM] = {16, 12, 7};
 volatile uint8_t en_bar_len = 16;
@@ -37,7 +39,7 @@ static const en_param_t PARAMS[P_NPARAMS] = {
     {"Swing", 0, 100, 0},     {"Hats", 0, 100, 50},     {"Freedom", 0, 100, 100},
     {"Tension", 0, 100, 0},   {"Meter", 0, 1, 0},       {"Energy", 0, 100, 50},
     {"Lead", 0, EN_NLEAD - 1, 0}, {"Lead level", 0, 100, 65}, {"Lead tone", 0, 100, 50}, {"Glide", 0, 100, 20},
-    {"Lead oct", -2, 2, 0},   {"Groove", 0, 100, 0},
+    {"Lead oct", -2, 2, 0},   {"Structure", 0, 100, 0}, {"Kit", 0, 1, 0},
     {"Length", 0, 100, 40},   {"Mix", 0, 100, 100},     {"Rate", 0, 3, 1},        {"Mix", 0, 100, 100},
     {"Cutoff", 0, 100, 25},   {"Resonance", 0, 100, 40}, {"Rate", 0, 100, 30},     {"Depth", 0, 100, 70},
 };
@@ -68,40 +70,40 @@ static const struct {
     const char *sting_name[EN_NSTING];
 } STORIES[EN_NSTORY] = {
     {"Pre-show", {"Doors", "Warm Up", "Lounge", "Lights Down"}, {
-        {50, 40, 40, 30, 30, 30, 30, 30, 40, 2, 50, 65, 45, 45, 55, 40, 0, 1, 84, 2, 1, 0, 0, 0, 15, 30, 70, 55, 30, 0, 0, 50, 0, 60, 45, 15, 0, 70},
-        {55, 55, 55, 55, 45, 40, 25, 55, 40, 2, 45, 60, 55, 40, 60, 50, 0, 1, 84, 2, 1, 0, 0, 0, 10, 40, 70, 65, 15, 0, 0, 50, 0, 60, 45, 15, 0, 70},
-        {55, 70, 50, 50, 55, 50, 25, 50, 50, 1, 50, 65, 60, 45, 70, 55, 0, 1, 84, 2, 4, 0, 0, 0, 15, 40, 65, 70, 40, 0, 0, 50, 0, 60, 45, 15, 0, 70},
-        {50, 35, 40, 25, 25, 30, 35, 25, 50, 3, 60, 75, 35, 55, 45, 40, 0, 1, 80, 2, 1, 0, 0, 0, 20, 30, 70, 45, 100, 0, 0, 50, 0, 60, 45, 15, 0, 70}},
+        {50, 40, 50, 45, 30, 30, 30, 45, 40, 2, 50, 65, 45, 45, 55, 40, 0, 1, 86, 2, 1, 0, 0, 0, 15, 30, 70, 55, 30, 0, 0, 50, 0, 60, 45, 15, 0, 70, 1},
+        {55, 55, 60, 62, 45, 40, 25, 62, 40, 2, 45, 60, 55, 40, 60, 50, 0, 1, 88, 2, 1, 0, 0, 0, 10, 40, 70, 65, 15, 0, 0, 50, 0, 60, 45, 15, 0, 70, 1},
+        {55, 70, 55, 58, 55, 50, 25, 58, 50, 1, 50, 65, 60, 45, 70, 55, 0, 1, 88, 2, 4, 0, 0, 0, 15, 40, 65, 70, 40, 0, 0, 50, 0, 60, 45, 15, 0, 70, 1},
+        {50, 35, 40, 40, 25, 30, 35, 40, 50, 3, 60, 75, 35, 55, 45, 40, 0, 1, 80, 2, 1, 0, 0, 0, 20, 30, 70, 45, 100, 0, 0, 50, 0, 60, 45, 15, 0, 70, 1}},
         {"1:2 4:2", "1:2 4:2 7:2 3:2", "1:2 7:2 4:2 1:2", 0}, 2, {0}, {0}},
     {"Sleep", {"Dusk", "Drifting", "Deep", "Stillness"}, {
-        {50, 45, 30, 0, 30, 30, 55, 0, 40, 4, 55, 85, 35, 70, 30, 45, 0, 1, 56, 2, 6, 0, 0, 0, 40, 25, 0, 40, 100, 0, 0, 50, 2, 50, 30, 40, 0, 0},
-        {50, 35, 25, 0, 25, 25, 65, 0, 35, 5, 58, 86, 28, 75, 20, 50, 0, 1, 52, 2, 6, -1, 1, -1, 45, 20, 0, 40, 100, 0, 0, 50, 2, 50, 30, 40, 0, 0},
-        {50, 20, 20, 0, 18, 20, 75, 0, 25, 5, 60, 88, 20, 80, 10, 45, 0, 1, 50, 2, 6, -1, 1, -1, 50, 15, 0, 40, 100, 0, 0, 50, 2, 50, 30, 40, 0, 0},
-        {45, 10, 10, 0, 12, 15, 85, 0, 20, 5, 60, 88, 15, 85, 5, 35, 0, 1, 48, 2, 6, -1, 1, -1, 50, 10, 0, 40, 100, 0, 0, 50, 2, 50, 30, 40, 0, 0}}, {0}, 2, {0}, {0}},
+        {50, 45, 30, 0, 30, 30, 55, 0, 40, 4, 55, 85, 35, 70, 30, 45, 0, 1, 56, 2, 6, 0, 0, 0, 40, 25, 0, 40, 100, 0, 0, 50, 2, 50, 30, 40, 0, 0, 0},
+        {50, 35, 25, 0, 25, 25, 65, 0, 35, 5, 58, 86, 28, 75, 20, 50, 0, 1, 52, 2, 6, -1, 1, -1, 45, 20, 0, 40, 100, 0, 0, 50, 2, 50, 30, 40, 0, 0, 0},
+        {50, 20, 20, 0, 18, 20, 75, 0, 25, 5, 60, 88, 20, 80, 10, 45, 0, 1, 50, 2, 6, -1, 1, -1, 50, 15, 0, 40, 100, 0, 0, 50, 2, 50, 30, 40, 0, 0, 0},
+        {45, 10, 10, 0, 12, 15, 85, 0, 20, 5, 60, 88, 15, 85, 5, 35, 0, 1, 48, 2, 6, -1, 1, -1, 50, 10, 0, 40, 100, 0, 0, 50, 2, 50, 30, 40, 0, 0, 0}}, {0}, 2, {0}, {0}},
     {"Lighthouse", {"Fog", "Signal", "Storm", "Dawn"}, {
-        {55, 30, 35, 0, 25, 30, 45, 0, 55, 4, 62, 86, 25, 70, 20, 60, 0, 1, 66, 2, 5, -1, 1, 0, 35, 25, 0, 40, 100, 0, 0, 50, 1, 60, 50, 10, 0, 20},
-        {45, 70, 40, 20, 40, 40, 35, 25, 50, 3, 65, 85, 40, 55, 80, 55, 0, 1, 66, 2, 5, 1, 1, 0, 25, 30, 0, 60, 100, 0, 0, 50, 1, 60, 50, 10, 0, 20},
-        {55, 65, 60, 60, 60, 70, 15, 70, 60, 1, 60, 80, 50, 35, 70, 90, 0, 1, 76, 2, 2, 0, 0, 0, 15, 45, 20, 80, 100, 0, 0, 50, 1, 60, 50, 10, 0, 20},
-        {50, 60, 35, 15, 40, 35, 40, 15, 40, 3, 70, 85, 65, 60, 40, 50, 0, 1, 66, 2, 3, 0, 1, 0, 30, 30, 0, 40, 100, 0, 0, 50, 1, 60, 50, 10, 0, 20}}, {0}, 2, {0}, {0}},
+        {55, 30, 35, 0, 25, 30, 45, 0, 55, 4, 62, 86, 25, 70, 20, 60, 0, 1, 66, 2, 5, -1, 1, 0, 35, 25, 0, 40, 100, 0, 0, 50, 1, 60, 50, 10, 0, 20, 0},
+        {45, 70, 40, 20, 40, 40, 35, 25, 50, 3, 65, 85, 40, 55, 80, 55, 0, 1, 66, 2, 5, 1, 1, 0, 25, 30, 0, 60, 100, 0, 0, 50, 1, 60, 50, 10, 0, 20, 0},
+        {55, 65, 60, 60, 60, 70, 15, 70, 60, 1, 60, 80, 50, 35, 70, 90, 0, 1, 76, 2, 2, 0, 0, 0, 15, 45, 20, 80, 100, 0, 0, 50, 1, 60, 50, 10, 0, 20, 0},
+        {50, 60, 35, 15, 40, 35, 40, 15, 40, 3, 70, 85, 65, 60, 40, 50, 0, 1, 66, 2, 3, 0, 1, 0, 30, 30, 0, 40, 100, 0, 0, 50, 1, 60, 50, 10, 0, 20, 0}}, {0}, 2, {0}, {0}},
     {"Market Day", {"Morning", "Crowds", "Siesta", "Lanterns"}, {
-        {50, 55, 35, 25, 40, 35, 30, 25, 35, 2, 50, 65, 55, 45, 60, 45, 0, 1, 92, 2, 0, 0, 0, 0, 15, 35, 40, 60, 100, 0, 0, 50, 0, 65, 60, 10, 0, 40},
-        {45, 75, 55, 60, 65, 60, 20, 70, 40, 1, 45, 60, 65, 35, 70, 65, 0, 1, 96, 2, 4, 0, 0, 0, 10, 45, 55, 75, 100, 0, 0, 50, 0, 65, 60, 10, 0, 40},
-        {55, 40, 30, 15, 25, 25, 45, 15, 50, 3, 60, 75, 40, 65, 40, 40, 0, 1, 84, 2, 6, -1, 1, 0, 30, 25, 30, 40, 100, 0, 0, 50, 0, 65, 60, 10, 0, 40},
-        {55, 60, 50, 40, 45, 45, 30, 45, 55, 2, 60, 75, 45, 50, 55, 55, 0, 1, 88, 2, 4, 0, 0, 0, 20, 40, 50, 55, 100, 0, 0, 50, 0, 65, 60, 10, 0, 40}}, {0}, 2, {0}, {0}},
+        {50, 55, 35, 25, 40, 35, 30, 25, 35, 2, 50, 65, 55, 45, 60, 45, 0, 1, 92, 2, 0, 0, 0, 0, 15, 35, 40, 60, 100, 0, 0, 50, 0, 65, 60, 10, 0, 40, 0},
+        {45, 75, 55, 60, 65, 60, 20, 70, 40, 1, 45, 60, 65, 35, 70, 65, 0, 1, 96, 2, 4, 0, 0, 0, 10, 45, 55, 75, 100, 0, 0, 50, 0, 65, 60, 10, 0, 40, 0},
+        {55, 40, 30, 15, 25, 25, 45, 15, 50, 3, 60, 75, 40, 65, 40, 40, 0, 1, 84, 2, 6, -1, 1, 0, 30, 25, 30, 40, 100, 0, 0, 50, 0, 65, 60, 10, 0, 40, 0},
+        {55, 60, 50, 40, 45, 45, 30, 45, 55, 2, 60, 75, 45, 50, 55, 55, 0, 1, 88, 2, 4, 0, 0, 0, 20, 40, 50, 55, 100, 0, 0, 50, 0, 65, 60, 10, 0, 40, 0}}, {0}, 2, {0}, {0}},
     {"Deep Forest", {"Path", "Hollow", "Spirits", "Clearing"}, {
-        {50, 50, 35, 25, 35, 40, 35, 30, 45, 3, 65, 80, 40, 55, 50, 50, 0, 1, 70, 2, 1, 0, 0, 0, 25, 30, 15, 45, 100, 0, 0, 50, 2, 60, 45, 30, 0, 20},
-        {60, 35, 45, 20, 30, 45, 40, 20, 50, 2, 62, 86, 25, 65, 30, 65, 0, 1, 64, 2, 2, -1, 1, -1, 30, 35, 10, 35, 100, 0, 0, 50, 2, 60, 45, 30, 0, 20},
-        {55, 70, 25, 10, 50, 60, 30, 10, 70, 4, 64, 88, 45, 60, 85, 80, 0, 1, 70, 2, 7, 1, 1, 0, 40, 20, 0, 30, 100, 0, 0, 50, 2, 60, 45, 30, 0, 20},
-        {50, 65, 40, 30, 45, 40, 30, 35, 45, 3, 65, 80, 65, 50, 55, 50, 0, 1, 72, 2, 6, 0, 0, 0, 20, 35, 15, 50, 100, 0, 0, 50, 2, 60, 45, 30, 0, 20}}, {0}, 2, {0}, {0}},
+        {50, 50, 35, 25, 35, 40, 35, 30, 45, 3, 65, 80, 40, 55, 50, 50, 0, 1, 70, 2, 1, 0, 0, 0, 25, 30, 15, 45, 100, 0, 0, 50, 2, 60, 45, 30, 0, 20, 0},
+        {60, 35, 45, 20, 30, 45, 40, 20, 50, 2, 62, 86, 25, 65, 30, 65, 0, 1, 64, 2, 2, -1, 1, -1, 30, 35, 10, 35, 100, 0, 0, 50, 2, 60, 45, 30, 0, 20, 0},
+        {55, 70, 25, 10, 50, 60, 30, 10, 70, 4, 64, 88, 45, 60, 85, 80, 0, 1, 70, 2, 7, 1, 1, 0, 40, 20, 0, 30, 100, 0, 0, 50, 2, 60, 45, 30, 0, 20, 0},
+        {50, 65, 40, 30, 45, 40, 30, 35, 45, 3, 65, 80, 65, 50, 55, 50, 0, 1, 72, 2, 6, 0, 0, 0, 20, 35, 15, 50, 100, 0, 0, 50, 2, 60, 45, 30, 0, 20, 0}}, {0}, 2, {0}, {0}},
     /* Inside (The Story of the Inside): a waltz in G. A magician who makes the inside, his apprentice, her years
      * outside (G with a B flat everywhere: melodic minor; a slide down by half steps, Tension for the storm), her
      * return, and the magic chord (G, D, E, F#: no third) */
     {"Inside", {"Magician", "Apprentice", "Outside", "Return"}, {
-        {50, 60, 45, 35, 45, 30, 40, 40, 35, 2, 55, 70, 55, 40, 35, 45, 0, 1, 96, 7, 0, 0, 0, 0, 10, 30, 0, 40, 10, 0, 1, 50, 1, 60, 55, 10, 1, 60},
-        {55, 45, 40, 25, 35, 30, 40, 30, 45, 3, 65, 80, 40, 55, 30, 45, 0, 1, 92, 7, 0, 0, 1, 0, 15, 25, 0, 35, 15, 0, 1, 50, 1, 60, 55, 10, 1, 60},
-        {50, 55, 55, 40, 40, 30, 30, 45, 55, 2, 62, 85, 35, 40, 70, 50, 0, 1, 96, 7, 8, 0, 1, -1, 20, 20, 0, 70, 8, 25, 1, 50, 1, 60, 55, 10, 1, 60},
-        {55, 65, 45, 35, 50, 35, 40, 40, 40, 2, 60, 75, 60, 45, 40, 50, 0, 1, 96, 7, 0, 0, 0, 0, 10, 30, 0, 40, 10, 0, 1, 50, 1, 60, 55, 10, 1, 60}},
-        {"G:2 Bm/F#:2 Em:2 D:2", "G:2 Em:2 D:2 Em:2", "Gm:2 F#:2 F:2 Em:2 F:1 F#:1",
+        {50, 60, 45, 35, 45, 30, 40, 40, 35, 2, 55, 70, 55, 40, 35, 45, 0, 1, 96, 7, 0, 0, 0, 0, 10, 30, 0, 40, 10, 0, 1, 50, 1, 60, 55, 10, 1, 60, 0},
+        {55, 45, 40, 25, 35, 30, 40, 30, 45, 3, 65, 80, 40, 55, 30, 45, 0, 1, 92, 7, 0, 0, 1, 0, 15, 25, 0, 35, 15, 0, 1, 50, 1, 60, 55, 10, 1, 60, 0},
+        {50, 45, 55, 40, 30, 25, 30, 45, 55, 2, 62, 85, 35, 40, 70, 40, 0, 1, 96, 7, 8, 0, 1, -1, 20, 20, 0, 70, 5, 15, 1, 50, 1, 60, 55, 10, 1, 72, 0},
+        {55, 65, 45, 35, 50, 35, 40, 40, 40, 2, 60, 75, 60, 45, 40, 50, 0, 1, 96, 7, 0, 0, 0, 0, 10, 30, 0, 40, 10, 0, 1, 50, 1, 60, 55, 10, 1, 60, 0}},
+        {"G:2 Bm/F#:2 Em:2 D:2", "G:2 Em:2 D:2 Em:2", "Gm:2 F#:2 F:2 Em:2 F:2 F#:2",
          "G:2 Bm/F#:2 Em:2 D:2 G:2 Em:2 D:2 Gmagic:4"},
         7, {"G6", "G2 G3 D4 E4 F#4 G4"}, {"High G", "Magic"}},
 };
@@ -280,6 +282,8 @@ void en_param_text(int i, int v, char *b)
         s = ONOFF[v ? 1 : 0];
     else if (i == P_METER)
         s = v ? "3/4" : "4/4";
+    else if (i == P_KIT)
+        s = v ? "Backbeat" : "Soft";
     else if (i == P_LSOUND)
         s = EN_LEAD_NAME[(unsigned)v < EN_NLEAD ? v : 0];
     else if (i == P_PADTONE)
@@ -541,6 +545,8 @@ static lead_t lead[NLEAD];
 /* StoryBox performance: the layers' mutes, each layer's gain gliding to 0 or 1 (mg: pad, bells, bass, pulse); the
  * breakdown (bd_req: asked for, from the next bar; bd_ret: 1 asked to come back, 2 this bar is the fill) */
 static uint32_t mute_mask, fx_mask;
+static int rb_held, rb_rec, rb_rec_n, rb_regrab;   /* the punch-ins' ring held; rb_rec: recording again while the old
+                                                    * moment plays (a refresh); rb_regrab: the new one ready, at the seam */
 static float mg[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 static uint8_t bd, bd_req, bd_ret;
 volatile uint8_t en_bd;
@@ -764,7 +770,7 @@ static float bass_vol, glide_k = 1.0f / (0.25f * EN_SR);      /* glide_k: 1 / th
 typedef struct {
     float cph, mph, cinc, minc, amp, adec, idx, idec, att, gl, gr;
     int32_t wait;
-    uint8_t on, note, loop;
+    uint8_t on, note, loop, sting;               /* sting: StoryBox's, at its own level (not the bells'), ringing long */
 } bell_t;
 static bell_t bell[NBELL];
 static float bell_vol, btone;
@@ -784,6 +790,7 @@ static drum_t drum[EN_NDRUM];
 static uint8_t drum_pos[EN_NDRUM];
 static uint32_t drum_pat[EN_NDRUM];
 static uint8_t drum_n[EN_NDRUM] = {16, 12, 7};  /* StoryBox: each pulse's cycle (the thump's is the bar) */
+static void snare_fire(float vel);             /* the backbeat kit's snare (below) */
 static float pulse_vol, swing, hat_f = 0.9f, hat_open = 0.42f;
 static float step_len, pulse_left;               /* a sixteenth, in samples; to the next MIDI clock pulse */
 static uint32_t noise = 22222u;
@@ -891,6 +898,7 @@ static float freedom = 1.0f;                    /* Freedom, 0..1 */
 volatile int8_t en_prog_step = -1;
 static void chord_to(int i);
 static int prog_on(void) { return prog_cur >= 0 && prog_n[prog_cur] && freedom < 0.995f; }
+static float freedom_eff(void) { return freedom * (1.0f - 0.008f * (float)par[P_GROOVE]); }   /* Structure: as written */
 
 static void chord_named(int off, int q, int bass)   /* a named chord, off semitones above the key (Root) */
 {
@@ -917,12 +925,12 @@ static void prog_advance(void)                  /* the next step, on a bar: as w
     b = prog_bars[prog_cur][prog_i];
     en_prog_step = (int8_t)prog_i;
     if (d < 0) {                                /* a named chord: as written, or (with Freedom) the last one held */
-        prog_left = b + (frand() < freedom * 0.25f ? (b > 1 && frand() < 0.5f ? -1 : 1) : 0);
-        if (!(frand() < freedom * 0.3f))
+        prog_left = b + (frand() < freedom_eff() * 0.25f ? (b > 1 && frand() < 0.5f ? -1 : 1) : 0);
+        if (!(frand() < freedom_eff() * 0.3f))
             chord_named(prog_off[prog_cur][prog_i], prog_q[prog_cur][prog_i], prog_bass[prog_cur][prog_i]);
         return;
     }
-    if (frand() < freedom * 0.55f) {            /* a variation: a chord a third away, or the last one held */
+    if (frand() < freedom_eff() * 0.55f) {            /* a variation: a chord a third away, or the last one held */
         float r = frand();
         if (r < 0.45f)
             d += nsteps == 7 ? 5 : nsteps - 2;  /* a third below: the relative */
@@ -931,7 +939,7 @@ static void prog_advance(void)                  /* the next step, on a bar: as w
         else
             d = deg;                            /* held */
     }
-    if (frand() < freedom * 0.25f)              /* and now and then a bar longer or shorter */
+    if (frand() < freedom_eff() * 0.25f)              /* and now and then a bar longer or shorter */
         b += b > 1 && frand() < 0.5f ? -1 : 1;
     prog_left = b;
     d = ((d % nsteps) + nsteps) % nsteps;
@@ -990,7 +998,7 @@ static int rand_offset(void)                    /* scale steps above the chord's
 static int loop_count(int l)
 {
     int i, c = 0;
-    for (i = 0; i < EN_LOOP_LEN[l]; i++)
+    for (i = 0; i < en_loop_len[l]; i++)
         c += loop_note[l][i] >= 0;
     return c;
 }
@@ -1004,7 +1012,7 @@ static uint8_t loop_rest[EN_NLOOP];             /* this pass: silent (Evolve) */
 
 static void loop_add(int l)
 {
-    int len = EN_LOOP_LEN[l], i, s;
+    int len = en_loop_len[l], i, s;
     for (i = 0; i < 8; i++) {
         s = irand(len);
         if (loop_note[l][s] < 0) {
@@ -1017,7 +1025,7 @@ static void loop_add(int l)
 
 static int loop_pick(int l)                     /* a random sounding slot, -1 none */
 {
-    int len = EN_LOOP_LEN[l], i, s = irand(len);
+    int len = en_loop_len[l], i, s = irand(len);
     for (i = 0; i < len; i++, s = (s + 1) % len)
         if (loop_note[l][s] >= 0)
             return s;
@@ -1028,7 +1036,7 @@ static void loop_publish(int l)
 {
     int i;
     for (i = 0; i < EN_LOOP_MAX; i++)
-        en_loop_note[l][i] = i < EN_LOOP_LEN[l] ? loop_note[l][i] : -1;
+        en_loop_note[l][i] = i < en_loop_len[l] ? loop_note[l][i] : -1;
 }
 
 static void loop_regrow(int l)
@@ -1048,12 +1056,12 @@ static void loop_pass(int l)                    /* the end of a pass: grow, prun
         loop_add(l);
     for (; c > t && (s = loop_pick(l)) >= 0; c--)
         loop_note[l][s] = -1;
-    loop_rest[l] = frand() < evolve * 0.15f + 0.15f * fm_maxf(-arcm, 0.0f);
-    if (frand() < evolve * 0.7f && (s = loop_pick(l)) >= 0) {
+    loop_rest[l] = frand() < (evolve * 0.15f + 0.15f * fm_maxf(-arcm, 0.0f)) * (1.0f - 0.008f * (float)par[P_GROOVE]);
+    if (frand() < evolve * 0.7f * (1.0f - 0.007f * (float)par[P_GROOVE]) && (s = loop_pick(l)) >= 0) {   /* Structure: steadier */
         if (frand() < 0.5f) {
             loop_note[l][s] = (int8_t)rand_offset();             /* another note */
         } else {
-            int d = irand(EN_LOOP_LEN[l]);                       /* the same note, elsewhere */
+            int d = irand(en_loop_len[l]);                       /* the same note, elsewhere */
             if (loop_note[l][d] < 0) {
                 loop_note[l][d] = loop_note[l][s];
                 loop_vel[l][d] = loop_vel[l][s];
@@ -1098,6 +1106,7 @@ static void bell_voice(int l, int n, float vel, int32_t wait)
     v->idx = (0.15f + 6.5f * btone * btone) * LOOP_IDX[l] * (0.6f + 0.4f * vel) * (1.0f / FM_TWO_PI);
     v->idec = fm_expf(-6.9f / ((0.35f + 2.6f * btone) * EN_SR));
     v->att = 0.0f;
+    v->sting = 0;
     p = (LOOP_PAN[l] + 1.0f) * (FM_PI / 4.0f);
     v->gl = fm_cosf(p);
     v->gr = fm_sinf(p);
@@ -1123,6 +1132,10 @@ static int drum_k[EN_NDRUM], drum_kb[EN_NDRUM], drum_rot[EN_NDRUM], pulse_rest; 
 static void drum_publish(int d)
 {
     drum_pat[d] = en_euclid(drum_k[d], drum_n[d], drum_rot[d]);
+    if (par[P_KIT] && en_bar_len == 16 && d == 0)   /* backbeat: boom-bap (one, the and of two, three's and), more with Hits */
+        drum_pat[0] = drum_k[0] >= 3 ? 0x0485u : 0x0481u;
+    else if (par[P_KIT] && en_bar_len == 16 && d == 2)   /* and the open hat steps back for the snare */
+        drum_pat[2] &= ~0x1010u;
     if (en_bar_len == 12 && d == 0)              /* 3/4: the thump always on the one */
         drum_pat[0] = en_euclid(drum_k[0] < 1 ? 1 : drum_k[0], 12, 0) | 1u;
     else if (en_bar_len == 12 && d == 1)         /* and the closed hat on two and three (oom-pah-pah), more with Hits */
@@ -1225,6 +1238,18 @@ static void drums_wait_step(int32_t k)          /* k samples went by: hits whose
 /* the grid: one call a sixteenth (MIDI clock: 6 ticks) */
 static uint32_t sixteenth;
 static uint8_t bar_pos, meter_next;             /* StoryBox: the sixteenth in the bar; 3/4 asked for (from the next bar) */
+static void loops_for(uint8_t *len)             /* the loops' lengths for Structure and the meter */
+{
+    static const uint8_t L[3][2][EN_NLOOP] = {
+        {{13, 17, 23, 29}, {13, 17, 23, 29}},   /* loose: primes, drifting, never agreeing */
+        {{12, 16, 20, 24}, {12, 15, 18, 24}},   /* in between: agreeing every few bars (4/4, 3/4) */
+        {{4, 8, 8, 16}, {3, 6, 6, 12}},         /* steady: a bar, two and four, on the downbeat */
+    };
+    int s = par[P_GROOVE] < 34 ? 0 : par[P_GROOVE] < 67 ? 1 : 2, l;
+    for (l = 0; l < EN_NLOOP; l++)
+        len[l] = L[s][en_bar_len == 12][l];
+}
+
 static void meter_bar(void)                      /* a bar starts: the meter and the Groove asked for take over */
 {
     uint8_t len = meter_next ? 12 : 16, steady = par[P_GROOVE] >= 50;
@@ -1238,6 +1263,39 @@ static void meter_bar(void)                      /* a bar starts: the meter and 
         for (d = 0; d < EN_NDRUM; d++)
             drum_pos[d] = 0;
         drums_pattern();
+    }
+    {                                           /* the bells' loops: new lengths start together, on the one */
+        uint8_t want[EN_NLOOP];
+        int l, i, chg = 0;
+        loops_for(want);
+        for (l = 0; l < EN_NLOOP; l++)
+            chg |= want[l] != en_loop_len[l];
+        if (chg) {
+            for (l = 0; l < EN_NLOOP; l++) {
+                en_loop_len[l] = want[l];
+                for (i = want[l]; i < EN_LOOP_MAX; i++)   /* the notes past the new end: gone */
+                    loop_note[l][i] = -1;
+                loop_pos[l] = 0;
+                if (!loop_count(l))
+                    loop_regrow(l);
+                loop_publish(l);
+            }
+        } else if (par[P_GROOVE] >= 67) {       /* steady: the loops kept on the downbeat */
+            for (l = 0; l < EN_NLOOP; l++)
+                if (loop_pos[l] % (en_bar_len / 4) != 0)
+                    loop_pos[l] = 0;
+        }
+    }
+}
+static void sting_mark(void)                    /* the voice just struck (the loudest, newest) is a sting's */
+{
+    int i, b = -1;
+    for (i = 0; i < NBELL; i++)
+        if (bell[i].on && bell[i].att == 0.0f && bell[i].amp >= 0.94f)
+            b = i;
+    if (b >= 0) {
+        bell[b].sting = 1;
+        bell[b].adec = fm_expf(fm_logf(bell[b].adec) * 0.55f);   /* rings nearly twice as long */
     }
 }
 static int sting_pend = -1;                     /* a sting waiting for the beat: story * EN_NSTING + which */
@@ -1253,6 +1311,7 @@ static void sting_fire(void)                     /* its notes as bells, moved wi
         while (n < 36)
             n += 12;
         bell_voice(i % 2 ? 1 : 2, n, 0.95f, (int32_t)i * 300);
+        sting_mark();
     }
     sting_pend = -1;
 }
@@ -1264,6 +1323,10 @@ static void tick(void)
     if (bar) {
         meter_bar();
         en_barno++;
+        if (rb_held && !rb_rec && !rb_regrab && !(en_barno & 1u)) {   /* held a while (latched): a fresh moment */
+            rb_rec = 1;
+            rb_rec_n = 0;
+        }
         if (bd_req) {                            /* the breakdown, on the bar */
             bd_req = 0;
             bd = 1;
@@ -1288,6 +1351,13 @@ static void tick(void)
         if (frand() < evolve * 0.25f * (1.0f - 0.01f * (float)par[P_GROOVE]))
             drums_evolve();                      /* (Groove steadies them: at 100 they stay put) */
     }
+    if (par[P_KIT] && en_bar_len == 16 && !pulse_rest && !bd && par[P_PULSE] > 0) {   /* the backbeat kit */
+        int b = bar_pos;
+        if (b == 4 || b == 12)
+            snare_fire((0.75f + 0.2f * frand()) * pa);
+        else if ((b == 7 || b == 15) && frand() < 0.15f + 0.3f * (energy + 1.0f) * 0.5f)
+            snare_fire(0.18f * pa);              /* a ghost */
+    }
     for (d = 0; d < EN_NDRUM; d++) {
         if (drum_pat[d] >> drum_pos[d] & 1u && !pulse_rest && !bd)
             drum_hit(d, ((drum_pos[d] == 0 ? 0.95f : 0.6f) + 0.25f * frand()) * pa, (int)(sixteenth & 1u));
@@ -1301,7 +1371,7 @@ static void tick(void)
             if (loop_note[l][s] >= 0 && !loop_rest[l])
                 bell_ring(l, s);
             en_loop_pos[l] = (uint8_t)s;
-            if (++loop_pos[l] >= EN_LOOP_LEN[l]) {
+            if (++loop_pos[l] >= en_loop_len[l]) {
                 loop_pos[l] = 0;
                 loop_pass(l);
             }
@@ -1588,6 +1658,7 @@ static void apply(int p, int v)
     case P_LGLIDE: lead_glide_t = v ? 0.01f + 0.004f * (float)v : 0.0f; break;   /* to 0.41 s */
     case P_TENSION: tension = (float)v * 0.01f; break;
     case P_METER: meter_next = (uint8_t)(v != 0); break;
+    case P_KIT: drums_pattern(); break;
     case P_HATS:
         hat_f = 0.55f + 0.0070f * (float)v;               /* the high-pass: ~4 kHz dark .. ~10 kHz bright */
         hat_open = 0.6f - 0.0035f * (float)v;             /* the open hat: long and soft .. short and crisp */
@@ -1616,7 +1687,7 @@ static void apply(int p, int v)
         if (en_playing && nsteps) {
             int l, k;
             for (l = 0; l < EN_NLOOP; l++)
-                for (k = 0; k < EN_LOOP_LEN[l]; k++)
+                for (k = 0; k < en_loop_len[l]; k++)
                     if (loop_note[l][k] >= 0) {
                         bell_ring(l, k);
                         return;
@@ -2018,11 +2089,12 @@ static void render_bass(uint32_t n)
 static void render_bells(uint32_t n)
 {
     int i;
-    const float g = bell_vol * 0.62f * mg[1], arate = 0.0004f + 0.0056f * fm_minf(btone * 2.0f, 1.0f);
+    const float gb = bell_vol * 0.45f * mg[1], gs = 0.55f, arate = 0.0004f + 0.0056f * fm_minf(btone * 2.0f, 1.0f);
     for (i = 0; i < NBELL; i++) {
         bell_t *v = &bell[i];
         float cph = v->cph, mph = v->mph, amp = v->amp, idx = v->idx, att = v->att;
         uint32_t j = 0;
+        float g = v->sting ? gs : gb;
         if (!v->on)
             continue;
         if (v->wait > 0) {
@@ -2100,6 +2172,51 @@ static void render_hat(drum_t *v, uint32_t n, float g, float pl, float pr)
     v->on = amp > 0.0005f;
 }
 
+/* StoryBox: the backbeat kit's snare: a clap's three quick bursts of band-passed noise over a short body (190 Hz) */
+static struct {
+    float amp, ph, bamp, lp, hp;
+    int32_t t;
+    uint8_t on;
+} sn;
+static void snare_fire(float vel)
+{
+    sn.amp = vel;
+    sn.bamp = vel;
+    sn.ph = 0.0f;
+    sn.t = 0;
+    sn.on = 1;
+    midi(0x99, 38, (uint32_t)(vel * 127.0f));
+    midi(0x89, 38, 0);
+}
+static void render_snare(uint32_t n, float g)
+{
+    uint32_t j;
+    const float dec = fm_expf(-6.9f / (0.2f * EN_SR)), bdec = fm_expf(-6.9f / (0.08f * EN_SR)), binc = 190.0f / EN_SR;
+    if (!sn.on)
+        return;
+    for (j = 0; j < n; j++) {
+        float nz, x, burst = 1.0f;
+        int32_t t = sn.t++;
+        noise = noise * 1664525u + 1013904223u;
+        nz = (float)(int32_t)noise * (1.0f / 2147483648.0f);
+        sn.lp += (nz - sn.lp) * 0.35f;          /* band-passed: ~1 .. 5 kHz */
+        sn.hp += (sn.lp - sn.hp) * 0.12f;
+        if (t < 1100)                           /* the clap: three quick re-attacks */
+            burst = 1.0f + 0.9f * fm_expf(-(float)(t % 370) * (1.0f / 70.0f));
+        x = (sn.lp - sn.hp) * 1.6f * sn.amp * burst + sine(sn.ph) * 0.55f * sn.bamp;
+        x *= g;
+        mixl[j] += x * 0.9f;
+        mixr[j] += x;
+        rsend[j] += x * 0.3f;
+        sn.ph += binc;
+        if (sn.ph >= 1.0f)
+            sn.ph -= 1.0f;
+        sn.amp *= dec;
+        sn.bamp *= bdec;
+    }
+    sn.on = sn.amp > 0.0005f;
+}
+
 static void render_drums(uint32_t n)
 {
     uint32_t j;
@@ -2128,6 +2245,7 @@ static void render_drums(uint32_t n)
     }
     render_hat(&drum[1], n, g * 0.2f, 0.6f, 1.0f);    /* closed: a little right */
     render_hat(&drum[2], n, g * 0.14f, 1.0f, 0.7f);   /* open: a little left */
+    render_snare(n, g * 0.5f);
 }
 
 /* ------------------------------------------------------------------ lead --- */
@@ -2152,8 +2270,8 @@ static const struct {
     {LK_FM, 3.5f, 2.2f, 0.9f, 3.5f, 0.003f, 0.6f, 0.0f, 0.0f, 0.0f},         /* bell: a music box's */
     {LK_FLUTE, 1.0f, 0.0f, 0.0f, 0.0f, 0.09f, 0.35f, 0.0045f, 0.06f, 0.0f},  /* flute */
     {LK_STRING, 1.0f, 0.0f, 0.0f, 4.0f, 0.001f, 0.15f, 0.0f, 0.0f, 0.0f},    /* guitar */
-    {LK_PIANO, 1.0f, 1.3f, 1.4f, 5.5f, 0.002f, 0.45f, 0.0f, 0.0f, 0.0011f},  /* piano */
-    {LK_BOWED, 1.0f, 1.05f, 60.0f, 0.0f, 0.38f, 0.9f, 0.004f, 0.0f, 0.005f}, /* strings */
+    {LK_PIANO, 1.0f, 1.3f, 1.4f, 5.5f, 0.002f, 0.45f, 0.0f, 0.05f, 0.0011f}, /* piano: a felt hammer's knock first */
+    {LK_BOWED, 1.0f, 1.75f, 60.0f, 0.0f, 0.28f, 0.8f, 0.0055f, 0.018f, 0.005f},   /* strings: brighter (near a saw), the bow's hiss */
 };
 
 int en_lead_snap(int n)                          /* down to the scale (the root kept) */
@@ -2253,7 +2371,7 @@ static void lead_note_off(int key)
 static void render_lead(uint32_t n)
 {
     int i, sd = par[P_LSOUND], kind = LEADS[sd].kind;
-    const float g = lead_vol * 0.55f, dt = 1.0f + LEADS[sd].detune;
+    const float g = lead_vol * 0.4f, dt = 1.0f + LEADS[sd].detune;
     const float idec = LEADS[sd].idx_t > 0.0f ? fm_expf(-6.9f / (LEADS[sd].idx_t * EN_SR)) : 1.0f,
                 adec = LEADS[sd].ring > 0.0f ? fm_expf(-6.9f / (LEADS[sd].ring * EN_SR)) : 1.0f,
                 rdec = fm_expf(-6.9f / (LEADS[sd].rel * EN_SR)), arate = 1.0f / (LEADS[sd].atk * EN_SR * 0.25f + 1.0f),
@@ -2348,6 +2466,17 @@ static void render_lead(uint32_t n)
             }
             if (kind != LK_PIANO && kind != LK_BOWED)
                 xr = x;
+            if ((kind == LK_PIANO || kind == LK_BOWED) && LEADS[sd].breath > 0.0f) {   /* the hammer's knock, the bow's hiss */
+                float nz, h;
+                noise = noise * 1664525u + 1013904223u;
+                nz = (float)(int32_t)noise * (1.0f / 2147483648.0f);
+                blp += (nz - blp) * (kind == LK_PIANO ? 0.12f : 0.3f);
+                bhp += (blp - bhp) * 0.04f;
+                h = (blp - bhp) * LEADS[sd].breath * (kind == LK_PIANO ? 9.0f * chiff : 1.0f + 2.5f * chiff);
+                x += h;
+                xr += h;
+                chiff *= cdec;
+            }
             {
                 float k = amp * att * rel * g;
                 float ol = x * k, orr = xr * k;
@@ -2390,7 +2519,7 @@ static void render_lead(uint32_t n)
  * from wide open down to its cutoff. Phaser: four all-passes a side, swept by a slow LFO */
 #define RB_N 16384
 static int16_t rb[RB_N] EN_POOL;
-static int rb_w, rb_held;
+static int rb_w;
 static float rb_acc, rb_pos, rb_start, rb_len, fxw[EN_NFX];
 static float fl_s[2][2], ph_lfo, ph_x[2][4], ph_y[2][4], ph_fb[2];
 volatile uint8_t en_fx_on;
@@ -2430,10 +2559,11 @@ static void fx_chunk(uint32_t n)                 /* once a chunk: the fades, the
             rb_len = beat * SLICE[par[P_STRATE] & 3];
             rb_pos = rb_start - rb_len;
         }
-        if (rb_len > (float)(RB_N - 64))
-            rb_len = (float)(RB_N - 64);
+        if (rb_len > (float)(RB_N / 2 - 64))      /* at most half the ring: room to record the next while it plays */
+            rb_len = (float)(RB_N / 2 - 64);
     } else if (!grab && fxw[FX_REVERSE] < 0.01f && fxw[FX_STUTTER] < 0.01f) {
         rb_held = 0;                             /* both faded out: recording again */
+        rb_rec = rb_regrab = 0;
     }
     ph_lfo += (float)n * (0.08f + 0.02f * (float)par[P_PHRATE]) / EN_SR;   /* 0.08 .. 2.1 Hz */
     if (ph_lfo >= 1.0f)
@@ -2444,7 +2574,7 @@ static int rb_odd;
 static void fx_sample(float *l, float *r)        /* one frame of the whole sound through the punch-ins */
 {
     float x = *l, y = *r;
-    if (!rb_held) {                              /* the ring: mono, every other frame (a pair's average) */
+    if (!rb_held || rb_rec) {                    /* the ring: mono, every other frame (a pair's average) */
         rb_acc += 0.5f * (x + y);
         if (rb_odd ^= 1) {
         } else {
@@ -2452,19 +2582,29 @@ static void fx_sample(float *l, float *r)        /* one frame of the whole sound
             rb[rb_w] = (int16_t)(v * 32767.0f);
             rb_w = rb_w + 1 >= RB_N ? 0 : rb_w + 1;
             rb_acc = 0.0f;
+            if (rb_rec && ++rb_rec_n >= (int)rb_len + 8) {   /* a fresh moment recorded: take it at the next seam */
+                rb_rec = 0;
+                rb_regrab = 1;
+            }
         }
     }
     if (fxw[FX_REVERSE] > 0.0005f || fxw[FX_STUTTER] > 0.0005f) {   /* the held moment, backwards or again */
         float wet, w;
         if (fxw[FX_REVERSE] >= fxw[FX_STUTTER]) {
             rb_pos -= 0.5f;
-            if (rb_pos < rb_start - rb_len)
+            if (rb_pos < rb_start - rb_len) {
                 rb_pos += rb_len;
+                if (rb_regrab)                   /* the seam: the fresh moment */
+                    rb_regrab = 0, rb_start = (float)rb_w, rb_pos = rb_start;
+            }
             w = fxw[FX_REVERSE] * (float)par[P_RVMIX] * 0.01f;
         } else {
             rb_pos += 0.5f;
-            if (rb_pos >= rb_start)
+            if (rb_pos >= rb_start) {
                 rb_pos -= rb_len;
+                if (rb_regrab)
+                    rb_regrab = 0, rb_start = (float)rb_w, rb_pos = rb_start - rb_len;
+            }
             w = fxw[FX_STUTTER] * (float)par[P_STMIX] * 0.01f;
         }
         {                                        /* a short fade at the seam, so the loop does not click */
@@ -2505,14 +2645,14 @@ static void fx_sample(float *l, float *r)        /* one frame of the whole sound
         float in[2] = {x, y};
         if (!(cnt++ & 31u)) {
             for (c = 0; c < 2; c++) {            /* the two sides a quarter turn apart */
-                float sw = 0.5f + 0.5f * sine(ph_lfo + 4.0f + 0.25f * (float)c), fc = 250.0f * fm_exp2f(3.3f * sw), t;
+                float sw = 0.5f + 0.5f * sine(ph_lfo + 4.0f + 0.25f * (float)c), fc = 160.0f * fm_exp2f(4.4f * sw), t;
                 t = FM_PI * fc / EN_SR;
                 t = t * (1.0f + t * t * 0.3333f);
                 a_[c] = (1.0f - t) / (1.0f + t);
             }
         }
         for (c = 0; c < 2; c++) {
-            float v = in[c] + 0.45f * ph_fb[c];
+            float v = in[c] + 0.62f * ph_fb[c];
             for (st = 0; st < 4; st++) {
                 float o = a_[c] * v + ph_x[c][st] - a_[c] * ph_y[c][st];
                 ph_x[c][st] = v;
@@ -2520,8 +2660,10 @@ static void fx_sample(float *l, float *r)        /* one frame of the whole sound
                 v = o;
             }
             ph_fb[c] = v;
-            in[c] += v * fxw[FX_PHASER] * 0.01f * (float)par[P_PHDEPTH];
-            in[c] *= 1.0f - 0.25f * fxw[FX_PHASER];
+            {                                    /* dry and swept, half and half at full Depth: the deep notches */
+                float w = 0.5f * fxw[FX_PHASER] * 0.01f * (float)par[P_PHDEPTH];
+                in[c] = in[c] * (1.0f - w) + v * w;
+            }
         }
         x = in[0];
         y = in[1];

@@ -1168,7 +1168,7 @@ static void draw_ring(void)
     for (i = 0; i < EN_NPAD; i++)
         chord |= 1u << (en_chord[i] % 12u);
     for (l = 0; l < EN_NLOOP; l++) {
-        int len = EN_LOOP_LEN[l], s, pos = en_loop_pos[l], g = q16(en_loop_glow[l]);
+        int len = en_loop_len[l], s, pos = en_loop_pos[l], g = q16(en_loop_glow[l]);
         for (s = 0; s < len; s++) {
             int32_t x, y;
             polar(CX, CY, (float)LOOP_R[l], s, len, &x, &y);
@@ -1375,7 +1375,7 @@ static void draw_main(void)
     for (i = 0; i < EN_NLOOP; i++) {
         uint32_t s;
         h = hash(h, en_loop_pos[i] | (uint32_t)q16(en_loop_glow[i]) << 8);
-        for (s = 0; s < EN_LOOP_LEN[i]; s++)
+        for (s = 0; s < en_loop_len[i]; s++)
             h = hash(h, (uint32_t)(en_loop_note[i][s] >= 0));
     }
     for (i = 0; i < EN_NDRUM; i++)

@@ -204,7 +204,7 @@ int main(void)
                 diff += before[l][i] != en_loop_note[l][i];
         CHECK(diff > 0, "the loops evolved");
         for (l = 0; l < EN_NLOOP; l++)
-            for (i = EN_LOOP_LEN[l]; i < EN_LOOP_MAX; i++)
+            for (i = en_loop_len[l]; i < EN_LOOP_MAX; i++)
                 CHECK(en_loop_note[l][i] == -1, "loop %d slot %d past its end", l, i);
     }
 
