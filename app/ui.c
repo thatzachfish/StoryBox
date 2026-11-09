@@ -44,23 +44,25 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
 /* the screen's colours: the cover of Ambient 1: Music for Airports (1978), as the web app and the site.
  * The map's paper, its ink; the land's greens for the pad (the chord) and the scale, its rivers for the
  * bells; the bass and the pulse in darker inks. Each layer has a pale tint for the shapes at rest. */
-/* StoryBox: a night palette (dark ground, warm low ink) so the screen stays quiet in a dark room. */
-#define K_BG RGB(14, 16, 24)
-#define K_PANEL RGB(30, 33, 46)
-#define K_LINE RGB(48, 52, 70)
-#define K_DIM RGB(110, 108, 120)
-#define K_TEXT RGB(226, 214, 186)
-#define K_ACC RGB(214, 160, 96)          /* the accent: the page, the knob being turned, a message's word */
-#define K_BELL RGB(120, 176, 196)
-#define K_BELL_T RGB(42, 62, 76)
-#define K_PAD RGB(150, 172, 110)
-#define K_PAD_T RGB(48, 60, 42)
-#define K_PULSE RGB(196, 150, 120)
-#define K_PULSE_T RGB(60, 48, 44)
-#define K_BASS RGB(190, 170, 110)
-#define K_BASS_T RGB(60, 54, 38)
-#define K_FROST RGB(140, 160, 220)
-#define K_FROST_T RGB(44, 50, 78)
+/* StoryBox: a night palette, high contrast but not bright. Near-black ground, warm white text; yellow for what is
+ * selected or turning, green for what plays, fuchsia for alerts (a warning, a low battery, a lot of Tension) */
+#define K_BG RGB(10, 11, 16)
+#define K_PANEL RGB(34, 37, 48)
+#define K_LINE RGB(66, 72, 90)
+#define K_DIM RGB(158, 160, 172)
+#define K_TEXT RGB(238, 234, 222)
+#define K_ACC RGB(232, 200, 84)          /* yellow: the page, the knob being turned, a message's word, where it is */
+#define K_ALERT RGB(226, 82, 172)        /* fuchsia: alerts */
+#define K_BELL RGB(118, 196, 206)
+#define K_BELL_T RGB(30, 58, 64)
+#define K_PAD RGB(134, 204, 108)         /* green: what plays */
+#define K_PAD_T RGB(38, 64, 36)
+#define K_PULSE RGB(196, 166, 222)
+#define K_PULSE_T RGB(54, 44, 66)
+#define K_BASS RGB(222, 150, 88)
+#define K_BASS_T RGB(66, 46, 30)
+#define K_FROST RGB(146, 176, 240)
+#define K_FROST_T RGB(40, 50, 82)
 
 #define KEY_HOLD 450u                          /* ACTS: a key held this long fades slowly instead */
 static struct {
@@ -78,6 +80,7 @@ static struct {
     uint32_t act_t, saved_t;
     char msg[2][24];
     uint32_t msg_until;
+    uint8_t msg_alert;                 /* the message is a warning: its word in fuchsia */
     int8_t touched;                    /* the knob turned last (0..3), shown bright for a moment */
     uint32_t touch_until;
     uint32_t frame;
@@ -117,6 +120,7 @@ static void say_as(const char *a, const char *b, uint32_t flags)
         ui.msg[1][i] = b[i];
     ui.msg[1][i] = 0;
     ui.msg_until = plat_ms() + 1300u;
+    ui.msg_alert = (uint8_t)((flags & ANN_KEEP) != 0);
     if (flags && ann_on()) {
         msg_text(a, b, t);
         ann_say(t, 0, flags);
@@ -880,7 +884,7 @@ static int batt(void) { return batt_host > -2 ? batt_host : plat_battery(); }
 #else
 #define batt() plat_battery()
 #endif
-#define K_LOW RGB(196, 84, 52)                 /* the battery at one bar or none */
+#define K_LOW K_ALERT                          /* the battery at one bar or none */
 #define BATT_W 20                              /* the body 18 wide and its nub */
 /* lying down at the header's right, its middle on the beat light's: three bars, rust at one or none; a
  * bolt instead on USB power; nothing until it is read */
@@ -929,7 +933,7 @@ static void draw_header(void)
     cv_begin(240, HDR_H, K_BG);
     if (msg) {
         int32_t x = cv_text(10, 6, &FONT_B, ui.msg[0], K_TEXT);
-        cv_text(x + 8, 6, &FONT_B, ui.msg[1], K_ACC);
+        cv_text(x + 8, 6, &FONT_B, ui.msg[1], ui.msg_alert ? K_ALERT : K_ACC);
     } else {
         int32_t x = 232, w;
         if (batt() >= 0) {
@@ -1286,6 +1290,8 @@ static void draw_knobs(void)
             cv_round(x + 3, 11, 54, 57, 6, K_PANEL);
         knob_range(k, &lo, &hi);
         v = knob_get(k);
+        if (k == P_TENSION && v > 60)            /* a lot of Tension: an alert */
+            fill = K_ALERT;
         caps(t, KNOB_LABEL[ui.view][i], sizeof t);
         text_c(cx, 12, &FONT_XS, t, hot ? K_TEXT : K_DIM);
         if (k != K_CPU && hi - lo < 6) {         /* a switch: its positions as pips */
