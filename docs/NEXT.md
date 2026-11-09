@@ -157,3 +157,7 @@ From Zach, playing 0.4 (2026-11-09):
 - [ ] Freeze sounds muffled: it shuts the reverb's input (new notes go dry) and holds its tail forever (the plate's
       damping darkening it). Keep some reverb for what plays (~35%), hold the tail long but not forever, less damping
       while frozen
+- [ ] Bluetooth audio out (A2DP): wanted. fm1-base's own stack, bt_audio: about +18 KB RAM, +31 KB pool (of ~77 KB
+      free), SBC at its best (bitpool 53, ~328 kbit/s, ~3 % CPU); 150-300 ms late (for listening); the FM-1's own
+      output muted while streaming; four devices remembered, the last reconnected at power-on. Needs a page
+      (scan, pick, forget). Test on hardware. Bluetooth MIDI: later (the same stack)
