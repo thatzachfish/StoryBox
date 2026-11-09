@@ -36,6 +36,8 @@ static const en_param_t PARAMS[P_NPARAMS] = {
     {"Bass oct", -1, 1, 0},   {"Glide", 0, 100, 20},    {"Fifth", 0, 100, 35},
     {"Swing", 0, 100, 0},     {"Hats", 0, 100, 50},     {"Freedom", 0, 100, 100},
     {"Tension", 0, 100, 0},   {"Meter", 0, 1, 0},       {"Energy", 0, 100, 50},
+    {"Lead", 0, EN_NLEAD - 1, 0}, {"Lead level", 0, 100, 65}, {"Lead tone", 0, 100, 50}, {"Glide", 0, 100, 20},
+    {"Lead oct", -2, 2, 0},
 };
 const en_param_t *en_param_info(int i) { return (i >= 0 && i < P_NPARAMS) ? &PARAMS[i] : &PARAMS[0]; }
 
@@ -64,39 +66,39 @@ static const struct {
     const char *sting_name[EN_NSTING];
 } STORIES[EN_NSTORY] = {
     {"Pre-show", {"Doors", "Warm Up", "Lounge", "Lights Down"}, {
-        {50, 40, 40, 30, 30, 30, 30, 30, 40, 2, 50, 65, 45, 45, 55, 40, 0, 1, 84, 2, 1, 0, 0, 0, 15, 30, 70, 55, 30},
-        {55, 55, 55, 55, 45, 40, 25, 55, 40, 2, 45, 60, 55, 40, 60, 50, 0, 1, 84, 2, 1, 0, 0, 0, 10, 40, 70, 65, 15},
-        {55, 70, 50, 50, 55, 50, 25, 50, 50, 1, 50, 65, 60, 45, 70, 55, 0, 1, 84, 2, 4, 0, 0, 0, 15, 40, 65, 70, 40},
-        {50, 35, 40, 25, 25, 30, 35, 25, 50, 3, 60, 75, 35, 55, 45, 40, 0, 1, 80, 2, 1, 0, 0, 0, 20, 30, 70, 45, 100}},
+        {50, 40, 40, 30, 30, 30, 30, 30, 40, 2, 50, 65, 45, 45, 55, 40, 0, 1, 84, 2, 1, 0, 0, 0, 15, 30, 70, 55, 30, 0, 0, 50, 0, 60, 45, 15, 0},
+        {55, 55, 55, 55, 45, 40, 25, 55, 40, 2, 45, 60, 55, 40, 60, 50, 0, 1, 84, 2, 1, 0, 0, 0, 10, 40, 70, 65, 15, 0, 0, 50, 0, 60, 45, 15, 0},
+        {55, 70, 50, 50, 55, 50, 25, 50, 50, 1, 50, 65, 60, 45, 70, 55, 0, 1, 84, 2, 4, 0, 0, 0, 15, 40, 65, 70, 40, 0, 0, 50, 0, 60, 45, 15, 0},
+        {50, 35, 40, 25, 25, 30, 35, 25, 50, 3, 60, 75, 35, 55, 45, 40, 0, 1, 80, 2, 1, 0, 0, 0, 20, 30, 70, 45, 100, 0, 0, 50, 0, 60, 45, 15, 0}},
         {"1:2 4:2", "1:2 4:2 7:2 3:2", "1:2 7:2 4:2 1:2", 0}, 2, {0}, {0}},
     {"Sleep", {"Dusk", "Drifting", "Deep", "Stillness"}, {
-        {50, 45, 30, 0, 30, 30, 55, 0, 40, 4, 55, 85, 35, 70, 30, 45, 0, 1, 56, 2, 6, 0, 0, 0, 40, 25, 0, 40, 100},
-        {50, 35, 25, 0, 25, 25, 65, 0, 35, 5, 58, 86, 28, 75, 20, 50, 0, 1, 52, 2, 6, -1, 1, -1, 45, 20, 0, 40, 100},
-        {50, 20, 20, 0, 18, 20, 75, 0, 25, 5, 60, 88, 20, 80, 10, 45, 0, 1, 50, 2, 6, -1, 1, -1, 50, 15, 0, 40, 100},
-        {45, 10, 10, 0, 12, 15, 85, 0, 20, 5, 60, 88, 15, 85, 5, 35, 0, 1, 48, 2, 6, -1, 1, -1, 50, 10, 0, 40, 100}}, {0}, 2, {0}, {0}},
+        {50, 45, 30, 0, 30, 30, 55, 0, 40, 4, 55, 85, 35, 70, 30, 45, 0, 1, 56, 2, 6, 0, 0, 0, 40, 25, 0, 40, 100, 0, 0, 50, 2, 50, 30, 40, 0},
+        {50, 35, 25, 0, 25, 25, 65, 0, 35, 5, 58, 86, 28, 75, 20, 50, 0, 1, 52, 2, 6, -1, 1, -1, 45, 20, 0, 40, 100, 0, 0, 50, 2, 50, 30, 40, 0},
+        {50, 20, 20, 0, 18, 20, 75, 0, 25, 5, 60, 88, 20, 80, 10, 45, 0, 1, 50, 2, 6, -1, 1, -1, 50, 15, 0, 40, 100, 0, 0, 50, 2, 50, 30, 40, 0},
+        {45, 10, 10, 0, 12, 15, 85, 0, 20, 5, 60, 88, 15, 85, 5, 35, 0, 1, 48, 2, 6, -1, 1, -1, 50, 10, 0, 40, 100, 0, 0, 50, 2, 50, 30, 40, 0}}, {0}, 2, {0}, {0}},
     {"Lighthouse", {"Fog", "Signal", "Storm", "Dawn"}, {
-        {55, 30, 35, 0, 25, 30, 45, 0, 55, 4, 62, 86, 25, 70, 20, 60, 0, 1, 66, 2, 5, -1, 1, 0, 35, 25, 0, 40, 100},
-        {45, 70, 40, 20, 40, 40, 35, 25, 50, 3, 65, 85, 40, 55, 80, 55, 0, 1, 66, 2, 5, 1, 1, 0, 25, 30, 0, 60, 100},
-        {55, 65, 60, 60, 60, 70, 15, 70, 60, 1, 60, 80, 50, 35, 70, 90, 0, 1, 76, 2, 2, 0, 0, 0, 15, 45, 20, 80, 100},
-        {50, 60, 35, 15, 40, 35, 40, 15, 40, 3, 70, 85, 65, 60, 40, 50, 0, 1, 66, 2, 3, 0, 1, 0, 30, 30, 0, 40, 100}}, {0}, 2, {0}, {0}},
+        {55, 30, 35, 0, 25, 30, 45, 0, 55, 4, 62, 86, 25, 70, 20, 60, 0, 1, 66, 2, 5, -1, 1, 0, 35, 25, 0, 40, 100, 0, 0, 50, 1, 60, 50, 10, 0},
+        {45, 70, 40, 20, 40, 40, 35, 25, 50, 3, 65, 85, 40, 55, 80, 55, 0, 1, 66, 2, 5, 1, 1, 0, 25, 30, 0, 60, 100, 0, 0, 50, 1, 60, 50, 10, 0},
+        {55, 65, 60, 60, 60, 70, 15, 70, 60, 1, 60, 80, 50, 35, 70, 90, 0, 1, 76, 2, 2, 0, 0, 0, 15, 45, 20, 80, 100, 0, 0, 50, 1, 60, 50, 10, 0},
+        {50, 60, 35, 15, 40, 35, 40, 15, 40, 3, 70, 85, 65, 60, 40, 50, 0, 1, 66, 2, 3, 0, 1, 0, 30, 30, 0, 40, 100, 0, 0, 50, 1, 60, 50, 10, 0}}, {0}, 2, {0}, {0}},
     {"Market Day", {"Morning", "Crowds", "Siesta", "Lanterns"}, {
-        {50, 55, 35, 25, 40, 35, 30, 25, 35, 2, 50, 65, 55, 45, 60, 45, 0, 1, 92, 2, 0, 0, 0, 0, 15, 35, 40, 60, 100},
-        {45, 75, 55, 60, 65, 60, 20, 70, 40, 1, 45, 60, 65, 35, 70, 65, 0, 1, 96, 2, 4, 0, 0, 0, 10, 45, 55, 75, 100},
-        {55, 40, 30, 15, 25, 25, 45, 15, 50, 3, 60, 75, 40, 65, 40, 40, 0, 1, 84, 2, 6, -1, 1, 0, 30, 25, 30, 40, 100},
-        {55, 60, 50, 40, 45, 45, 30, 45, 55, 2, 60, 75, 45, 50, 55, 55, 0, 1, 88, 2, 4, 0, 0, 0, 20, 40, 50, 55, 100}}, {0}, 2, {0}, {0}},
+        {50, 55, 35, 25, 40, 35, 30, 25, 35, 2, 50, 65, 55, 45, 60, 45, 0, 1, 92, 2, 0, 0, 0, 0, 15, 35, 40, 60, 100, 0, 0, 50, 0, 65, 60, 10, 0},
+        {45, 75, 55, 60, 65, 60, 20, 70, 40, 1, 45, 60, 65, 35, 70, 65, 0, 1, 96, 2, 4, 0, 0, 0, 10, 45, 55, 75, 100, 0, 0, 50, 0, 65, 60, 10, 0},
+        {55, 40, 30, 15, 25, 25, 45, 15, 50, 3, 60, 75, 40, 65, 40, 40, 0, 1, 84, 2, 6, -1, 1, 0, 30, 25, 30, 40, 100, 0, 0, 50, 0, 65, 60, 10, 0},
+        {55, 60, 50, 40, 45, 45, 30, 45, 55, 2, 60, 75, 45, 50, 55, 55, 0, 1, 88, 2, 4, 0, 0, 0, 20, 40, 50, 55, 100, 0, 0, 50, 0, 65, 60, 10, 0}}, {0}, 2, {0}, {0}},
     {"Deep Forest", {"Path", "Hollow", "Spirits", "Clearing"}, {
-        {50, 50, 35, 25, 35, 40, 35, 30, 45, 3, 65, 80, 40, 55, 50, 50, 0, 1, 70, 2, 1, 0, 0, 0, 25, 30, 15, 45, 100},
-        {60, 35, 45, 20, 30, 45, 40, 20, 50, 2, 62, 86, 25, 65, 30, 65, 0, 1, 64, 2, 2, -1, 1, -1, 30, 35, 10, 35, 100},
-        {55, 70, 25, 10, 50, 60, 30, 10, 70, 4, 64, 88, 45, 60, 85, 80, 0, 1, 70, 2, 7, 1, 1, 0, 40, 20, 0, 30, 100},
-        {50, 65, 40, 30, 45, 40, 30, 35, 45, 3, 65, 80, 65, 50, 55, 50, 0, 1, 72, 2, 6, 0, 0, 0, 20, 35, 15, 50, 100}}, {0}, 2, {0}, {0}},
+        {50, 50, 35, 25, 35, 40, 35, 30, 45, 3, 65, 80, 40, 55, 50, 50, 0, 1, 70, 2, 1, 0, 0, 0, 25, 30, 15, 45, 100, 0, 0, 50, 2, 60, 45, 30, 0},
+        {60, 35, 45, 20, 30, 45, 40, 20, 50, 2, 62, 86, 25, 65, 30, 65, 0, 1, 64, 2, 2, -1, 1, -1, 30, 35, 10, 35, 100, 0, 0, 50, 2, 60, 45, 30, 0},
+        {55, 70, 25, 10, 50, 60, 30, 10, 70, 4, 64, 88, 45, 60, 85, 80, 0, 1, 70, 2, 7, 1, 1, 0, 40, 20, 0, 30, 100, 0, 0, 50, 2, 60, 45, 30, 0},
+        {50, 65, 40, 30, 45, 40, 30, 35, 45, 3, 65, 80, 65, 50, 55, 50, 0, 1, 72, 2, 6, 0, 0, 0, 20, 35, 15, 50, 100, 0, 0, 50, 2, 60, 45, 30, 0}}, {0}, 2, {0}, {0}},
     /* Inside (The Story of the Inside): a waltz in G. A magician who makes the inside, his apprentice, her years
      * outside (G with a B flat everywhere: melodic minor; a slide down by half steps, Tension for the storm), her
      * return, and the magic chord (G, D, E, F#: no third) */
     {"Inside", {"Magician", "Apprentice", "Outside", "Return"}, {
-        {50, 60, 45, 35, 45, 30, 40, 40, 35, 2, 55, 70, 55, 40, 35, 45, 0, 1, 96, 7, 0, 0, 0, 0, 10, 30, 0, 40, 10, 0, 1},
-        {55, 45, 40, 25, 35, 30, 40, 30, 45, 3, 65, 80, 40, 55, 30, 45, 0, 1, 92, 7, 0, 0, 1, 0, 15, 25, 0, 35, 15, 0, 1},
-        {50, 60, 55, 45, 50, 60, 30, 55, 60, 1, 65, 85, 35, 35, 75, 75, 0, 1, 96, 7, 8, 0, 1, -1, 20, 20, 0, 70, 25, 35, 1},
-        {55, 65, 45, 35, 50, 35, 40, 40, 40, 2, 60, 75, 60, 45, 40, 50, 0, 1, 96, 7, 0, 0, 0, 0, 10, 30, 0, 40, 10, 0, 1}},
+        {50, 60, 45, 35, 45, 30, 40, 40, 35, 2, 55, 70, 55, 40, 35, 45, 0, 1, 96, 7, 0, 0, 0, 0, 10, 30, 0, 40, 10, 0, 1, 50, 1, 60, 55, 10, 1},
+        {55, 45, 40, 25, 35, 30, 40, 30, 45, 3, 65, 80, 40, 55, 30, 45, 0, 1, 92, 7, 0, 0, 1, 0, 15, 25, 0, 35, 15, 0, 1, 50, 1, 60, 55, 10, 1},
+        {50, 60, 55, 45, 50, 60, 30, 55, 60, 1, 65, 85, 35, 35, 75, 75, 0, 1, 96, 7, 8, 0, 1, -1, 20, 20, 0, 70, 25, 35, 1, 50, 1, 60, 55, 10, 1},
+        {55, 65, 45, 35, 50, 35, 40, 40, 40, 2, 60, 75, 60, 45, 40, 50, 0, 1, 96, 7, 0, 0, 0, 0, 10, 30, 0, 40, 10, 0, 1, 50, 1, 60, 55, 10, 1}},
         {"G:2 Bm/F#:2 Em:2 D:2", "G:2 Em:2 D:2 Em:2", "Gm:1 F#:1 F:1 Em:1 F:1 F#:1",
          "G:2 Bm/F#:2 Em:2 D:2 G:2 Em:2 D:2 Gmagic:4"},
         7, {"G6", "G2 G3 D4 E4 F#4 G4"}, {"High G", "Magic"}},
@@ -276,6 +278,8 @@ void en_param_text(int i, int v, char *b)
         s = ONOFF[v ? 1 : 0];
     else if (i == P_METER)
         s = v ? "3/4" : "4/4";
+    else if (i == P_LSOUND)
+        s = EN_LEAD_NAME[(unsigned)v < EN_NLEAD ? v : 0];
     else if (i == P_PADTONE)
         s = v ? "Voices" : "Rhodes";
     else if (i == P_MODE)
@@ -457,7 +461,8 @@ const char *en_chord_name(const int *pcs, int n, char *buf)
 }
 
 /* ------------------------------------------------------------ commands --- */
-enum { C_SET, C_POOL, C_PLAY, C_NEXT, C_FREEZE, C_SEED, C_PANIC, C_CLOCK, C_REGROW, C_PROG, C_STING, C_MUTE, C_BREAK };
+enum { C_SET, C_POOL, C_PLAY, C_NEXT, C_FREEZE, C_SEED, C_PANIC, C_CLOCK, C_REGROW, C_PROG, C_STING, C_MUTE, C_BREAK,
+       C_LON, C_LOFF };
 #define QN 64u
 static uint32_t q[QN];
 static volatile uint32_t q_w, q_r;
@@ -480,6 +485,9 @@ void en_panic(void) { post(C_PANIC, 0, 0); }
 void en_clock(int msg) { post(C_CLOCK, msg, 0); }
 void en_regrow(void) { post(C_REGROW, 0, 0); }
 void en_mute(uint32_t mask) { post(C_MUTE, 0, (int)(mask & 15u)); }
+void en_lead_on(int note, int vel) { post(C_LON, note & 127, vel & 127); }
+void en_lead_off(int note) { post(C_LOFF, note & 127, 0); }
+const char *const EN_LEAD_NAME[EN_NLEAD] = {"Kalimba", "Bell", "Flute", "Pluck"};
 void en_breakdown(int on) { post(C_BREAK, on ? 1 : 0, 0); }
 void en_sting(int piece, int k)
 {
@@ -514,6 +522,15 @@ static int16_t par[P_NPARAMS];
 static uint32_t pool = 0xAADu;                  /* Ionian until told */
 static int nsteps, steps[12];                   /* the scale */
 static float energy;                            /* Energy, -1 (calm) .. 0 (as the act has it) .. +1 (full) */
+static float lead_vol, lead_tone = 0.5f, lead_glide_t;   /* the lead's level, tone, glide (s; 0 none) */
+static void lead_note_on(int key, int vel);
+static void lead_note_off(int key);
+#define NLEAD 3
+typedef struct {
+    float cph, mph, inc, inc_t, amp, att, idx, rel;
+    uint8_t on, held, key, note;                 /* key: the note asked for (its note off), note: the one played */
+} lead_t;
+static lead_t lead[NLEAD];
 /* StoryBox performance: the layers' mutes, each layer's gain gliding to 0 or 1 (mg: pad, bells, bass, pulse); the
  * breakdown (bd_req: asked for, from the next bar; bd_ret: 1 asked to come back, 2 this bar is the fill) */
 static uint32_t mute_mask;
@@ -1554,6 +1571,9 @@ static void apply(int p, int v)
     case P_GLIDE: glide_k = 1.0f / ((0.02f + 0.012f * (float)v) * EN_SR); break;   /* 20 ms .. 1.2 s */
     case P_SWING: swing = (float)v * 0.005f; break;      /* the off sixteenths up to half a step late */
     case P_FREEDOM: freedom = (float)v * 0.01f; break;
+    case P_LLEVEL: lead_vol = (float)(v * v) * 0.0001f; break;
+    case P_LTONE: lead_tone = (float)v * 0.01f; break;
+    case P_LGLIDE: lead_glide_t = v ? 0.01f + 0.004f * (float)v : 0.0f; break;   /* to 0.41 s */
     case P_TENSION: tension = (float)v * 0.01f; break;
     case P_METER: meter_next = (uint8_t)(v != 0); break;
     case P_HATS:
@@ -1645,7 +1665,7 @@ static void regrow(void)                        /* a new piece: fresh loops, hom
 static void notes_off(void)
 {
     int i;
-    for (i = 0; i < 4; i++)
+    for (i = 0; i < 5; i++)
         en_midi_out(0xB0 | (uint32_t)i, 123, 0);
     en_midi_out(0xB9, 123, 0);
 }
@@ -1655,6 +1675,8 @@ static void quiet(void)
     int i;
     for (i = 0; i < NBELL; i++)
         bell[i].on = 0;
+    for (i = 0; i < NLEAD; i++)
+        lead[i].on = 0;
     for (i = 0; i < EN_NDRUM; i++)
         drum[i].on = 0, drum[i].wait = 0;
     for (i = 0; i < EN_NPAD; i++)
@@ -1788,6 +1810,8 @@ static void drain(void)
             break;
         case C_FREEZE: en_frozen = (uint8_t)(a != 0); break;
         case C_MUTE: mute_mask = (uint32_t)b & 15u; break;
+        case C_LON: lead_note_on(a, b ? b : 100); break;
+        case C_LOFF: lead_note_off(a); break;
         case C_BREAK:
             if (a && !bd)
                 bd_req = 1;
@@ -2093,6 +2117,138 @@ static void render_drums(uint32_t n)
     render_hat(&drum[2], n, g * 0.14f, 1.0f, 0.7f);   /* open: a little left */
 }
 
+/* ------------------------------------------------------------------ lead --- */
+/* StoryBox's lead: two-operator FM voices. Each sound: the modulator's ratio, its index and how fast that fades (the
+ * strike), how long the note rings (0: as long as it is held, the flute), its attack and its release (s) */
+
+static float lead_vib;
+static const struct {
+    float ratio, idx, idx_t, ring, atk, rel, vib, breath;
+} LEADS[EN_NLEAD] = {
+    {5.4f, 1.6f, 0.06f, 1.4f, 0.002f, 0.25f, 0.0f, 0.0f},    /* kalimba: a bright tick, a round body */
+    {3.5f, 2.2f, 0.9f, 3.5f, 0.003f, 0.6f, 0.0f, 0.0f},      /* bell: a music box's */
+    {1.0f, 0.35f, 9.0f, 0.0f, 0.07f, 0.18f, 0.004f, 0.025f}, /* flute: held, a breath, a slow vibrato */
+    {1.0f, 3.0f, 0.12f, 1.0f, 0.002f, 0.12f, 0.0f, 0.0f},    /* pluck */
+};
+
+int en_lead_snap(int n)                          /* down to the scale (the root kept) */
+{
+    int i, r = par[P_ROOT];
+    for (i = 0; i < 12; i++, n--)
+        if (pool >> (((n - r) % 12 + 12) % 12) & 1u)
+            return n;
+    return n + 12;
+}
+
+static void lead_note_on(int key, int vel)
+{
+    int sd = par[P_LSOUND], n = en_lead_snap(key) + 12 * par[P_LOCT], i, best = 0;
+    float lo = 9.0f;
+    lead_t *v;
+    while (n > 100)
+        n -= 12;
+    while (n < 36)
+        n += 12;
+    if (LEADS[sd].ring <= 0.0f) {                /* a held sound: one voice, gliding while a key is down */
+        v = &lead[0];
+        for (i = 1; i < NLEAD; i++)
+            lead[i].on = 0;
+        if (v->on && v->held && lead_glide_t > 0.0f) {
+            v->inc_t = mtof((float)n) * (1.0f / EN_SR);
+            midi(0x84, v->note, 0);
+            v->key = (uint8_t)key;
+            v->note = (uint8_t)n;
+            midi(0x94, (uint32_t)n, (uint32_t)vel);
+            return;
+        }
+    } else {
+        for (i = 0; i < NLEAD; i++) {            /* a free voice, or the quietest */
+            float a = lead[i].on ? lead[i].amp : -1.0f;
+            if (a < lo)
+                lo = a, best = i;
+        }
+        v = &lead[best];
+    }
+    if (v->on)
+        midi(0x84, v->note, 0);
+    v->on = 1;
+    v->held = 1;
+    v->key = (uint8_t)key;
+    v->note = (uint8_t)n;
+    v->cph = v->mph = 0.0f;
+    v->inc = v->inc_t = mtof((float)n) * (1.0f / EN_SR);
+    v->amp = 0.35f + 0.65f * (float)vel / 127.0f;
+    v->att = 0.0f;
+    v->idx = LEADS[sd].idx * (0.3f + 1.4f * lead_tone) * (1.0f / FM_TWO_PI);
+    v->rel = 1.0f;
+    midi(0x94, (uint32_t)n, (uint32_t)vel);
+}
+
+static void lead_note_off(int key)
+{
+    int i;
+    for (i = 0; i < NLEAD; i++)
+        if (lead[i].on && lead[i].held && lead[i].key == key) {
+            lead[i].held = 0;
+            midi(0x84, lead[i].note, 0);
+        }
+}
+
+static void render_lead(uint32_t n)
+{
+    int i, sd = par[P_LSOUND];
+    const float g = lead_vol * 0.55f;
+    const float idec = fm_expf(-6.9f / (LEADS[sd].idx_t * EN_SR)),
+                adec = LEADS[sd].ring > 0.0f ? fm_expf(-6.9f / (LEADS[sd].ring * EN_SR)) : 1.0f,
+                rdec = fm_expf(-6.9f / (LEADS[sd].rel * EN_SR)), arate = 1.0f / (LEADS[sd].atk * EN_SR + 1.0f),
+                ratio = LEADS[sd].ratio, br = LEADS[sd].breath;
+    float vib = 1.0f;
+    if (LEADS[sd].vib > 0.0f) {                  /* a slow vibrato, the same for the chunk */
+        lead_vib += (float)n * (5.0f / EN_SR);
+        if (lead_vib >= 1.0f)
+            lead_vib -= 1.0f;
+        vib = 1.0f + LEADS[sd].vib * sine(lead_vib);
+    }
+    for (i = 0; i < NLEAD; i++) {
+        lead_t *v = &lead[i];
+        float cph = v->cph, mph = v->mph, amp = v->amp, att = v->att, idx = v->idx, rel = v->rel, inc = v->inc;
+        uint32_t j;
+        if (!v->on)
+            continue;
+        inc += (v->inc_t - inc) * (lead_glide_t > 0.0f ? fm_minf((float)n / (lead_glide_t * EN_SR), 1.0f) : 1.0f);
+        for (j = 0; j < n; j++) {
+            float m = sine(mph) * idx, x;
+            x = sine(cph + m + 4.0f);
+            if (br > 0.0f) {                     /* the breath: a little noise, with the note */
+                noise = noise * 1664525u + 1013904223u;
+                x += br * ((float)(int32_t)noise * (1.0f / 2147483648.0f));
+            }
+            x *= amp * att * rel * g;
+            mixl[j] += x;
+            mixr[j] += x;
+            rsend[j] += x * 0.55f;
+            esend[j] += x * 0.6f;
+            cph += inc * vib;
+            mph += inc * vib * ratio;
+            if (cph >= 1.0f)
+                cph -= 1.0f;
+            if (mph >= 1.0f)
+                mph -= 1.0f;
+            amp *= adec;
+            idx *= idec;
+            att += (1.0f - att) * arate;
+            if (!v->held && LEADS[sd].ring <= 0.0f)   /* struck sounds ring on; held ones fade once let go */
+                rel *= rdec;
+        }
+        v->cph = cph, v->mph = mph, v->amp = amp, v->att = att, v->idx = idx, v->rel = rel, v->inc = inc;
+        if (amp * rel < 0.0005f) {
+            v->on = 0;
+            if (v->held)
+                midi(0x84, v->note, 0);
+        }
+    }
+}
+
 static void render_chunk(int32_t *out, uint32_t n, float gain)
 {
     uint32_t j;
@@ -2103,6 +2259,7 @@ static void render_chunk(int32_t *out, uint32_t n, float gain)
     render_bass(n);
     render_bells(n);
     render_drums(n);
+    render_lead(n);
     for (j = 0; j < n; j++) {
         float wl, wr, l, r, el, er, xl, xr;
         echoes(esend[j] * eg, &el, &er, &xl, &xr);

@@ -1,0 +1,15 @@
+# LEAD (EDIT): the keys play the lead, in the scale; OCT moves it; the Lead page: sound, level, tone, glide; EDIT held:
+# the next chord
+wait 300
+tap EDIT
+expect view 9
+tapkey 9
+tapkey 10
+expect midi_out >0
+tap OCT+
+expect par36 1
+spin K1 2
+expect par32 2
+tap EDIT
+tapkey 1
+expect pool 0x6BD

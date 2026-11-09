@@ -15,9 +15,10 @@
 #include "fastmath.h"
 
 /* the pages, one a layer (a button each); SELECT steps through them in this order */
-enum { V_STORY, V_GARDEN, V_PAD, V_BELLS, V_BASS, V_PULSE, V_SPACE, V_SETUP, V_MIX, NVIEWS };
-static const char *const VIEW_NAME[NVIEWS] = {"Story", "Garden", "Pad", "Bells", "Bass", "Pulse", "Space", "Setup", "Mix"};
-static const uint8_t VIEW_BTN[NVIEWS] = {B_SEL, B_HOME, B_ENV, B_ARP, B_LFO, B_SEQ, B_FX, B_GLO, B_HOME};
+enum { V_STORY, V_GARDEN, V_PAD, V_BELLS, V_BASS, V_PULSE, V_SPACE, V_SETUP, V_MIX, V_LEAD, NVIEWS };
+static const char *const VIEW_NAME[NVIEWS] = {"Story", "Garden", "Pad", "Bells", "Bass", "Pulse", "Space", "Setup", "Mix",
+                                              "Lead"};
+static const uint8_t VIEW_BTN[NVIEWS] = {B_SEL, B_HOME, B_ENV, B_ARP, B_LFO, B_SEQ, B_FX, B_GLO, B_HOME, B_EDIT};
 /* the four knobs of each page: a parameter, or one of these; and what the knob is called there */
 enum { K_LEDS = 100, K_CPU, K_NONE, K_PLAYMODE, K_WANDER, K_FADE, K_ACT };
 static const uint8_t VIEW_KNOB[NVIEWS][4] = {
@@ -30,6 +31,7 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_ECHO, P_ETIME, P_REVERB, P_SIZE},
     {P_ROOT, K_FADE, P_TUNE, K_LEDS},
     {P_PAD, P_BELLS, P_BASS, P_PULSE},
+    {P_LSOUND, P_LLEVEL, P_LTONE, P_LGLIDE},
 };
 static const char *const KNOB_LABEL[NVIEWS][4] = {
     {"Act", "Freedom", "Tension", "Wander"},
@@ -41,6 +43,7 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
     {"Echo", "Echo time", "Reverb", "Size"},
     {"Root", "Fade", "Tune", "Lights"},
     {"Pad", "Bells", "Bass", "Drums"},
+    {"Sound", "Level", "Tone", "Glide"},
 };
 
 /* the screen's colours: the cover of Ambient 1: Music for Airports (1978), as the web app and the site.
@@ -69,6 +72,8 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
 #define KEY_HOLD 450u                          /* ACTS: a key held this long fades slowly instead */
 static struct {
     uint8_t acts;                      /* ACTS (SEL): the keys pick acts and stories, not notes */
+    uint8_t lead;                      /* LEAD (EDIT): the keys play the lead */
+    uint8_t edit_done;                 /* EDIT held: the next chord went this hold */
     uint8_t mutes, solos;              /* the layers muted, soloed (bit 0 pad .. 3 drums): the player's, not saved */
     uint8_t bd_asked;                  /* the breakdown asked for (or on) */
     uint32_t key_t[NKEYS], key_held;
@@ -188,13 +193,15 @@ static struct {
     uint32_t rng;
 } tr;
 
-static int global_p(int p)                     /* the player's: Root only within a story (a new story brings its key) */
+static int global_p(int p)                     /* the player's: Root and the lead only within a story (a new story brings its own) */
 {
-    return p == P_TUNE || p == P_MIDI || p == P_ENERGY || (p == P_ROOT && tr.piece / EN_NACT == proj.piece / EN_NACT);
+    return p == P_TUNE || p == P_MIDI || p == P_ENERGY ||
+           ((p == P_ROOT || (p >= P_LSOUND && p <= P_LOCT)) && tr.piece / EN_NACT == proj.piece / EN_NACT);
 }
 static int switch_p(int p)
 {
-    return p == P_MODE || p == P_PADTONE || p == P_ETIME || p == P_BOCT || p == P_BASSOCT || p == P_ROOT || p == P_METER;
+    return p == P_MODE || p == P_PADTONE || p == P_ETIME || p == P_BOCT || p == P_BASSOCT || p == P_ROOT || p == P_METER ||
+           p == P_LSOUND || p == P_LOCT;
 }
 static uint32_t fade_ms(void)                  /* Fade 0..100: 5 s .. 2 min, as a curve */
 {
@@ -520,6 +527,21 @@ static void set_view(int v)
     ui.touched = -1;
 }
 
+static void lead_set(int on)                    /* LEAD on (ACTS off) or off (its notes let go) */
+{
+    int i;
+    if (!on)
+        for (i = 0; i < NKEYS; i++)
+            if (ui.keys >> i & 1u)
+                en_lead_off(53 + i);
+    ui.lead = (uint8_t)on;
+    if (on) {
+        ui.acts = 0;
+        set_view(V_LEAD);
+    }
+    say("LEAD", on ? EN_LEAD_NAME[proj.par[P_LSOUND]] : "OFF");
+}
+
 static void button(int b)
 {
     int v;
@@ -527,7 +549,13 @@ static void button(int b)
         set_view(ui.view == V_GARDEN ? V_MIX : V_GARDEN);
         return;
     }
+    if (b == B_EDIT) {                           /* LEAD: on, the Lead page with it; off (held: the next chord) */
+        lead_set(!ui.lead);
+        return;
+    }
     if (b == B_SEL) {                            /* ACTS: on, the Story page with it; off */
+        if (ui.lead)
+            lead_set(0);
         ui.acts = !ui.acts;
         if (ui.acts)
             set_view(V_STORY);
@@ -540,10 +568,6 @@ static void button(int b)
             return;
         }
     switch (b) {
-    case B_EDIT:
-        en_next();
-        say("NEXT CHORD", en_playing ? "ON THE BAR" : 0);
-        break;
     case B_PLAY:
         sp_tp.playing = !en_playing;
         sp_tp.play_t = plat_ms();
@@ -561,6 +585,13 @@ static void button(int b)
         en_freeze(!en_frozen);                   /* the engine takes it at its next block */
         break;
     case B_OCTDN: case B_OCTUP:
+        if (ui.lead) {                           /* Lead: its octave */
+            char t[8];
+            knob_set(P_LOCT, proj.par[P_LOCT] + (b == B_OCTUP ? 1 : -1));
+            en_param_text(P_LOCT, proj.par[P_LOCT], t);
+            say("LEAD OCTAVE", t);
+            break;
+        }
         knob_set(P_BOCT, proj.par[P_BOCT] + (b == B_OCTUP ? 1 : -1));
         {
             char t[8];
@@ -589,6 +620,10 @@ static void midi_in(void)
         uint32_t st = (pkt >> 8) & 0xFFu, n = (pkt >> 16) & 0x7Fu, v = pkt >> 24;
         if (st == 0xF8u || st == 0xFAu || st == 0xFBu || st == 0xFCu)
             en_clock(st == 0xF8u ? EN_CLK_TICK : st == 0xFAu ? EN_CLK_START : st == 0xFBu ? EN_CLK_CONTINUE : EN_CLK_STOP);
+        else if (ui.lead && st == 0x90u && v)     /* LEAD: MIDI in plays it */
+            en_lead_on((int)n, (int)v);
+        else if (ui.lead && (st == 0x80u || st == 0x90u))
+            en_lead_off((int)n);
         else if (st == 0x90u && v)
             toggle_note((int)(n % 12u));
     }
@@ -642,7 +677,14 @@ static void input(void)
     }
     ch = keys ^ ui.keys;
     ui.keys = keys;
-    for (i = 0; i < NKEYS; i++) {
+    for (i = 0; i < NKEYS && ui.lead; i++)      /* LEAD: the keys play (F3 is MIDI 53) */
+        if (ch >> i & 1u) {
+            if (keys >> i & 1u)
+                en_lead_on(53 + (int)i, 100);
+            else
+                en_lead_off(53 + (int)i);
+        }
+    for (i = 0; i < NKEYS && !ui.lead; i++) {
         int t = ui.acts ? key_target((int)i) : -2;
         if (t == -2) {                           /* the scale */
             if ((ch & keys) >> i & 1u)
@@ -729,6 +771,15 @@ static void input(void)
         tr_queue(st * EN_NACT, 0);
         say("STORY", en_story_name(st));
         ui.turn_t = plat_ms();
+    }
+    if (!(btn >> B_EDIT & 1u))
+        ui.edit_done = 0;
+    else if (!ui.edit_done && plat_ms() - ui.down_t[B_EDIT] > 600u) {   /* EDIT held: the next chord */
+        ui.edit_done = 1;
+        ui.btn_used |= 1u << B_EDIT;
+        ui.help = 0;
+        en_next();
+        say("NEXT CHORD", en_playing ? "ON THE BAR" : 0);
     }
     if ((btn >> B_SAVE & 1u) && !ui.reset_done && plat_ms() - ui.down_t[B_SAVE] > RESET_HOLD) {
         ui.reset_done = 1;                     /* held: the piece back to its recipe (not saved) */
@@ -1168,7 +1219,7 @@ static int help_lines(int b, const char *l[HELP_LINES])
     case B_SEQ: L("THE PULSE"); L("LEVEL, HITS, SWING, HATS"); break;
     case B_FX: L("THE SPACE"); L("ECHO, ECHO TIME, REVERB,"); L("SIZE"); break;
     case B_GLO: L("SETUP"); L("ROOT, FADE, TUNE, LIGHTS"); break;
-    case B_EDIT: L("THE NEXT CHORD,"); L("ON THE NEXT BAR"); break;
+    case B_EDIT: L("LEAD: THE KEYS PLAY A LEAD"); L("IN THE SCALE. OCT: ITS OCTAVE"); L("HOLD: THE NEXT CHORD"); break;
     case B_REC: L("FREEZE: THE CHORD HOLDS"); L(" AND THE REVERB RINGS ON"); L("AGAIN: THAW"); break;
     case B_OCTDN: L("THE BELLS AN OCTAVE DOWN"); L("WITH OCT+, 5 S: UPDATE MODE"); break;
     case B_OCTUP: L("THE BELLS AN OCTAVE UP"); L("WITH OCT-, 5 S: UPDATE MODE"); break;
@@ -1363,6 +1414,8 @@ static void leds(void)
         b |= 1u << B_PLAY;
     if (en_frozen)
         b |= 1u << B_REC;
+    if (ui.lead)
+        b |= 1u << B_EDIT;
     if (ui.acts) {                               /* ACTS: every loaded act and story lit; the one playing blinks slowly,
                                                   * the one it is going to quickly; empty slots dark */
         int goal = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : -1;

@@ -83,7 +83,9 @@ tap OCT+
 said BELL OCTAVE +1
 tap OCT-
 said BELL OCTAVE 0
-tap EDIT
+press EDIT
+wait 700
+release EDIT
 said NEXT CHORD ON THE BAR
 # a help card: its button, then its lines
 press SAVE

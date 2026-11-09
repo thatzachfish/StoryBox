@@ -20,7 +20,7 @@
 enum { OBJ_PROJ, OBJ_PANEL, OBJ_NOBJ };
 #define APP_STORE_MAP {0xFC000u, 0xDC000u}
 #define PROJ_MAGIC 0x31425453u           /* StoryBox: "STB1" (AMB-1's "ENO1" at the same place is not read: defaults) */
-#define PROJ_FORMAT 3u                   /* 2: Freedom; 3: Tension, Meter, Energy */
+#define PROJ_FORMAT 4u                   /* 2: Freedom; 3: Tension, Meter, Energy; 4: the lead */
 #define NPIECES EN_NPIECES
 
 typedef struct {

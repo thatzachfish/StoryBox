@@ -9,7 +9,9 @@ project_t proj;
 
 const char *piece_name(int i) { return en_piece_name(i); }
 
-static int global_par(int p) { return p == P_TUNE || p == P_MIDI || p == P_ROOT || p == P_ENERGY; }   /* the player's */
+/* the player's, not an act's: Tune, MIDI out and Energy always; Root and the lead within a story (a story brings its own) */
+static int story_par(int p) { return p == P_ROOT || (p >= P_LSOUND && p <= P_LOCT); }
+static int global_par(int p) { return p == P_TUNE || p == P_MIDI || p == P_ENERGY || story_par(p); }   /* the player's */
 
 int proj_hold_keep;                              /* a transition is under way: proj.par is between two acts */
 
@@ -113,8 +115,8 @@ void project_target(int i, int16_t *par, uint16_t *pool)
 {
     int p;
     i = (i % NPIECES + NPIECES) % NPIECES;
-    for (p = 0; p < P_NPARAMS; p++)               /* Root: a new story brings its own key */
-        par[p] = global_par(p) && !(p == P_ROOT && i / EN_NACT != proj.piece / EN_NACT) ? proj.par[p] : proj.slot[i].par[p];
+    for (p = 0; p < P_NPARAMS; p++)               /* Root and the lead: a new story brings its own */
+        par[p] = global_par(p) && !(story_par(p) && i / EN_NACT != proj.piece / EN_NACT) ? proj.par[p] : proj.slot[i].par[p];
     *pool = proj.slot[i].pool;
 }
 

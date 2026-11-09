@@ -62,6 +62,8 @@ enum {
     P_METER,                                          /* 0 4/4, 1 3/4 (from the next bar) */
     P_ENERGY,                                         /* the player's: 50 as the act has it; lower calmer and sparser,
                                                        * higher fuller, busier and brighter (the ALGORITHM knob) */
+    P_LSOUND, P_LLEVEL, P_LTONE, P_LGLIDE, P_LOCT,    /* StoryBox's lead: its sound (EN_LEAD_NAME), level, tone (dark ..
+                                                       * bright), glide (legato sounds) and octave */
     P_NPARAMS
 };
 typedef struct {
@@ -85,6 +87,13 @@ void en_prog(int piece);
 /* StoryBox performance: layers muted (bit 0 pad, 1 bells, 2 bass, 3 pulse; faded in and out quickly), and the
  * breakdown: the bass and the pulse drop out on the next bar (on 1); on 0 they come back a bar after a fill */
 void en_mute(uint32_t mask);
+/* the lead: the keys in Lead mode (and MIDI in), snapped to the scale. Struck sounds ring on, three at a time;
+ * held sounds (the flute) are one voice, gliding from note to note while held */
+enum { LEAD_KALIMBA, LEAD_BELL, LEAD_FLUTE, LEAD_PLUCK, EN_NLEAD };
+extern const char *const EN_LEAD_NAME[EN_NLEAD];
+int en_lead_snap(int note);                    /* the scale's note at or just below note (the main loop's view) */
+void en_lead_on(int note, int vel);
+void en_lead_off(int note);
 void en_breakdown(int on);
 extern volatile uint8_t en_bd;                 /* (UI) 0 off, 1 broken down, 2 coming back (the fill) */                       /* StoryBox: follow piece's progression (none: free), from its start */
 extern volatile int8_t en_prog_step;           /* (UI) the progression's step playing, -1 none */
