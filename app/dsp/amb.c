@@ -1419,6 +1419,7 @@ static void sting_fire(void)                     /* its notes as bells, moved wi
         mv -= 12;
     if (sting_buzz[st][k] && sting_n[st][k]) {  /* a fly, flying past */
         buzz_start(sting_note[st][k][0] + mv);
+        sting_pend = -1;
         return;
     }
     for (i = 0; i < sting_n[st][k]; i++) {
@@ -2958,7 +2959,7 @@ static void render_buzz(uint32_t n)
         return;
     t = buzz_t / T;
     env = fm_sinf(FM_TWO_PI * 0.5f * fm_clampf(t, 0.0f, 1.0f));
-    env *= env * 0.22f;
+    env *= env * 0.32f;
     w = 0.03f * fm_sinf(FM_TWO_PI * 1.3f * buzz_t) + 0.02f * fm_sinf(FM_TWO_PI * 0.7f * buzz_t + 1.0f);   /* wandering */
     pan = fm_clampf(t, 0.0f, 1.0f);
     for (j = 0; j < n; j++) {
