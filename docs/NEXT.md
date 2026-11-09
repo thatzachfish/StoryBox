@@ -82,3 +82,16 @@ From Zach, playing 0.3 (2026-11-09 morning):
 - [ ] ACTS page: the black keys' row (tracks, breakdown) at the top, as on the keyboard (above the white keys)
 - [ ] Lead's picture distinct from the instrument pages', at a glance
 - [ ] Mixer (Home): a picture of its own too (the four tracks as a mixer: their levels and how loud each is now)
+
+Sound notes (2026-11-09):
+
+- [ ] Rhodes: held notes sustain while held (then ring out)
+- [ ] Flute: a slower release
+- [ ] Guitar still too loud; Slide (loved) a bit loud too
+- [ ] Violin: not string-like but liked: keep, a slower release
+- [ ] Cello: more a digital sax, but nice (keep; maybe name it so)
+- [ ] Vibes too near Marimba: make it a vibraphone (pure, long, the motor's shimmer); Harp: the least liked
+- [ ] Drums and fills: loved, Intermission's especially: keep developing the drums
+- [ ] Fly: Zach to go through carefully
+- [ ] Post Show: a ninth story like Intermission (boom-bap), musically distinct, triumphant (on E5, key 23)
+- [ ] Fades: good as they are
