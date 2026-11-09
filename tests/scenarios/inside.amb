@@ -1,16 +1,16 @@
-# Inside: a waltz in G (3/4); ACTS shows the keys' map; the A4 key brings the story and its key (Root G);
-# the stings on F#3 and G#3; Tension on the Story page
+# Inside: a waltz in G (3/4); ACTS shows the keys' map; the B4 key brings the story and its key (Root G);
+# the stings on F5 and G5; Tension on the Story page
 wait 200
 tap SEL
-tapkey 16
+tapkey 18
 wait 15000
 expect piece 20
 expect par19 7
 expect par30 1
 shot map.png
-tapkey 1
+tapkey 24
 wait 1000
-tapkey 3
+tapkey 26
 wait 1000
 spin K3 40
 expect par29 40

@@ -311,17 +311,18 @@ static void tr_tick(void)
     }
 }
 
-/* ACTS: the white keys F G A B are the story's four acts; from C up the white keys are the stories. Black keys:
- * nothing (-1); out of ACTS: -2 (the scale) */
-static const int8_t KEY_ACT[NKEYS] = {0, 30, 1, 31, 2, 40, 3, 10, -1, 11, -1, 12, 13, -1, 14, -1, 15, -1, 16, 17, -1, 50, -1, 51, 52, -1, 53};
+/* ACTS, the keys in banks with a gap between them. White: F3 G3 A3 B3 the story's four acts; (C4 a gap); D4 .. D5 the
+ * eight stories; (E5 a gap); F5 G5 the two stings. Black: F#3 G#3 A#3 C#4 the pad, bells, bass and drums; F#5 the
+ * breakdown. KEY_ACT: an act 0..3; a story 10 + s; else as below; -1 nothing */
+static const int8_t KEY_ACT[NKEYS] = {0, 50, 1, 51, 2, 52, 3, -1, 53, 10, -1, 11, 12, -1, 13, -1, 14, -1, 15, 16, -1, 17, -1, -1, 30, 40, 31};
 static const char *const TRACK_NAME[4] = {"PAD", "BELLS", "BASS", "DRUMS"};
 static void mutes_apply(void)                  /* what is heard: the solos if any, else all but the mutes */
 {
     en_mute(ui.solos ? (uint32_t)(~ui.solos & 15u) : ui.mutes);
 }
-#define KEY_STING 30                          /* KEY_ACT: the black keys F#3 and G#3, the story's two stings */
-#define KEY_BREAK 40                          /* A#3: the breakdown */
-#define KEY_TRACK 50                          /* D5 E5 F5 G5: the pad, the bells, the bass, the drums (tap mute, hold solo) */
+#define KEY_STING 30                          /* F5 G5: the story's two stings */
+#define KEY_BREAK 40                          /* F#5: the breakdown */
+#define KEY_TRACK 50                          /* F#3 G#3 A#3 C#4: the pad, the bells, the bass, the drums (tap mute, hold solo) */
 static int key_target(int k)
 {
     int v = (unsigned)k < NKEYS ? KEY_ACT[k] : -1;
@@ -1211,7 +1212,7 @@ static int help_lines(int b, const char *l[HELP_LINES])
     int n = 0;
 #define L(t) (l[n++] = (t))
     switch (b) {
-    case B_SEL: L("ACTS: THE KEYS F G A B"); L("ARE THE ACTS, C UP THE STORIES"); L("TAP: NEXT PHRASE. HOLD: FADE"); break;
+    case B_SEL: L("ACTS: F3-B3 THE ACTS"); L("D4-D5 THE STORIES, F5 G5 STINGS"); L("TAP: NEXT PHRASE. HOLD: FADE"); break;
     case B_HOME: L("THE GARDEN"); L("TEMPO, EVOLVE, MOTION, DRIFT"); L("+ SELECT: TEMPO"); break;
     case B_ENV: L("THE PAD"); L("LEVEL, SWELL, BRIGHT,"); L("COLOUR"); break;
     case B_ARP: L("THE BELLS"); L("LEVEL, DENSITY, TONE,"); L("OCTAVE"); break;
@@ -1244,7 +1245,7 @@ static void draw_help(void)
 
 /* ACTS: the keys' map. Left, the story's acts on F G A B and its stings on F# G#; right, the stories on the white
  * keys from C4. Where it is: the accent; where it is going: blinking; an empty slot: a dash */
-static const char *const MAP_KEY[8] = {"C", "D", "E", "F", "G", "A", "B", "C"};
+static const char *const MAP_KEY[8] = {"D", "E", "F", "G", "A", "B", "C", "D"};
 static void map_row(int32_t x, int32_t y, int32_t w, const char *key, const char *name, int here, int going, int empty)
 {
     uint16_t chip = empty ? K_LINE : here ? K_ACC : going ? K_TEXT : K_DIM;
@@ -1257,8 +1258,8 @@ static void map_row(int32_t x, int32_t y, int32_t w, const char *key, const char
 static void draw_map(void)
 {
     static const char *const AK[EN_NACT] = {"F", "G", "A", "B"};
-    static const char *const SK[EN_NSTING] = {"F#", "G#"};
-    static const char *const TK[4] = {"D", "E", "F", "G"};
+    static const char *const SK[EN_NSTING] = {"F", "G"};
+    static const char *const TK[4] = {"F#", "G#", "A#", "C#"};
     static const char *const TN[4] = {"Pad", "Bells", "Bass", "Drums"};
     int cur = proj.piece, goal = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : -1, blink = (plat_ms() / 300u) & 1u, i;
     int shown = goal >= 0 ? goal : cur;                 /* the acts of the story it is in, or going to */
@@ -1272,7 +1273,7 @@ static void draw_map(void)
         int n = en_sting_len(shown, i);
         map_row(8, 82 + i * 13, 108, SK[i], n ? en_sting_name(shown, i) : "", 0, 0, !n);
     }
-    map_row(8, 108, 108, "A#", en_bd == 1 && ui.bd_asked ? "Breakdown" : en_bd || ui.bd_asked ? "Breakdown..." : "Breakdown",
+    map_row(8, 108, 108, "F#", en_bd == 1 && ui.bd_asked ? "Breakdown" : en_bd || ui.bd_asked ? "Breakdown..." : "Breakdown",
             en_bd == 1 && ui.bd_asked, (en_bd == 2 || (en_bd == 1 && !ui.bd_asked) || (ui.bd_asked && !en_bd)) && blink, 0);
     cv_text(126, 0, &FONT_XS, "STORIES", K_ACC);
     for (i = 0; i < 8; i++) {
@@ -1285,9 +1286,9 @@ static void draw_map(void)
         int32_t x = 8 + i * 57;
         int solo = ui.solos >> i & 1u, heard = ui.solos ? solo : !(ui.mutes >> i & 1u);
         uint16_t c = solo ? K_ACC : heard ? K_PAD : K_LINE;
-        cv_round(x, 130, 14, 12, 3, c);
-        text_c(x + 7, 129, &FONT_XS, TK[i], K_BG);
-        cv_text(x + 17, 129, &FONT_XS, TN[i], heard ? K_TEXT : K_LINE);
+        cv_round(x, 130, 18, 12, 3, c);
+        text_c(x + 9, 129, &FONT_XS, TK[i], K_BG);
+        cv_text(x + 21, 129, &FONT_XS, TN[i], heard ? K_TEXT : K_LINE);
     }
 }
 
@@ -1406,9 +1407,21 @@ static void draw_knobs(void)
     cv_blit(0, KNB_Y);
 }
 
+/* lights at three levels: lit, mid (~12 %) and dim. In ACTS: every loaded slot at mid; where it is breathes slowly
+ * (lit, mid, dim, mid, lit: a 2.4 s fade); where it is going blinks quickly; empty slots and gaps dark. Tracks: heard at
+ * mid, soloed lit, muted dark. The breakdown: lit while down, blinking while it waits or comes back */
+#define L_OFF 0
+#define L_DIM 1
+#define L_MID 2
+#define L_LIT 3
+static int breath(void)
+{
+    uint32_t t = plat_ms() % 2400u;
+    return t < 1000u ? L_LIT : t < 1300u ? L_MID : t < 1700u ? L_DIM : t < 2000u ? L_MID : L_LIT;
+}
 static void leds(void)
 {
-    uint32_t b = 0, k = 0, i, ap = pool_abs();
+    uint32_t b = 0, k = 0, km = 0, kd = 0, i, ap = pool_abs(), db, play = 1u << B_PLAY;
     b |= 1u << VIEW_BTN[ui.view];
     if (en_playing)
         b |= 1u << B_PLAY;
@@ -1416,46 +1429,45 @@ static void leds(void)
         b |= 1u << B_REC;
     if (ui.lead)
         b |= 1u << B_EDIT;
-    if (ui.acts) {                               /* ACTS: every loaded act and story lit; the one playing blinks slowly,
-                                                  * the one it is going to quickly; empty slots dark */
+    if (ui.acts) {
         int goal = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : -1;
-        int slow = (plat_ms() / 500u) & 1u, quick = (plat_ms() / 150u) & 1u;
+        int quick = (plat_ms() / 150u) & 1u, br = breath();
         b |= 1u << B_SEL;
         for (i = 0; i < NKEYS; i++) {
-            int t = key_target((int)i), act = KEY_ACT[i] < EN_NACT, lit = 1;
-            if (KEY_ACT[i] >= KEY_TRACK) {      /* a track: lit while heard; soloed: blinking slowly */
+            int t = key_target((int)i), act = KEY_ACT[i] < EN_NACT, lv = L_OFF;
+            if (KEY_ACT[i] >= KEY_TRACK) {
                 int l = KEY_ACT[i] - KEY_TRACK;
-                if (ui.solos ? (ui.solos >> l & 1u) && slow : !(ui.mutes >> l & 1u))
-                    k |= 1u << i;
-                continue;
-            }
-            if (KEY_ACT[i] == KEY_BREAK) {      /* the breakdown: lit while down, blinking while it waits or comes back */
+                lv = ui.solos ? (ui.solos >> l & 1u ? L_LIT : L_OFF) : ui.mutes >> l & 1u ? L_OFF : L_MID;
+            } else if (KEY_ACT[i] == KEY_BREAK) {
                 int down = en_bd == 1 && ui.bd_asked;
                 int moving = (en_bd == 1 && !ui.bd_asked) || en_bd == 2 || (ui.bd_asked && en_bd == 0);
-                if (down || (moving && quick))
-                    k |= 1u << i;
-                continue;
+                lv = down ? L_LIT : moving ? (quick ? L_LIT : L_OFF) : L_MID;
+            } else if (KEY_ACT[i] >= KEY_STING) {
+                lv = en_sting_len(proj.piece, KEY_ACT[i] - KEY_STING) ? L_MID : L_OFF;
+            } else if (t >= 0) {
+                lv = L_MID;
+                if (goal >= 0 && (act ? t == goal : t / EN_NACT == goal / EN_NACT && goal / EN_NACT != proj.piece / EN_NACT))
+                    lv = quick ? L_LIT : L_OFF;
+                else if (act ? t == proj.piece : t / EN_NACT == proj.piece / EN_NACT)
+                    lv = br;
             }
-            if (KEY_ACT[i] >= KEY_STING) {      /* a loaded sting: lit */
-                if (en_sting_len(proj.piece, KEY_ACT[i] - KEY_STING))
-                    k |= 1u << i;
-                continue;
-            }
-            if (t < 0)
-                continue;
-            if (goal >= 0 && (act ? t == goal : t / EN_NACT == goal / EN_NACT && goal / EN_NACT != proj.piece / EN_NACT))
-                lit = quick;
-            else if (act ? t == proj.piece : t / EN_NACT == proj.piece / EN_NACT)
-                lit = slow;
-            if (lit)
+            if (lv == L_LIT)
                 k |= 1u << i;
+            else if (lv == L_MID)
+                km |= 1u << i;
+            else if (lv == L_DIM)
+                kd |= 1u << i;
         }
     } else if (proj.leds)
         for (i = 0; i < NKEYS; i++)
             if (ap >> ((5u + i) % 12u) & 1u)
                 k |= 1u << i;
-    plat_glow(proj.leds == 1);
-    plat_leds(b, k);
+    /* as plat_leds: PLAY green (its second LED), the unlit buttons glowing with Lights On */
+    db = proj.leds == 1 ? ((1u << NB) - 1u) & ~b : 0u;
+    b = (b & ~play) | (b & play ? LED_PLAY_GREEN : 0u);
+    db = (db & ~play) | (db & play ? LED_PLAY_GREEN : 0u);
+    plat_lights(b, k, db, kd, proj.leds == 1 ? 2 : kd ? 1 : 0);
+    plat_lights_mid(0, km);
 }
 
 /* AUTOSAVE: a few seconds after a change, while resting and quiet, nothing touched (a flash erase
