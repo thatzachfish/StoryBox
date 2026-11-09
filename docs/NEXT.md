@@ -95,3 +95,7 @@ Sound notes (2026-11-09):
 - [ ] Fly: Zach to go through carefully
 - [ ] Post Show: a ninth story like Intermission (boom-bap), musically distinct, triumphant (on E5, key 23)
 - [ ] Fades: good as they are
+- [ ] Stings far too loud (Intermission's especially): bring them down, level them across stories
+- [ ] Breakdown's label: with the tracks' row (the black keys), not off by the story's name
+- [ ] Fly's Buzz: a fly buzzing (a buzzy tone wobbling in pitch, swelling, flying across left to right), not bells;
+      The web: liked
