@@ -72,6 +72,7 @@ enum {
     P_RVLEN, P_RVMIX, P_STRATE, P_STMIX,              /* the punch-in effects (the player's): Reverse's length and mix, */
     P_FLCUT, P_FLRES, P_PHRATE, P_PHDEPTH,            /* Stutter's rate and mix, Filter's cutoff and resonance, Phaser's */
     P_SURF,                                           /* the act's: an ocean's rush, waves of filtered noise (0 none) */
+    P_MSOUND,                                         /* the act's: the melody's instrument (EN_MEL_NAME; the bells' loops) */
     P_NPARAMS
 };
 typedef struct {
@@ -105,6 +106,8 @@ extern volatile uint8_t en_fx_on;              /* (UI) the effects heard now */
  * on; bowed ones (violin, cello) last while held; the flute and the slide are one voice, gliding from note to note */
 enum { LEAD_KALIMBA, LEAD_BELL, LEAD_FLUTE, LEAD_GUITAR, LEAD_RHODES, LEAD_VIOLIN, LEAD_CELLO, LEAD_SLIDE, EN_NLEAD };
 extern const char *const EN_LEAD_NAME[EN_NLEAD];
+enum { MEL_BELLS, MEL_KALIMBA, MEL_MARIMBA, MEL_VIBES, MEL_HARP, MEL_GLASS, MEL_MUSICBOX, EN_NMEL };
+extern const char *const EN_MEL_NAME[EN_NMEL];
 int en_lead_snap(int note);                    /* the scale's note at or just below note (the main loop's view) */
 void en_lead_on(int note, int vel);
 void en_lead_off(int note);

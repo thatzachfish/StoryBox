@@ -4,7 +4,7 @@ wait 500
 expect piece 0
 expect view 0
 tap SEL
-expect view 1
+expect view 2
 # a tap on G3 (act 2, Warm Up): it waits for the next phrase, then glides over one
 tapkey 2
 wait 100

@@ -3,7 +3,7 @@
 wait 200
 listen
 wait 100
-said Home page: Pad 50, Bells 40, Bass 50, Drums 45. Piece Pre-show, D minor
+said Home page: Pad 50, Melody 40, Bass 50, Drums 45. Piece Pre-show, D minor
 # (the rings follow, queued: the chord, how far to the next, the scale from the root up)
 listen
 where
@@ -38,8 +38,8 @@ wait 300
 # FX: the effects
 tap FX
 wait 300
-said Effects page: Reverb 50, Room 65, Echo 40, Echo time 1/2.
-spin K4 -1
+said Effects page: Reverb 50, Echo 40, Echo time 1/2., Surf 0
+spin K3 -1
 wait 300
 said Echo time 1/2
 # SEL: the acts
@@ -117,4 +117,4 @@ wait 1000
 said Tempo 88
 # WHERE: everything again
 where
-said Home page: Pad 50, Bells 40, Bass 50, Drums 45. Piece Pre-show
+said Home page: Pad 50, Melody 40, Bass 50, Drums 45. Piece Pre-show

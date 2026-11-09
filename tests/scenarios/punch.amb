@@ -24,11 +24,17 @@ tap LFO
 wait 500
 expect fx 2
 expect view 0
-# a latched one: a tap shows its page (its knobs), it stays on; another tap there turns it off
+# a latched one: a tap shows its page (its knobs), it stays on; SELECT goes back to Effects; a double tap turns it off
 tap LFO
 wait 300
 expect fx 2
 expect view 12
+turn SELECT 1
+expect view 4
+tap LFO
+wait 400
+expect fx 2
+tap LFO
 tap LFO
 wait 300
 expect fx 0

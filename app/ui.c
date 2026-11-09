@@ -17,13 +17,13 @@
 /* the pages, one a layer (a button each); SELECT steps through them in this order */
 /* StoryBox's pages, in the order SELECT steps through them; then the punch-ins' (while one is held, or a latched one
  * tapped). HOME: Home; SEL: Story (the keys' map); EDIT: Lead; FX: Effects; GLO: Setup */
-enum { V_MIX, V_STORY, V_GARDEN, V_LEAD, V_SPACE, V_PAD, V_BELLS, V_BASS, V_PULSE, V_SETUP, V_SYSTEM,
+enum { V_MIX, V_GARDEN, V_STORY, V_LEAD, V_SPACE, V_PAD, V_BELLS, V_BASS, V_PULSE, V_SETUP, V_SYSTEM,
        V_REV, V_STUT, V_FILT, V_PHAS, NVIEWS };
 #define NPAGES V_REV
 #define NOBTN 0xFF
-static const char *const VIEW_NAME[NVIEWS] = {"Home", "Story", "Feel", "Lead", "Effects", "Pad", "Bells", "Bass", "Drums",
+static const char *const VIEW_NAME[NVIEWS] = {"Home", "Feel", "Story", "Lead", "Effects", "Pad", "Melody", "Bass", "Drums",
                                               "Setup", "System", "Reverse", "Stutter", "Filter", "Phaser"};
-static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, B_SEL, NOBTN, B_EDIT, B_FX, NOBTN, NOBTN, NOBTN, NOBTN, B_GLO, NOBTN,
+static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, NOBTN, B_SEL, B_EDIT, B_FX, NOBTN, NOBTN, NOBTN, NOBTN, B_GLO, NOBTN,
                                          B_ENV, B_LFO, B_ARP, B_SEQ};
 /* the punch-ins: ENV Reverse, LFO Stutter, ARP Filter, SEQ Phaser (held; a double tap latches one on) */
 static const uint8_t FX_BTN[EN_NFX] = {B_ENV, B_LFO, B_ARP, B_SEQ};
@@ -31,12 +31,12 @@ static const uint8_t FX_BTN[EN_NFX] = {B_ENV, B_LFO, B_ARP, B_SEQ};
 enum { K_LEDS = 100, K_CPU, K_NONE, K_PLAYMODE, K_WANDER, K_FADE, K_ACT, K_TIMER };
 static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_PAD, P_BELLS, P_BASS, P_PULSE},
-    {K_ACT, P_GROOVE, P_TENSION, K_WANDER},
     {P_EVOLVE, P_FREEDOM, P_DRIFT, P_MOTION},
+    {K_ACT, P_GROOVE, P_TENSION, K_WANDER},
     {P_LSOUND, P_LLEVEL, P_LTONE, P_LGLIDE},
-    {P_REVERB, P_SIZE, P_ECHO, P_ETIME},
+    {P_REVERB, P_ECHO, P_ETIME, P_SURF},
     {P_PAD, P_SWELL, P_BRIGHT, P_PADTONE},
-    {P_BELLS, P_DENSITY, P_BTONE, P_BOCT},
+    {P_BELLS, P_DENSITY, P_MSOUND, P_BOCT},
     {P_BASS, P_BASSOCT, P_GLIDE, P_FIFTH},
     {P_PULSE, P_HITS, P_SWING, P_KIT},
     {P_ROOT, P_TEMPO, K_TIMER, K_FADE},
@@ -47,13 +47,13 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_PHRATE, P_PHDEPTH, K_NONE, K_NONE},
 };
 static const char *const KNOB_LABEL[NVIEWS][4] = {
-    {"Pad", "Bells", "Bass", "Drums"},
-    {"Act", "Structure", "Tension", "Wander"},
+    {"Pad", "Melody", "Bass", "Drums"},
     {"Evolve", "Freedom", "Drift", "Motion"},
+    {"Act", "Structure", "Tension", "Wander"},
     {"Sound", "Level", "Tone", "Glide"},
-    {"Reverb", "Room", "Echo", "Echo time"},
+    {"Reverb", "Echo", "Echo time", "Surf"},
     {"Level", "Swell", "Bright", "Colour"},
-    {"Level", "Density", "Tone", "Octave"},
+    {"Level", "Density", "Sound", "Octave"},
     {"Level", "Octave", "Glide", "Fifth"},
     {"Level", "Hits", "Swing", "Kit"},
     {"Root", "Tempo", "Sleep", "Fade"},
@@ -70,22 +70,22 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
 /* StoryBox: a night palette, high contrast but not bright. Near-black ground, warm white text; yellow for what is
  * selected or turning, green for what plays, fuchsia for alerts (a warning, a low battery, a lot of Tension) */
 #define K_BG RGB(10, 11, 16)
-#define K_PANEL RGB(34, 37, 48)
-#define K_LINE RGB(66, 72, 90)
-#define K_DIM RGB(158, 160, 172)
-#define K_TEXT RGB(238, 234, 222)
-#define K_ACC RGB(232, 200, 84)          /* yellow: the page, the knob being turned, a message's word, where it is */
-#define K_ALERT RGB(226, 82, 172)        /* fuchsia: alerts */
-#define K_BELL RGB(118, 196, 206)
-#define K_BELL_T RGB(30, 58, 64)
-#define K_PAD RGB(134, 204, 108)         /* green: what plays */
-#define K_PAD_T RGB(38, 64, 36)
-#define K_PULSE RGB(196, 166, 222)
-#define K_PULSE_T RGB(54, 44, 66)
-#define K_BASS RGB(222, 150, 88)
-#define K_BASS_T RGB(66, 46, 30)
-#define K_FROST RGB(146, 176, 240)
-#define K_FROST_T RGB(40, 50, 82)
+#define K_PANEL RGB(37, 40, 52)
+#define K_LINE RGB(71, 78, 97)
+#define K_DIM RGB(177, 179, 193)
+#define K_TEXT RGB(250, 246, 234)
+#define K_ACC RGB(255, 224, 94)          /* yellow: the page, the knob being turned, a message's word, where it is */
+#define K_ALERT RGB(253, 92, 193)        /* fuchsia: alerts */
+#define K_BELL RGB(132, 220, 231)
+#define K_BELL_T RGB(32, 63, 69)
+#define K_PAD RGB(150, 228, 121)         /* green: what plays */
+#define K_PAD_T RGB(41, 69, 39)
+#define K_PULSE RGB(220, 186, 249)
+#define K_PULSE_T RGB(58, 48, 71)
+#define K_BASS RGB(249, 168, 99)
+#define K_BASS_T RGB(71, 50, 32)
+#define K_FROST RGB(164, 197, 255)
+#define K_FROST_T RGB(43, 54, 89)
 
 #define KEY_HOLD 450u                          /* ACTS: a key held this long fades slowly instead */
 static struct {
@@ -116,7 +116,7 @@ static struct {
     int8_t touched;                    /* the knob turned last (0..3), shown bright for a moment */
     uint32_t touch_until;
     uint32_t frame;
-    uint32_t sig[3];                   /* what each band shows: redrawn when it changes */
+    uint32_t sig[4];                   /* what each band shows: redrawn when it changes */
 } ui;
 
 /* the screen reader (announce.c; speak() below): a message went to it this frame, so speak() leaves what it
@@ -742,12 +742,13 @@ static void input(void)
         ui.btn_used |= m;
         ui.help = 0;
         if (btn & m) {
-            if ((ui.fx_latch >> i & 1u) && ui.view != V_REV + (int)i) {   /* a latched one: its page, to turn it */
+            if ((ui.fx_latch >> i & 1u) && plat_ms() - ui.fx_up_t[i] < 300u) {   /* a latched one, double-tapped: off */
+                ui.fx_latch &= (uint8_t)~(1u << i);
+                ui.fx_up_t[i] = 0;
+                say(VIEW_NAME[V_REV + i], "OFF");
+            } else if (ui.fx_latch >> i & 1u) {  /* tapped: its page, to turn its knobs */
                 set_view(V_REV + (int)i);
                 say(VIEW_NAME[V_REV + i], "LATCHED");
-            } else if (ui.fx_latch >> i & 1u) {  /* and again, on its page: off */
-                ui.fx_latch &= (uint8_t)~(1u << i);
-                say(VIEW_NAME[V_REV + i], "OFF");
             } else {
                 ui.fx_held |= (uint8_t)(1u << i);
                 if (!ui.fx_back)
@@ -860,10 +861,10 @@ static void input(void)
                 itoa_u((uint32_t)proj.par[P_TEMPO], t);
                 say("TEMPO", t);
             }
-        } else {
-            int v = (int)ui.view + (e > 0 ? 1 : -1);
-            if (v >= 0 && v < NPAGES)
-                set_view(v);
+        } else if (ui.view >= V_REV) {           /* from an effect's page: back to Effects */
+            set_view(V_SPACE);
+        } else {                                 /* round the bend: past the last page to the first, and back */
+            set_view(((int)ui.view + (e > 0 ? 1 : -1) + NPAGES) % NPAGES);
         }
         ui.turn_t = plat_ms();
     }
@@ -911,13 +912,15 @@ static void input(void)
 }
 
 /* ------------------------------------------------------------- screen --- */
-/* three bands: the knobs (64 px) along the top, the main view (144), the bar (32) */
-#define KNB_Y 0
-#define KNB_H 64
-#define MAIN_Y 64
+/* four bands: the page (16 px), the knobs (60), the main view (144), the bar (20) */
+#define HDR_Y 0
+#define HDR_H 16
+#define KNB_Y 16
+#define KNB_H 60
+#define MAIN_Y 76
 #define MAIN_H 144                             /* (the canvas: 240 x 144 at most) */
-#define BAR_Y 208
-#define BAR_H 32
+#define BAR_Y 220
+#define BAR_H 20
 
 static uint32_t hash(uint32_t h, uint32_t v) { return (h ^ v) * 16777619u; }
 
@@ -938,7 +941,7 @@ static void cv_round(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint
     }
 }
 
-/* a filled circle of radius r (0..6) centred on (cx, cy): HW[r][d] is the half width d rows from the middle */
+/* a filled circle of radius r centred on (cx, cy): HW[r][d] is the half width d rows from the middle */
 static void cv_disc(int32_t cx, int32_t cy, int32_t r, uint16_t c)
 {
     static const uint8_t HW[7][7] = {{0}, {1, 0}, {2, 1, 0}, {3, 2, 2, 0}, {4, 4, 3, 2, 0}, {5, 5, 4, 4, 3, 0},
@@ -948,8 +951,13 @@ static void cv_disc(int32_t cx, int32_t cy, int32_t r, uint16_t c)
         cv_rect(cx, cy, 1, 1, c);
         return;
     }
-    if (r > 6)
-        r = 6;
+    if (r > 6) {                                 /* larger: each row's half width, by the square root */
+        for (j = -r + 1; j < r; j++) {
+            int32_t w = (int32_t)(fm_sqrtf((float)(r * r - j * j)) - 0.3f);
+            cv_rect(cx - w, cy + j, 2 * w + 1, 1, c);
+        }
+        return;
+    }
     for (j = -r + 1; j < r; j++) {
         int32_t w = HW[r][j < 0 ? -j : j];
         cv_rect(cx - w, cy + j, 2 * w + 1, 1, c);
@@ -1088,16 +1096,16 @@ static void draw_batt(int32_t x, int b)
     static const int8_t BOLT[7][2] = {{10, 2}, {9, 2}, {8, 2}, {7, 5}, {9, 2}, {8, 2}, {7, 2}};
     uint16_t c = b == 0 ? K_LOW : K_DIM;           /* neutral; an alert only when nearly empty */
     int i;
-    cv_round(x, 11, 18, 10, 2, c);
-    cv_rect(x + 1, 12, 16, 8, K_BG);
-    cv_rect(x + 18, 14, 2, 4, c);
+    cv_round(x, 3, 18, 10, 2, c);
+    cv_rect(x + 1, 4, 16, 8, K_BG);
+    cv_rect(x + 18, 6, 2, 4, c);
     if (b == 4) {
         for (i = 0; i < 7; i++)
-            cv_rect(x + BOLT[i][0], 12 + i, BOLT[i][1], 1, K_TEXT);
+            cv_rect(x + BOLT[i][0], 4 + i, BOLT[i][1], 1, K_TEXT);
         return;
     }
     for (i = 0; i < b && i < 3; i++)
-        cv_rect(x + 2 + i * 5, 13, 4, 6, K_DIM);
+        cv_rect(x + 2 + i * 5, 5, 4, 6, K_DIM);
 }
 static const char *batt_words(int b)
 {
@@ -1116,16 +1124,37 @@ static const char *view_hint(void)
     if (ui.view == V_STORY)
         return "tap a key: next phrase. hold: fade";
     if (ui.view == V_SPACE || ui.view >= V_REV)
-        return "double-tap: latch";
+        return ui.view >= V_REV && (ui.fx_latch >> (ui.view - V_REV) & 1u) ? "double-tap its button: off" : "double-tap: latch";
     return 0;
 }
-static void draw_bar(void)
+static void draw_head(void)                     /* along the very top: the page and its dots; the battery */
 {
     char t[24];
-    int msg = plat_ms() < ui.msg_until, k;
+    int k;
+    int32_t x, pg = ui.help == B_HOME + 1 ? -1 : ui.view < NPAGES ? ui.view : -1;
+    uint32_t h = hash(hash(2166136261u, (uint32_t)ui.view | (uint32_t)ui.help << 8), (uint32_t)(batt() + 1));
+    if (h == ui.sig[3])
+        return;
+    ui.sig[3] = h;
+    cv_begin(240, HDR_H, K_BG);
+    caps(t, ui.help == B_HOME + 1 ? "Buttons" : VIEW_NAME[ui.view], sizeof t);
+    x = cv_text(8, 1, &FONT_XS, t, K_ACC) + 6;
+    for (k = 0; k < NPAGES; k++)
+        cv_round(x + k * 6, 6, 4, 4, 2, k == pg ? K_ACC : K_LINE);
+    if (batt() >= 0)
+        draw_batt(240 - 8 - BATT_W, batt());
+    cv_blit(0, HDR_Y);
+}
+
+/* the bar along the bottom: the story and act (where it is going, blinking while it waits, a line under it as it
+ * glides), or the page's hint; a message takes it for a moment. At the right, the keys' mode (ACTS yellow, LEAD
+ * green) */
+static void draw_bar(void)
+{
+    int msg = plat_ms() < ui.msg_until;
     const char *hint = view_hint();
     uint32_t h = hash(hash(hash(2166136261u, proj.piece | (uint32_t)ui.view << 8 | (uint32_t)ui.lead << 16 | (uint32_t)ui.help << 17),
-                           (uint32_t)msg | (uint32_t)(batt() + 1) << 4),
+                           (uint32_t)msg),
                       (uint32_t)(tr.pending >= 0 ? plat_ms() / 400u & 1u : 0u) << 30 | (uint32_t)(tr.pending + 1) |
                           (uint32_t)tr.on << 8 | (uint32_t)tr.piece << 9 | (uint32_t)(tr.t * 20.0f) << 16);
     if (msg)
@@ -1135,47 +1164,35 @@ static void draw_bar(void)
     ui.sig[0] = h;
     cv_begin(240, BAR_H, K_BG);
     cv_rect(0, 0, 240, 1, K_LINE);
-    {   /* the mode, boxed, at the right; the battery beside it */
+    {   /* the mode, boxed, at the right */
         const char *m = ui.lead ? "LEAD" : "ACTS";
         uint16_t c = ui.lead ? K_PAD : K_ACC;
-        cv_round(186, 7, 48, 19, 4, c);
-        cv_round(187, 8, 46, 17, 3, K_BG);
-        text_c(210, 9, &FONT_XS, m, c);
-        if (batt() >= 0)
-            draw_batt(186 - 6 - BATT_W, batt());
+        cv_round(192, 3, 42, 16, 4, c);
+        cv_round(193, 4, 40, 14, 3, K_BG);
+        text_c(213, 4, &FONT_XS, m, c);
     }
     if (msg) {
-        cv_text(8, 3, &FONT_XS, ui.msg[0], K_TEXT);
-        cv_text(8, 16, &FONT_XS, ui.msg[1], ui.msg_alert ? K_ALERT : K_ACC);
-        cv_blit(0, BAR_Y);
-        return;
-    }
-    {   /* the page, its dots */
-        int32_t x, pg = ui.help == B_HOME + 1 ? -1 : ui.view < NPAGES ? ui.view : -1;
-        caps(t, ui.help == B_HOME + 1 ? "Buttons" : VIEW_NAME[ui.view], sizeof t);
-        x = cv_text(8, 3, &FONT_XS, t, K_ACC) + 6;
-        for (k = 0; k < NPAGES; k++)
-            cv_round(x + k * 6, 9, 4, 4, 2, k == pg ? K_ACC : K_LINE);
-    }
-    if (hint) {
-        cv_text(8, 16, &FONT_XS, hint, K_DIM);
+        int32_t x = cv_text(8, 4, &FONT_XS, ui.msg[0], K_TEXT);
+        cv_text(x + 6, 4, &FONT_XS, ui.msg[1], ui.msg_alert ? K_ALERT : K_ACC);
+    } else if (hint) {
+        cv_text(8, 4, &FONT_XS, hint, K_DIM);
     } else {   /* the story and act; where it is going */
-        int32_t x = cv_text(8, 16, &FONT_XS, en_story_name(proj.piece / EN_NACT), K_DIM);
-        x = cv_text(x + 3, 16, &FONT_XS, ".", K_LINE);
-        x = cv_text(x + 3, 16, &FONT_XS, en_act_name(proj.piece), K_TEXT);
+        int32_t x = cv_text(8, 4, &FONT_XS, en_story_name(proj.piece / EN_NACT), K_DIM);
+        x = cv_text(x + 3, 4, &FONT_XS, ".", K_LINE);
+        x = cv_text(x + 3, 4, &FONT_XS, en_act_name(proj.piece), K_TEXT);
         if (tr.pending >= 0 || tr.on) {
             int goal = tr.pending >= 0 ? tr.pending : tr.piece;
             const char *g = goal / EN_NACT != proj.piece / EN_NACT ? en_story_name(goal / EN_NACT) : en_act_name(goal);
             int32_t gx = x + 5, gw = text_w(&FONT_XS, g);
-            if (gx + 10 + gw <= 186 - BATT_W - 8) {
-                cv_rect(gx, 23, 6, 1, K_DIM);            /* an arrow */
-                cv_rect(gx + 4, 21, 1, 5, K_DIM);
-                cv_rect(gx + 5, 22, 1, 3, K_DIM);
+            if (gx + 10 + gw <= 186) {
+                cv_rect(gx, 11, 6, 1, K_DIM);            /* an arrow */
+                cv_rect(gx + 4, 9, 1, 5, K_DIM);
+                cv_rect(gx + 5, 10, 1, 3, K_DIM);
                 if (tr.on) {                             /* the glide's progress, under the name */
-                    cv_rect(gx + 10, 30, gw, 1, K_LINE);
-                    cv_rect(gx + 10, 30, (int32_t)((float)gw * tr.t), 1, K_ACC);
+                    cv_rect(gx + 10, 18, gw, 1, K_LINE);
+                    cv_rect(gx + 10, 18, (int32_t)((float)gw * tr.t), 1, K_ACC);
                 }
-                cv_text(gx + 10, 16, &FONT_XS, g, tr.pending >= 0 && (plat_ms() / 400u & 1u) ? K_LINE : K_ACC);
+                cv_text(gx + 10, 4, &FONT_XS, g, tr.pending >= 0 && (plat_ms() / 400u & 1u) ? K_LINE : K_ACC);
             }
         }
     }
@@ -1225,26 +1242,26 @@ static uint32_t drum_steps(void)                 /* the hits in the bar: the thu
     return p;
 }
 
-static void draw_rings(void)
+/* the rings, one of them in focus (an instrument's page: the others dimmed; -1 none) */
+static uint16_t focus_c(int focus, int ring, uint16_t c) { return focus < 0 || focus == ring ? c : mix(K_BG, c, 5); }
+static void draw_rings(int focus)
 {
     int i, l, n = en_bar_len, pos = en_drum_pos[0];
     uint32_t p = drum_steps();
-    float bm = 0.0f;
     for (i = 0; i < n; i++) {                    /* the drums */
         int32_t x, y;
         int cur = en_playing && i == pos, hit = (int)(p >> i & 1u) && proj.par[P_PULSE] > 0;
         polar(CX, CY, 66.0f, i, n, &x, &y);
         if (cur)
-            cv_disc(x, y, hit ? 4 : 2, K_ACC);
+            cv_disc(x, y, hit ? 4 : 2, focus_c(focus, 3, K_ACC));
         else if (hit)
-            cv_disc(x, y, 3, en_pulse_rest ? K_LINE : mix(K_PULSE_T, K_PULSE, 12));
+            cv_disc(x, y, 3, focus_c(focus, 3, en_pulse_rest ? K_LINE : mix(K_PULSE_T, K_PULSE, 12)));
         else
-            cv_disc(x, y, 1, K_LINE);
+            cv_disc(x, y, 1, focus_c(focus, 3, K_LINE));
     }
-    ring_arc(55.0f, en_bass_level * (float)proj.par[P_BASS] * 0.012f, K_LINE, K_BASS);
+    ring_arc(55.0f, en_bass_level * (float)proj.par[P_BASS] * 0.012f, focus_c(focus, 2, K_LINE), focus_c(focus, 2, K_BASS));
     for (l = 0; l < EN_NLOOP; l++) {             /* the bells: each loop's last few notes, fading */
         int len = en_loop_len[l], k;
-        bm = fm_maxf(bm, en_loop_glow[l]);
         if (!en_playing || len <= 0 || !proj.par[P_BELLS])
             continue;
         for (k = 5; k >= 0; k--) {
@@ -1253,17 +1270,69 @@ static void draw_rings(void)
             if (en_loop_note[l][s] < 0)
                 continue;
             polar(CX, CY, 44.0f - (float)l * 3.0f, s, len, &x, &y);
-            cv_disc(x, y, k ? 2 : 3, mix(K_BG, K_BELL, k ? 12 - k * 2 : 16));
+            cv_disc(x, y, k ? 2 : 3, focus_c(focus, 1, mix(K_BG, K_BELL, k ? 12 - k * 2 : 16)));
         }
     }
-    ring_arc(30.0f, en_pad_level * (float)proj.par[P_PAD] * 0.012f, K_LINE, K_PAD);
+    ring_arc(30.0f, en_pad_level * (float)proj.par[P_PAD] * 0.012f, focus_c(focus, 0, K_LINE), focus_c(focus, 0, K_PAD));
     {   /* the chord's name, in the middle; "held" under it while frozen */
         char nm[16];
         chord_now(nm);
-        text_c(CX, CY - 9, text_w(&FONT_B, nm) <= 44 ? &FONT_B : &FONT_XS, nm, en_frozen ? K_FROST : K_TEXT);
+        text_c(CX, CY - 9, text_w(&FONT_B, nm) <= 44 ? &FONT_B : &FONT_XS, nm,
+               en_frozen ? K_FROST : focus < 0 || focus == 0 ? K_TEXT : K_DIM);
         if (en_frozen)
             text_c(CX, CY + 7, &FONT_XS, "held", K_FROST);
     }
+}
+
+/* Feel: the music's character, not its instruments. Energy (ALGORITHM) and Tension as meters; the tide (the arc,
+ * minutes long, sparse to full: Motion) as a line of the last four minutes; how near the next chord is */
+#define TIDE_N 120
+static int8_t tide[TIDE_N];                      /* the arc every 2 s, -100..100, the newest last */
+static uint32_t tide_t;
+static void tide_tick(void)
+{
+    if (plat_ms() - tide_t < 2000u)
+        return;
+    tide_t = plat_ms();
+    memmove(tide, tide + 1, TIDE_N - 1);
+    tide[TIDE_N - 1] = (int8_t)fm_clampf(en_arc * 100.0f, -100.0f, 100.0f);
+}
+static void meter(int32_t y, int32_t h, int v, uint16_t lo, uint16_t hi)   /* 20 segments, v of 100 lit */
+{
+    int k, lit = (v + 2) / 5;
+    for (k = 0; k < 20; k++) {
+        uint16_t c = k < lit ? mix(lo, hi, (uint32_t)(k * 16 / 19)) : K_PANEL;
+        cv_round(10 + k * 11, y, 9, h, 2, c);
+    }
+}
+static void draw_feel(void)
+{
+    char t[8];
+    int k, e = proj.par[P_ENERGY], tn = proj.par[P_TENSION];
+    int32_t px = 10, py = 0;
+    cv_text(10, 2, &FONT_XS, "ENERGY", K_DIM);
+    cv_text(66, 2, &FONT_XS, "ALGORITHM", K_LINE);
+    itoa_u((uint32_t)e, t);
+    cv_text(230 - text_w(&FONT_B, t), 0, &FONT_B, t, K_TEXT);
+    meter(18, 12, e, K_PAD, e > 75 ? K_ALERT : K_ACC);
+    cv_text(10, 36, &FONT_XS, "TENSION", K_DIM);
+    itoa_u((uint32_t)tn, t);
+    cv_text(230 - text_w(&FONT_XS, t), 36, &FONT_XS, t, K_TEXT);
+    meter(51, 5, tn, K_DIM, K_ALERT);
+    cv_text(10, 64, &FONT_XS, "THE TIDE", K_DIM);
+    cv_text(230 - text_w(&FONT_XS, "full"), 64, &FONT_XS, "full", K_LINE);
+    cv_rect(10, 100, 220, 1, K_PANEL);            /* the middle: the act as it is */
+    for (k = 0; k < TIDE_N; k++) {               /* sparse below, full above */
+        int32_t x = 10 + k * 220 / TIDE_N, y = 100 - tide[k] * 18 / 100;
+        if (k)
+            cv_line(px, py, x, y, k == TIDE_N - 1 ? K_ACC : K_PAD);
+        px = x, py = y;
+    }
+    cv_disc(px, py, 3, K_ACC);
+    cv_text(230 - text_w(&FONT_XS, "sparse"), 112, &FONT_XS, "sparse", K_LINE);
+    cv_text(10, 128, &FONT_XS, "NEXT CHORD", K_DIM);
+    cv_rect(92, 134, 138, 3, K_PANEL);
+    cv_rect(92, 134, (int32_t)(138.0f * fm_clampf(en_drift, 0.0f, 1.0f)), 3, K_PAD);
 }
 
 /* a button's card (help_tick): its name, then what it does. A line starting with a space goes on from the one
@@ -1327,55 +1396,87 @@ static void draw_help(void)
         text_c(120, 60 + k * 20, &FONT_S, l[k] + (l[k][0] == ' '), K_TEXT);
 }
 
-/* SEL, the acts: the keys' map, with each key's letter. Along the top, the black keys: the tracks (heard green, muted
- * dim, soloed yellow) and the breakdown; then the story's acts (F G A B) and stings (F5 G5), and the stories on the
- * white keys from D4. Where it is: yellow; where it is going: blinking; an empty slot: a dash */
-static const char *const MAP_KEY[8] = {"D", "E", "F", "G", "A", "B", "C", "D"};
-static void map_row(int32_t x, int32_t y, int32_t w, const char *key, const char *name, int here, int going, int empty)
-{
-    if (here)
-        cv_round(x, y, w, 13, 3, K_ACC);
-    cv_text(x + 4, y, &FONT_XS, key, here ? K_BG : empty ? K_LINE : K_ACC);
-    cv_text(x + 4 + (key[1] ? 20 : 12), y, &FONT_XS, empty ? "-" : name,
-            here ? K_BG : empty ? K_LINE : going ? K_ACC : K_TEXT);
-}
-static void chip(int32_t x, int32_t y, int32_t w, const char *key, const char *name, uint16_t bg, uint16_t fg)
-{
-    cv_round(x, y, w, 14, 3, bg);
-    cv_text(x + 4, y, &FONT_XS, key, K_ACC);
-    cv_text(x + w - 4 - text_w(&FONT_XS, name), y, &FONT_XS, name, fg);
-}
+/* SEL, the story's path: its name, large; its four acts as stations on a line (the act it is in filled yellow, the
+ * one it is going to ringed, the line filling toward it as it glides), each with its key; under them, quietly, the
+ * stories and stings and their keys; then the tracks (the black keys) in their rings' colours and the breakdown */
 static void draw_map(void)
 {
     static const char *const AK[EN_NACT] = {"F", "G", "A", "B"};
     static const char *const SK[EN_NSTING] = {"F5", "G5"};
+    static const char *const MK[8] = {"D", "E", "F", "G", "A", "B", "C", "D"};
     static const char *const TK[4] = {"F#", "G#", "A#", "C#"};
     static const char *const TN[4] = {"Pad", "Bells", "Bass", "Drums"};
+    static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
     int cur = proj.piece, goal = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : -1, blink = (plat_ms() / 300u) & 1u, i;
-    int shown = goal >= 0 ? goal : cur;                 /* the acts of the story it is in, or going to */
+    int shown = goal >= 0 && goal / EN_NACT != cur / EN_NACT ? goal : cur;   /* the story it is in, or going to */
+    int st = shown / EN_NACT, ca = shown == cur ? cur % EN_NACT : -1, ga = goal >= 0 && goal / EN_NACT == st ? goal % EN_NACT : -1;
     int bd_on = en_bd == 1 && ui.bd_asked, bd_wait = en_bd == 2 || (en_bd == 1 && !ui.bd_asked) || (ui.bd_asked && !en_bd);
-    cv_text(8, 0, &FONT_XS, "TRACKS", K_DIM);
-    chip(126, 0, 108, "F#5", bd_wait ? "Breakdown..." : "Breakdown", bd_on ? K_ALERT : bd_wait && blink ? K_LINE : K_PANEL,
-         bd_on ? K_BG : K_TEXT);
-    for (i = 0; i < 4; i++) {
+    char t[24];
+    int32_t x;
+    caps(t, en_story_name(st), sizeof t);        /* the story: its key, its name */
+    cv_text(10, 7, &FONT_B, MK[st], K_FROST);
+    x = cv_text(26, 2, &FONT_M, t, st != cur / EN_NACT && blink ? K_LINE : K_TEXT);
+    {
+        char n[16] = "story ";
+        itoa_u((uint32_t)st + 1u, n + 6);
+        if (x + 8 + text_w(&FONT_XS, n) < 234 - 62)   /* (if the breakdown leaves room) */
+            cv_text(x + 8, 11, &FONT_XS, n, K_DIM);
+    }
+    {   /* the path */
+        const int32_t cy = 50;
+        cv_rect(30, cy - 1, 180, 2, K_PANEL);
+        if (ca > 0)
+            cv_rect(30, cy - 1, ca * 60, 2, K_ACC);
+        if (ca >= 0 && ga >= 0 && ga != ca && tr.on) {   /* gliding: the line fills toward where it is going */
+            int32_t a = 30 + ca * 60, b = 30 + ga * 60, w = (int32_t)((float)(b - a) * tr.t);
+            if (w > 0)
+                cv_rect(a, cy - 1, w, 2, K_ACC);
+            else if (w < 0)
+                cv_rect(a + w, cy - 1, -w, 2, K_ACC);
+        }
+        for (i = 0; i < EN_NACT; i++) {
+            int32_t cx = 30 + i * 60;
+            const char *nm = en_act_name(st * EN_NACT + i);
+            if (i == ca) {
+                cv_disc(cx, cy, 12, K_ACC);
+                text_c(cx, cy - 8, &FONT_B, AK[i], K_BG);
+            } else if (i == ga) {
+                cv_disc(cx, cy, 12, blink && tr.pending >= 0 ? K_LINE : K_ACC);
+                cv_disc(cx, cy, 10, K_BG);
+                text_c(cx, cy - 8, &FONT_B, AK[i], K_ACC);
+            } else {
+                cv_disc(cx, cy, 12, K_PANEL);
+                text_c(cx, cy - 8, &FONT_B, AK[i], K_DIM);
+            }
+            text_c(cx, cy + 15, &FONT_XS, nm, i == ca ? K_TEXT : i == ga ? K_ACC : K_DIM);
+        }
+    }
+    for (i = 0; i < EN_NSTORY + EN_NSTING; i++) {   /* the stories and stings, three a row */
+        static const int32_t COL[3] = {4, 86, 166};
+        int32_t cx = COL[i % 3], cy = 86 + (i / 3) * 14;
+        int sting = i >= EN_NSTORY, here = !sting && i == cur / EN_NACT, going = !sting && goal >= 0 && i == goal / EN_NACT && !here;
+        const char *k = sting ? SK[i - EN_NSTORY] : MK[i], *nm;
+        if (sting) {
+            int sn = i - EN_NSTORY;
+            nm = en_sting_len(shown, sn) ? en_sting_name(shown, sn) : "-";
+        } else {
+            nm = en_story_name(i);
+        }
+        if (here)
+            cv_round(cx - 3, cy, 80, 14, 3, K_PANEL);
+        x = cv_text(cx, cy, &FONT_XS, k, sting ? K_ALERT : K_FROST);
+        cv_text(x + 4, cy, &FONT_XS, nm, here ? K_TEXT : going ? (blink ? K_ACC : K_LINE) : K_DIM);
+    }
+    for (i = 0; i < 4; i++) {                    /* the tracks: heard in their colours, muted dim, soloed yellow */
         int solo = ui.solos >> i & 1u, heard = ui.solos ? solo : !(ui.mutes >> i & 1u);
-        chip(4 + i * 58, 16, 56, TK[i], TN[i], solo ? K_ACC : K_PANEL, solo ? K_BG : heard ? K_PAD : K_LINE);
+        x = cv_text(4 + i * 60, 130, &FONT_XS, TK[i], K_LINE);
+        cv_text(x + 3, 130, &FONT_XS, TN[i], solo ? K_ACC : heard ? TC[i] : K_LINE);
     }
-    cv_text(8, 34, &FONT_XS, "ACTS", K_DIM);
-    for (i = 0; i < EN_NACT; i++) {
-        int pc = shown / EN_NACT * EN_NACT + i;
-        map_row(6, 47 + i * 14, 110, AK[i], en_act_name(pc), pc == cur, pc == goal && blink, 0);
-    }
-    cv_text(8, 103, &FONT_XS, "STINGS", K_DIM);
-    for (i = 0; i < EN_NSTING; i++) {
-        int n = en_sting_len(shown, i);
-        map_row(6, 117 + i * 13, 110, SK[i], n ? en_sting_name(shown, i) : "", 0, 0, !n);
-    }
-    cv_text(128, 34, &FONT_XS, "STORIES", K_DIM);
-    for (i = 0; i < 8; i++) {
-        int has = i < EN_NSTORY;
-        map_row(124, 47 + i * 12, 112, MAP_KEY[i], has ? en_story_name(i) : "", has && i == cur / EN_NACT,
-                has && goal >= 0 && i == goal / EN_NACT && goal / EN_NACT != cur / EN_NACT && blink, !has);
+    {   /* the breakdown, at the top right */
+        const char *bn = bd_wait ? "Break..." : "Break";
+        int32_t w = text_w(&FONT_XS, bn);
+        cv_text(234 - w, 11, &FONT_XS, bn, bd_on ? K_ALERT : bd_wait ? (blink ? K_ALERT : K_LINE) : K_DIM);
+        cv_text(234 - w - 4 - text_w(&FONT_XS, "F#5"), 11, &FONT_XS, "F#5", K_LINE);
     }
 }
 
@@ -1430,13 +1531,19 @@ static void draw_fx_page(void)                   /* one effect: its name and sta
     caps(t + 5, BTN_LABEL[FX_BTN[i]], sizeof t - 5);
     text_c(120, 86, &FONT_XS, lat ? "LATCHED" : on ? "ON" : t, lat || on ? K_ALERT : K_DIM);
     if (lat)
-        text_c(120, 104, &FONT_XS, "tap its button again: off", K_DIM);
+        text_c(120, 104, &FONT_XS, "double-tap its button: off", K_DIM);
 }
 
+static int ring_focus(void)                      /* an instrument's page: its ring */
+{
+    return ui.view == V_PAD ? 0 : ui.view == V_BELLS ? 1 : ui.view == V_BASS ? 2 : ui.view == V_PULSE ? 3 : -1;
+}
 static void draw_main(void)
 {
     uint32_t h, i;
-    int what = ui.help ? 1 : ui.view == V_STORY ? 2 : ui.view == V_LEAD ? 3 : ui.view == V_SPACE ? 4 : ui.view >= V_REV ? 5 : 0;
+    int what = ui.help ? 1 : ui.view == V_STORY ? 2 : ui.view == V_LEAD ? 3 : ui.view == V_SPACE ? 4 : ui.view >= V_REV ? 5 :
+               ui.view == V_GARDEN ? 6 : 0;
+    tide_tick();
     if (ui.frame % 3u)                           /* 20 frames a second is plenty */
         return;
     h = hash(hash(2166136261u, (uint32_t)what | (uint32_t)ui.view << 4 | (uint32_t)ui.help << 8), proj.piece);
@@ -1445,7 +1552,7 @@ static void draw_main(void)
         break;
     case 2:
         h = hash(hash(hash(h, (uint32_t)(tr.pending + 1) << 8 | (uint32_t)tr.on << 16 | (uint32_t)tr.piece << 17),
-                      (plat_ms() / 300u) & 1u),
+                      ((plat_ms() / 300u) & 1u) | (uint32_t)(tr.t * 60.0f) << 1),
                  (uint32_t)ui.mutes | (uint32_t)ui.solos << 4 | (uint32_t)en_bd << 8 | (uint32_t)ui.bd_asked << 10);
         break;
     case 3:
@@ -1454,6 +1561,10 @@ static void draw_main(void)
     case 4:
     case 5:
         h = hash(h, (uint32_t)ui.fx_held | (uint32_t)ui.fx_latch << 8);
+        break;
+    case 6:
+        h = hash(hash(h, (uint32_t)proj.par[P_ENERGY] | (uint32_t)proj.par[P_TENSION] << 8 | (uint32_t)(en_drift * 40.0f) << 16),
+                 tide_t);
         break;
     default:
         for (i = 0; i < EN_NPAD; i++)
@@ -1477,7 +1588,8 @@ static void draw_main(void)
     case 3: draw_lead(); break;
     case 4: draw_fx_list(); break;
     case 5: draw_fx_page(); break;
-    default: draw_rings(); break;
+    case 6: draw_feel(); break;
+    default: draw_rings(ring_focus()); break;
     }
     cv_blit(0, MAIN_Y);
 }
@@ -1505,7 +1617,7 @@ static void draw_knobs(void)
         if (k == K_NONE)
             continue;
         if (hot)
-            cv_round(x + 3, 2, 54, 58, 6, K_PANEL);
+            cv_round(x + 3, 0, 54, 58, 6, K_PANEL);
         knob_range(k, &lo, &hi);
         v = knob_get(k);
         if (k == P_TENSION && v > 60)            /* a lot of Tension: an alert */
@@ -1513,13 +1625,13 @@ static void draw_knobs(void)
         if (k != K_CPU && hi - lo < 6) {         /* a switch: its positions as pips */
             int n = hi - lo + 1, j, pw = n > 4 ? 6 : 9, gap = 3, w0 = n * (pw + gap) - gap;
             for (j = 0; j < n; j++)
-                cv_round(cx - w0 / 2 + j * (pw + gap), 16, pw, 8, 2, j == v - lo ? fill : K_LINE);
+                cv_round(cx - w0 / 2 + j * (pw + gap), 11, pw, 8, 2, j == v - lo ? fill : K_LINE);
         } else if (k != K_CPU) {
-            arc(cx, 20, 12, hi > lo ? (float)(v - lo) / (float)(hi - lo) : 0.0f, K_LINE, fill, bg, lo < 0);
+            arc(cx, 15, 12, hi > lo ? (float)(v - lo) / (float)(hi - lo) : 0.0f, K_LINE, fill, bg, lo < 0);
         }
         knob_text(k, t);
-        text_c(cx, 30, &FONT_B, t, hot ? K_ACC : K_TEXT);
-        text_c(cx, 45, &FONT_XS, KNOB_LABEL[ui.view][i], hot ? K_TEXT : K_DIM);
+        text_c(cx, 27, &FONT_B, t, hot ? K_ACC : K_TEXT);
+        text_c(cx, 42, &FONT_XS, KNOB_LABEL[ui.view][i], hot ? K_TEXT : K_DIM);
     }
     cv_blit(0, KNB_Y);
 }
@@ -2081,6 +2193,7 @@ void ui_frame(void)
     input();
     tr_tick();
     autosave();
+    draw_head();
     draw_bar();
     draw_main();
     draw_knobs();
