@@ -1900,7 +1900,7 @@ static void speak(void)
     }
     for (i = 0; i < 4; i++) {                         /* a knob turning */
         int v = knob_get(VIEW_KNOB[ui.view][i]);
-        if (v != sp.val[i]) {
+        if (v != sp.val[i] && VIEW_KNOB[ui.view][i] != K_CPU) {   /* (the load moves by itself: not said) */
             sp.val[i] = (int16_t)v;
             if (changed < 0)
                 changed = i;
