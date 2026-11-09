@@ -58,3 +58,4 @@ From Zach, playing 0.2 on the FM-1 (2026-11-08 night):
 
 Also in 0.3: Melody (the bells' page) with a Sound per act; Pad Strings and Organ; a Brushes kit; the story's path on
 Story; Lead's keyboard; Setup's sleep timer and key; System in words; a picture for each effect; RAM packed (80 KB free).
+- [x] Intermission (D5): a structured boom-bap groove in C minor, 90 bpm, swung (Lights Up, Lobby, Snack Bar, Last Call)

@@ -1465,7 +1465,7 @@ static void draw_map(void)
             cv_text(x + 8, 11, &FONT_XS, n, K_DIM);
     }
     {   /* the path */
-        const int32_t cy = 50;
+        const int32_t cy = 46;
         cv_rect(30, cy - 1, 180, 2, K_PANEL);
         if (ca > 0)
             cv_rect(30, cy - 1, ca * 60, 2, K_ACC);
@@ -1495,7 +1495,7 @@ static void draw_map(void)
     }
     for (i = 0; i < EN_NSTORY + EN_NSTING; i++) {   /* the stories and stings, three a row */
         static const int32_t COL[3] = {4, 86, 166};
-        int32_t cx = COL[i % 3], cy = 86 + (i / 3) * 14;
+        int32_t cx = COL[i % 3], cy = 76 + (i / 3) * 13;
         int sting = i >= EN_NSTORY, here = !sting && i == cur / EN_NACT, going = !sting && goal >= 0 && i == goal / EN_NACT && !here;
         const char *k = sting ? SK[i - EN_NSTORY] : MK[i], *nm;
         if (sting) {
@@ -1505,14 +1505,14 @@ static void draw_map(void)
             nm = en_story_name(i);
         }
         if (here)
-            cv_round(cx - 3, cy, 80, 14, 3, K_PANEL);
+            cv_round(cx - 3, cy, 80, 13, 3, K_PANEL);
         x = cv_text(cx, cy, &FONT_XS, k, sting ? K_ALERT : K_FROST);
         cv_text(x + 4, cy, &FONT_XS, nm, here ? K_TEXT : going ? (blink ? K_ACC : K_LINE) : K_DIM);
     }
     for (i = 0; i < 4; i++) {                    /* the tracks: heard in their colours, muted dim, soloed yellow */
         int solo = ui.solos >> i & 1u, heard = ui.solos ? solo : !(ui.mutes >> i & 1u);
-        x = cv_text(4 + i * 60, 130, &FONT_XS, TK[i], K_LINE);
-        cv_text(x + 3, 130, &FONT_XS, TN[i], solo ? K_ACC : heard ? TC[i] : K_LINE);
+        x = cv_text(4 + i * 60, 131, &FONT_XS, TK[i], K_LINE);
+        cv_text(x + 3, 131, &FONT_XS, TN[i], solo ? K_ACC : heard ? TC[i] : K_LINE);
     }
     {   /* the breakdown, at the top right */
         const char *bn = bd_wait ? "Break..." : "Break";

@@ -158,7 +158,7 @@ const char *en_chord_name(const int *pcs, int n, char *buf);   /* "Em7", "Dsus4"
 
 /* StoryBox: stories of EN_NACT acts; a piece is one act of one story (piece = story * EN_NACT + act), its recipe
  * for every parameter (Tune, MIDI out and Root included, but they are the player's) */
-#define EN_NSTORY 7
+#define EN_NSTORY 8
 #define EN_NACT 4
 #define EN_NPIECES (EN_NSTORY * EN_NACT)
 const char *en_story_name(int s);

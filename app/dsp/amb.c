@@ -117,6 +117,16 @@ static const struct {
         {75, 20, 70, 0, 15, 20, 70, 0, 35, 4, 72, 92, 20, 85, 20, 40, 0, 1, 60, 9, 5, -1, 1, -1, 40, 20, 0, 0, 30, 10, 1, 50, 7, 50, 35, 70, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 70}},
         {"Am:2 Em:2 Am:2 Em:2", "Am:2 Em:2 F:2 E7:2", "Am:2 F:2 Dm:2 E7:2", "Am:4 Em:4 Fmaj7:4 Em:4"},
         9, {"E6 D#6 E6", "A2 E3 A3 C4 B3 A3"}, {"Buzz", "The web"}},
+    /* Intermission: a head-nodding boom-bap groove in C minor (Dorian), 90 bpm, swung; the backbeat kit, Structure
+     * up (the beat locked in), the kick on the off-beats, ghost snares and fills; a Rhodes, vibes, a bass leaning on
+     * the fifth. Lights Up, Lobby, Snack Bar (busier), Last Call (calling everyone back) */
+    {"Intermission", {"Lights Up", "Lobby", "Snack Bar", "Last Call"}, {
+        {45, 30, 55, 55, 30, 25, 30, 55, 35, 1, 40, 55, 45, 40, 50, 35, 0, 1, 90, 0, 1, 0, 0, 0, 10, 45, 40, 60, 10, 0, 0, 50, 4, 60, 45, 15, 0, 85, 1},
+        {50, 50, 60, 62, 45, 35, 25, 65, 40, 1, 40, 55, 55, 40, 60, 45, 0, 1, 90, 0, 1, 0, 0, 0, 10, 50, 40, 65, 10, 0, 0, 50, 4, 60, 45, 15, 0, 85, 1},
+        {50, 55, 65, 68, 55, 45, 20, 75, 45, 1, 40, 55, 60, 35, 65, 55, 0, 1, 92, 0, 1, 0, 0, 0, 10, 55, 45, 70, 15, 10, 0, 50, 4, 60, 50, 15, 0, 75, 1},
+        {55, 45, 45, 40, 30, 30, 35, 40, 50, 2, 50, 65, 45, 50, 50, 40, 0, 1, 88, 0, 1, 0, 0, 0, 15, 40, 35, 50, 10, 0, 0, 50, 4, 55, 45, 15, 0, 85, 1}},
+        {"Cm7:2 Fm7:2", "Cm7:2 Fm7:2 Abmaj7:2 G7:2", "Fm7:2 Bb7:2 Ebmaj7:2 Abmaj7:1 G7:1", "Abmaj7:2 G7:2"},
+        0, {"C6 G5", "C3 C3 Eb4 G4 Bb4"}, {"Chime", "Curtain"}},
 };
 
 /* the progressions and stings, parsed once. A step: a degree (prog_deg >= 0), or a named chord: its root and bass
@@ -256,7 +266,8 @@ void en_piece(int i, int16_t *par, uint16_t *pool)
     int p;
     i = (unsigned)i < EN_NPIECES ? i : 0;
     /* StoryBox: each story's melody instrument (P_MSOUND), for every act */
-    static const uint8_t STORY_MEL[EN_NSTORY] = {MEL_VIBES, MEL_MUSICBOX, MEL_GLASS, MEL_MARIMBA, MEL_KALIMBA, MEL_BELLS, MEL_HARP};
+    static const uint8_t STORY_MEL[EN_NSTORY] = {MEL_VIBES, MEL_MUSICBOX, MEL_GLASS, MEL_MARIMBA, MEL_KALIMBA, MEL_BELLS, MEL_HARP,
+                                                        MEL_VIBES};
     for (p = 0; p < P_NPARAMS; p++)
         par[p] = STORIES[i / EN_NACT].v[i % EN_NACT][p];
     par[P_MSOUND] = STORY_MEL[i / EN_NACT];
