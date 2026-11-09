@@ -100,7 +100,7 @@ The drawing at the top shows every control. Here they are in more detail.
 | FX · GLO | Open the Space and Setup pages. The lit button shows which page you're on. |
 | SELECT | Turns to the previous or next page. To change the tempo from any page, hold HOME and turn SELECT. |
 | ALGORITHM | Picks the mode: Ionian, Dorian, Phrygian, Lydian, Mixolydian, Aeolian, or pentatonic major or minor. It loads the mode's scale. Once you change the scale with the keys, it's Custom. |
-| PRESETS | Picks the piece. For the list, see [The pieces](#s6). |
+| PRESETS | The next or previous act of the story, on the next phrase (StoryBox 0.6.1). |
 | KNOB 1–4 | Set the four values on the screen. A few clicks always move one step at a time, and a quick turn speeds up, so half a turn sweeps the whole range. |
 | OCT− / OCT+ | Move the bells down or up an octave, up to two either way, from any page. |
 | MASTER | Sets the volume. |

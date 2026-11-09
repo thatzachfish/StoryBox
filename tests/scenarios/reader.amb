@@ -57,18 +57,18 @@ tapkey b0
 said MUTE PAD
 tapkey b0
 said UNMUTE PAD
-# the encoders: Energy, the story
+# the encoders: Energy, the act
 turn ALGO 1
 said ENERGY 51
 turn ALGO -1
 said ENERGY 50
 turn PRESET 1
-said STORY Intermission
 wait 300
+said Act Warm Up
 unsaid Level
 turn PRESET -1
-said STORY Pre-show
 wait 300
+said Act Doors
 # the buttons' messages, said once
 tap REC
 said FREEZE ON

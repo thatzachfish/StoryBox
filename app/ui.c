@@ -7,7 +7,7 @@
  *   PLAY           the garden grows / rests        ARP   the next chord, now
  *   REC            FREEZE: the chord holds, the reverb rings on    OCT- / OCT+   the bells' octave
  *   ENV            the pad's colour: Rhodes / Voices (lit: Voices), kept with the piece
- *   SELECT tempo   ALGORITHM mode (loads a pool)   PRESETS the piece (Root is on the Setup page)
+ *   SELECT tempo   ALGORITHM mode (loads a pool)   PRESETS the act (Root is on the Setup page)
  *   HOME SEQ FX SEL GLO   the pages: LAYERS, MOTION, SPACE, TONE, SETUP (EDIT steps through them)
  *   KNOB 1-4       the page's four values
  *   SAVE           saves (it also saves by itself a few seconds after a change, while resting);
@@ -1170,17 +1170,11 @@ static void input(void)
         say("ENERGY", t);
         ui.turn_t = plat_ms();
     }
-    if ((e = enc_in(EN_PRESET)) != 0) {       /* PRESETS: the next / previous story, from its first act */
-        int st = (tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : proj.piece) / EN_NACT;
-        {                                       /* in the keys' order, low to high: Zach's, Claude's, the show's */
-            static const uint8_t ORDER[EN_NSTORY] = {5, 6, 9, 2, 3, 4, 1, 0, 7, 8};
-            int i = 0;
-            while (i < EN_NSTORY - 1 && ORDER[i] != st)
-                i++;
-            st = ORDER[((i + (e > 0 ? 1 : -1)) % EN_NSTORY + EN_NSTORY) % EN_NSTORY];
-        }
-        tr_queue(st * EN_NACT, 0);
-        say("STORY", en_story_name(st));
+    if ((e = enc_in(EN_PRESET)) != 0) {       /* PRESETS: the next / previous act of the story (0.6.1), on the next
+                                                 * phrase, as its key would; around from the last to the first */
+        int g = tr_goal(), a = g % EN_NACT;
+        a = ((a + (e > 0 ? 1 : -1)) % EN_NACT + EN_NACT) % EN_NACT;
+        tr_queue(g / EN_NACT * EN_NACT + a, 0);
         ui.turn_t = plat_ms();
     }
     if (!(btn >> B_EDIT & 1u))
@@ -1787,7 +1781,7 @@ static void draw_buttons(void)                   /* HOME held: what each button 
             text_c(x + 19, y + 5, &FONT_XS, BTN_LABEL[i], K_ACC);
             text_c(x + 19 + sh, y + 23, &FONT_XS, BTN_DOES[i], K_TEXT);
         }
-    text_c(120, 116, &FONT_XS, "SELECT: pages   PRESETS: story", K_DIM);
+    text_c(120, 116, &FONT_XS, "SELECT: pages   PRESETS: act", K_DIM);
     text_c(120, 130, &FONT_XS, "ALGORITHM: energy", K_DIM);
 }
 
