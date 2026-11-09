@@ -136,7 +136,8 @@ From Zach, playing 0.4 (2026-11-09):
       only the free drift's); Energy set to half reads a quarter (the "now" marker? check)
 - [ ] Post Show: too minor, a little scary at times: jazzy instead, maj7s (replaces the "unusual chords" note)
 - [ ] ACTS keyboard (approved, Zach): acts F3 G3 A3 B3; the mix F#3 Pad, G#3 Melody, A#3 Bass, C#4 Drums, D#4
-      Break; middle C (C4) left empty between the banks; stories D4 E4 F4 G4 A4 B4 C5 D5 E5 F5 (reorder soon);
-      stings C#5 D#5 F#5 (up to three); G5, F#4 G#4 A#4 spare. Lights by bank
+      Break; stories from middle C: C4 D4 E4 F4 G4 A4 B4 C5 D5 E5 (reorder soon); stings C#5 D#5 F#5 (up to
+      three); F5 G5, F#4 G#4 A#4 spare. Lights by bank
 - [ ] Story page: four rows of a short keyboard (F3-B3, C4-F4, F#4-C5, C#5-G5), the black keys' names above each
-      strip, the white keys' under; where it is filled (mockup acts-rows sent)
+      strip, the white keys' under, every key its letter (black keys wider, the letter in them); where it is filled
+      (mockup acts-rows-2)
