@@ -2266,8 +2266,8 @@ static void render_bass(uint32_t n)
     bass.note += (bass.target - bass.note) * fm_minf((float)n * glide_k, 1.0f);   /* Glide */
     inc = mtof(bass.note) * (1.0f / EN_SR);
     {   /* StoryBox 0.5: its sound. Round: the fundamental, its sub-octave, a touch of the octave; Upright: plucked
-         * (each new note), woody, settling to a quarter; Synth: a soft saw (FM), filtered; Sub: a pure sine an octave
-         * below */
+         * (each new note), woody, settling to a quarter; Synth: a soft saw (FM), filtered; Sub: an octave
+         * below, warmed so it is heard */
         const int bs = par[P_BSOUND];
         const float pdec = fm_expf(-(float)n / (0.7f * EN_SR));
         float pl = bass.pluck;
@@ -2285,9 +2285,12 @@ static void render_bass(uint32_t n)
                 x = bass.lp * 1.15f;
                 break;
             }
-            case 3:
-                x = sine(ph * 0.5f + 0.25f) * 1.05f;
+            case 3: {                            /* (0.7: the sine an octave down, rounded over into its overtones so
+                                                  * small speakers and headphones carry it, and the note itself) */
+                float u = sine(ph * 0.5f + 0.25f) * 5.0f;
+                x = u / (1.0f + (u < 0.0f ? -u : u)) * 0.75f + sine(ph) * 0.45f + sine(ph * 2.0f) * 0.08f;
                 break;
+            }
             default:
                 x = sine(ph) * 0.75f + sine(ph * 0.5f + 0.25f) * 0.45f + sine(ph * 2.0f) * 0.12f;
                 break;

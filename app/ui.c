@@ -1631,33 +1631,8 @@ static void draw_feel(void)
     cv_text(10, 124, &FONT_XS, "Motion: how far now wanders", K_LINE);
 }
 
-/* Mixer: a channel strip each, in its colour: the fader (its level) and a meter (how loud it is now); muted dim,
- * soloed SOLO; its black key under it */
+/* how loud each instrument is now (the Mixer's strips are draw_inst_strips, 0.7) */
 static float mix_meter[4];
-static void draw_mixer(void)
-{
-    static const char *const TN[4] = {"Pad", "Melody", "Bass", "Drums"};
-    static const char *const TK[4] = {"F#", "G#", "A#", "C#"};
-    static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
-    static const uint8_t TP[4] = {P_PAD, P_BELLS, P_BASS, P_PULSE};
-    int i, s;
-    for (i = 0; i < 4; i++) {
-        int solo = ui.solos >> i & 1u, heard = ui.solos ? solo : !(ui.mutes >> i & 1u);
-        int32_t x = 8 + i * 58, top = 22, bot = 120, h = bot - top, fy;
-        uint16_t c = heard ? TC[i] : K_LINE;
-        int lit = heard ? (int)(mix_meter[i] * 16.0f + 0.5f) : 0;
-        text_c(x + 26, 4, &FONT_XS, TN[i], c);
-        for (s = 0; s < 16; s++) {               /* the meter */
-            int32_t y = bot - (s + 1) * h / 16;
-            cv_round(x + 30, y + 1, 14, h / 16 - 2, 1, s < lit ? mix(K_BG, c, (uint32_t)(6 + s * 10 / 15)) : K_PANEL);
-        }
-        cv_rect(x + 15, top, 2, h, K_LINE);      /* the fader */
-        fy = bot - proj.par[TP[i]] * h / 100;
-        cv_round(x + 6, fy - 4, 20, 9, 2, heard ? K_TEXT : K_LINE);
-        cv_rect(x + 8, fy, 16, 2, c);
-        text_c(x + 26, 128, &FONT_XS, solo ? "SOLO" : !heard ? "MUTE" : TK[i], solo ? K_ACC : heard ? K_DIM : K_LINE);
-    }
-}
 static void mix_meter_tick(void)                 /* how loud each is now (rising fast, falling slower) */
 {
     float m = 0.0f, d = 0.0f, v[4];
@@ -2215,27 +2190,6 @@ static void draw_fx_page(void)                   /* one effect: its picture, lar
 
 /* ---- design options (0.7 mockups; the host's "style V F" picks them; the device draws style 0 until one is chosen) */
 static uint8_t viz_style, fx_style;
-#define HIST_N 44
-static float hist[4][HIST_N];                    /* each instrument's loudness, a column every 90 ms (Skyline) */
-static int hist_w;
-static uint32_t hist_t;
-static float stepv[2][16];                       /* the pad's and the bass's level on each sixteenth of the bar (Steps) */
-static void viz_tick(void)
-{
-    static int last_pos = -1;
-    int i, pos = en_drum_pos[0] % (en_bar_len ? en_bar_len : 16);
-    if (plat_ms() - hist_t >= 90u) {
-        hist_t = plat_ms();
-        for (i = 0; i < 4; i++)
-            hist[i][hist_w] = mix_meter[i];
-        hist_w = (hist_w + 1) % HIST_N;
-    }
-    if (en_playing && pos != last_pos && pos < 16) {
-        stepv[0][pos] = en_pad_level * (float)proj.par[P_PAD] * 0.012f;
-        stepv[1][pos] = en_bass_level * (float)proj.par[P_BASS] * 0.012f;
-        last_pos = pos;
-    }
-}
 static void vmeter(int32_t x, int32_t top, int32_t w, int32_t bot, int nseg, float v, uint16_t c, int cur)   /* the Mixer's
                                                                                                    * segmented meter */
 {
@@ -2246,115 +2200,6 @@ static void vmeter(int32_t x, int32_t top, int32_t w, int32_t bot, int nseg, flo
         cv_round(x, y + 1, w, h / nseg - 2, 1, s < lit ? (cur ? K_ACC : mix(K_BG, c, (uint32_t)(6 + s * 10 / (nseg - 1)))) : K_PANEL);
     }
 }
-static void inst_head(int f, const char *what)   /* the instrument's name and what it plays now */
-{
-    static const char *const TN[4] = {"PAD", "MELODY", "BASS", "DRUMS"};
-    static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
-    (void)TN, (void)TC;
-    if (what)
-        cv_text(232 - text_w(&FONT_B, what), -2, &FONT_B, what, en_frozen ? K_FROST : K_TEXT);
-}
-static void draw_inst_steps(int f)               /* B, Steps: the bar as columns, the step now yellow */
-{
-    static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
-    char nm[16];
-    int n = en_bar_len ? en_bar_len : 16, pos = en_drum_pos[0] % n, i, d, l;
-    int32_t cw = 224 / n, x0 = 8 + (224 - cw * n) / 2;
-    inst_head(f, chord_now(nm));
-    if (f == 3) {                                /* the drums: a column a step, the kick below, the hats above */
-        static const int32_t Y0[3] = {78, 52, 26}, YH[3] = {42, 22, 22};
-        static const char *const DN[3] = {"kick", "hat", "open"};
-        for (i = 0; i < n; i++)
-            for (d = 0; d < 3; d++) {
-                int dn = en_drum_n[d] ? en_drum_n[d] : n, hit = (int)(en_drum_pat[d] >> (i % dn) & 1u) && proj.par[P_PULSE] > 0;
-                int cur = en_playing && i == pos;
-                cv_round(x0 + i * cw + 1, Y0[d], cw - 2, YH[d], 2,
-                         hit ? (cur ? K_ACC : en_pulse_rest ? K_LINE : mix(K_BG, K_PULSE, (uint32_t)(16 - d * 4))) :
-                               cur ? mix(K_BG, K_ACC, 4) : K_PANEL);
-            }
-        for (d = 0; d < 3; d++)
-            cv_text(x0, Y0[d] + YH[d] + 1, &FONT_XS, "", K_LINE), (void)DN[d];
-        cv_text(8, 126, &FONT_XS, "kick, hat, open hat: a column a sixteenth", K_LINE);
-        return;
-    }
-    if (f == 1) {                                /* the melody: its loops, a lane each, a note a column, as high as it sits */
-        for (l = 0; l < EN_NLOOP; l++) {
-            int len = en_loop_len[l], k;
-            int32_t y = 22 + l * 27, lw;
-            if (len <= 0)
-                continue;
-            lw = 224 / len;
-            for (k = 0; k < len; k++) {
-                int nv = en_loop_note[l][k], cur = en_playing && k == en_loop_pos[l];
-                int32_t hgt = nv < 0 ? 3 : 6 + (nv % 8) * 2;
-                cv_round(8 + k * lw + 1, y + 22 - hgt, lw - 2 > 1 ? lw - 2 : 1, hgt, 1,
-                         nv < 0 ? (cur ? mix(K_BG, K_ACC, 5) : K_PANEL) : cur ? K_ACC : mix(K_BG, K_BELL, (uint32_t)(9 + 7 * (proj.par[P_BELLS] > 0))));
-            }
-        }
-        cv_text(8, 130, &FONT_XS, "four loops, each its own length", K_LINE);
-        return;
-    }
-    for (i = 0; i < n && i < 16; i++) {          /* the pad, the bass: how loud on each step of the bar */
-        int cur = en_playing && i == pos;
-        vmeter(x0 + i * cw + 1, 22, cw - 2, 122, 12, stepv[f == 2][i], TC[f], cur);
-    }
-}
-static void draw_inst_meters(int f)              /* C, Meters: its parts as the Mixer's strips */
-{
-    static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
-    char nm[16], t[8];
-    int i, n = f == 0 ? EN_NPAD : f == 1 ? EN_NLOOP : f == 2 ? 1 : EN_NDRUM;
-    int32_t w = f == 2 ? 60 : 224 / n - 14;
-    inst_head(f, chord_now(nm));
-    for (i = 0; i < n; i++) {
-        int32_t x = f == 2 ? 30 : 8 + i * (224 / n) + 7;
-        float v;
-        const char *lab;
-        if (f == 0) {
-            v = en_pad_amp[i] * (float)proj.par[P_PAD] * 0.02f;
-            lab = EN_NOTE_NAME[en_pad_note[i] % 12];
-        } else if (f == 1) {
-            v = en_loop_glow[i] * (float)proj.par[P_BELLS] * 0.012f;
-            itoa_u((uint32_t)en_loop_len[i], t);
-            lab = t;
-        } else if (f == 2) {
-            v = en_bass_level * (float)proj.par[P_BASS] * 0.012f;
-            lab = EN_NOTE_NAME[en_chord_root % 12];
-        } else {
-            static const char *const DN[3] = {"Kick", "Hat", "Open"};
-            v = en_drum_glow[i] * (float)proj.par[P_PULSE] * 0.012f;
-            lab = DN[i];
-        }
-        vmeter(x, 22, w, 118, 14, en_playing ? v : 0.0f, TC[f], 0);
-        text_c(x + w / 2, 124, &FONT_XS, lab, f == 1 ? K_DIM : K_TEXT);
-    }
-    if (f == 2) {                                /* the bass: its note, large, beside its strip */
-        text_c(160, 44, &FONT_M, EN_NOTE_NAME[en_chord_root % 12], K_BASS);
-        text_c(160, 84, &FONT_XS, "the root of the chord", K_DIM);
-    }
-    if (f == 1)
-        cv_text(8, 132, &FONT_XS, "", K_LINE);
-}
-static void draw_inst_sky(int f)                 /* D, Skyline: how loud, over the last 4 s, newest on the right */
-{
-    static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
-    char nm[16];
-    int k;
-    inst_head(f, chord_now(nm));
-    for (k = 0; k < HIST_N; k++) {
-        int idx = (hist_w + k) % HIST_N, s, lit = (int)(hist[f][idx] * 12.0f + 0.5f);
-        int32_t x = 8 + k * 5;
-        uint32_t age = (uint32_t)(HIST_N - 1 - k);
-        for (s = 0; s < 12; s++) {
-            int32_t y = 122 - (s + 1) * 8;
-            cv_rect(x, y + 1, 4, 6, s < lit ? mix(K_BG, k == HIST_N - 1 ? K_ACC : TC[f], (uint32_t)(16 - age * 10 / HIST_N)) :
-                                    (s & 1 ? K_BG : K_PANEL));
-        }
-    }
-    cv_text(8, 128, &FONT_XS, "4 seconds ago", K_LINE);
-    cv_text(232 - text_w(&FONT_XS, "now"), 128, &FONT_XS, "now", K_DIM);
-}
-
 static float part_level(int f, int i)            /* an instrument's part i, how loud now (0..1) */
 {
     if (!en_playing)
@@ -2380,87 +2225,52 @@ static const char *part_label(int f, int i, char *t)
         return EN_NOTE_NAME[en_chord_root % 12];
     return DN[i];
 }
-static void draw_inst_strips(int focus, int wide)   /* E / F: every instrument a strip of its parts, the Mixer's way;
-                                                    * the page's own bright (F: wider), the others dimmed */
+/* 0.7, the instruments as strips (Zach's pick, "E"): each instrument a strip of its parts, as the Mixer's meters,
+ * always in the Mixer's order: Pad's four voices (their notes), Melody's four loops (their lengths), Bass (its note),
+ * Drums' kick, hat and open hat. On an instrument's page its own strip bright on a panel, the others dimmed; on the
+ * Mixer every strip bright, each with its fader (the level) and its black key, or MUTE / SOLO */
+static void draw_inst_strips(int focus)
 {
     static const char *const TN[4] = {"Pad", "Melody", "Bass", "Drums"};
+    static const char *const TK[4] = {"F#", "G#", "A#", "C#"};
     static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
+    static const uint8_t TP[4] = {P_PAD, P_BELLS, P_BASS, P_PULSE};
     static const int NP[4] = {EN_NPAD, EN_NLOOP, 1, EN_NDRUM};
-    char nm[16], t[8];
-    int f, i;
-    int32_t x = 4;
+    char t[8];
+    int f, i, mixer = focus < 0;
     for (f = 0; f < 4; f++) {
-        int me = f == focus, solo = ui.solos >> f & 1u, heard = ui.solos ? solo : !(ui.mutes >> f & 1u);
-        int32_t w = wide ? (me ? 92 : 44) : 56, pw, px;
+        int me = mixer || f == focus, solo = ui.solos >> f & 1u, heard = ui.solos ? solo : !(ui.mutes >> f & 1u);
+        int32_t x = 4 + f * 58, w = 56, x1 = x + (mixer ? 14 : 3), pw = (x + w - 3 - x1) / NP[f], top = 20, bot = 112;
         uint16_t c = heard ? TC[f] : K_LINE;
-        if (me)
-            cv_round(x - 2, 0, w + 2, 132, 6, K_PANEL);
+        if (!mixer && me)
+            cv_round(x, 0, w, 132, 6, K_PANEL);
         text_c(x + w / 2, 2, &FONT_XS, TN[f], me ? c : mix(K_BG, c, 8));
-        pw = (w - 6) / NP[f];
+        if (mixer) {                             /* the fader: its level */
+            int32_t fy = bot - proj.par[TP[f]] * (bot - top) / 100;
+            cv_rect(x + 6, top, 2, bot - top, K_LINE);
+            cv_round(x + 1, fy - 3, 12, 7, 2, heard ? K_TEXT : K_LINE);
+            cv_rect(x + 3, fy, 8, 1, c);
+        }
         for (i = 0; i < NP[f]; i++) {
-            px = x + 3 + i * pw;
+            int32_t px = x1 + i * pw;
+            float v = heard ? part_level(f, i) : 0.0f;
             if (me)
-                vmeter(px + 1, 20, pw - 3, 112, 14, part_level(f, i), c, 0);
-            else {                                   /* (dimmed: the same strips, quieter) */
-                int s, lit = (int)(fm_clampf(part_level(f, i), 0.0f, 1.0f) * 14.0f + 0.5f);
-                for (s = 0; s < 14; s++) {
-                    int32_t y = 112 - (s + 1) * 92 / 14;
-                    cv_round(px + 1, y + 1, pw - 3, 92 / 14 - 2, 1, s < lit ? mix(K_BG, c, 6) : mix(K_BG, K_PANEL, 10));
+                vmeter(px + 1, top, pw - 3, bot, 14, v, c, 0);
+            else {                               /* (dimmed: the same strips, quieter) */
+                int sg, lit = (int)(fm_clampf(v, 0.0f, 1.0f) * 14.0f + 0.5f);
+                for (sg = 0; sg < 14; sg++) {
+                    int32_t y = bot - (sg + 1) * (bot - top) / 14;
+                    cv_round(px + 1, y + 1, pw - 3, (bot - top) / 14 - 2, 1, sg < lit ? mix(K_BG, c, 6) : mix(K_BG, K_PANEL, 10));
                 }
             }
-            if (me || NP[f] < 4)
-                text_c(px + pw / 2, 116, &FONT_XS, part_label(f, i, t), me ? K_TEXT : K_LINE);
+            if (!mixer)
+                text_c(px + pw / 2 - 1, 116, &FONT_XS, part_label(f, i, t), me ? K_TEXT : K_LINE);
         }
-        x += w + (wide ? 4 : 2);
-    }
-    (void)nm;
-}
-static void draw_inst_steps_all(int focus)       /* G: Steps for all four, a lane each; the page's own bright */
-{
-    static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
-    static const char *const TN[4] = {"Pad", "Mel", "Bass", "Drm"};
-    int n = en_bar_len ? en_bar_len : 16, pos = en_drum_pos[0] % n, f, i, d;
-    int32_t cw = 200 / n, x0 = 36;
-    for (f = 0; f < 4; f++) {
-        int me = f == focus;
-        int32_t y = 2 + f * 33, h = 29;
-        uint16_t c = TC[f];
-        if (me)
-            cv_round(0, y - 2, 240, h + 4, 5, K_PANEL);
-        cv_text(4, y + 7, &FONT_XS, TN[f], me ? c : mix(K_BG, c, 8));
-        for (i = 0; i < n; i++) {
-            int cur = en_playing && i == pos;
-            int32_t x = x0 + i * cw + 1, ww = cw - 2;
-            if (f == 3) {                            /* the drums: kick below, the hats above, in the lane */
-                for (d = 0; d < 3; d++) {
-                    int dn = en_drum_n[d] ? en_drum_n[d] : n, hit = (int)(en_drum_pat[d] >> (i % dn) & 1u) && proj.par[P_PULSE] > 0;
-                    int32_t yy = d == 0 ? y + 15 : d == 1 ? y + 7 : y, hh = d == 0 ? 14 : 6;
-                    uint16_t on = cur ? K_ACC : mix(K_BG, c, (uint32_t)(me ? 16 - d * 4 : 6));
-                    cv_round(x, yy, ww, hh, 1, hit ? on : me ? mix(K_BG, K_PANEL, 14) : mix(K_BG, K_PANEL, 8));
-                }
-            } else if (f == 1) {                     /* the melody: a note on this step in any loop, as high as it sits */
-                int l, best = -1;
-                for (l = 0; l < EN_NLOOP; l++) {
-                    int len = en_loop_len[l];
-                    if (len > 0) {
-                        int k = ((int)en_loop_pos[l] + i - pos + len * 4) % len;
-                        if (en_loop_note[l][k] >= 0 && en_loop_note[l][k] > best)
-                            best = en_loop_note[l][k];
-                    }
-                }
-                {
-                    int32_t hh = best < 0 ? 3 : 8 + (best % 8) * 3;
-                    cv_round(x, y + h - hh, ww, hh, 1, best < 0 ? (me ? mix(K_BG, K_PANEL, 14) : mix(K_BG, K_PANEL, 8)) :
-                             cur ? K_ACC : mix(K_BG, c, me ? 16 : 6));
-                }
-            } else {                                 /* the pad, the bass: how loud on each step */
-                float v = i < 16 ? stepv[f == 2][i] : 0.0f;
-                int32_t hh = 3 + (int32_t)(fm_clampf(v, 0.0f, 1.0f) * (float)(h - 3));
-                cv_round(x, y + h - hh, ww, hh, 1, cur ? K_ACC : mix(K_BG, c, me ? 16 : 6));
-            }
-        }
+        if (mixer)
+            text_c(x + w / 2, 118, &FONT_XS, solo ? "SOLO" : !heard ? "MUTE" : TK[f], solo ? K_ACC : heard ? K_DIM : K_LINE);
     }
 }
+
 /* the effects (the Effects page, the punch-ins' pages): B and C */
 static void fx_card(int i, int32_t x, int32_t y, int32_t w, int32_t h)   /* a punch-in's card, the Colours' way */
 {
@@ -2631,6 +2441,17 @@ static void draw_fx_page_d(void)
         text_c(x + 11, 116, &FONT_XS, SH[i][k], K_DIM);
     }
 }
+static uint32_t parts_sig(void)                  /* the strips' levels, coarsely: redrawn when they move */
+{
+    uint32_t h = 2166136261u;
+    int f, i;
+    static const int NP[4] = {EN_NPAD, EN_NLOOP, 1, EN_NDRUM};
+    for (f = 0; f < 4; f++)
+        for (i = 0; i < NP[f]; i++)
+            h = hash(h, (uint32_t)(part_level(f, i) * 14.0f + 0.5f) | (uint32_t)f << 8 | (uint32_t)i << 12);
+    return hash(h, (uint32_t)en_pad_note[0] | (uint32_t)en_pad_note[1] << 8 | (uint32_t)en_pad_note[2] << 16 |
+                       (uint32_t)en_pad_note[3] << 24);
+}
 static int ring_focus(void)                      /* an instrument's page: its ring */
 {
     return ui.view == V_PAD ? 0 : ui.view == V_BELLS ? 1 : ui.view == V_BASS ? 2 : ui.view == V_PULSE ? 3 : -1;
@@ -2643,7 +2464,6 @@ static void draw_main(void)
                ui.view == V_COLR ? 10 : ui.view == V_BT ? 11 : 0;
     lead_trace_tick();
     mix_meter_tick();
-    viz_tick();
     if (ui.frame % 3u)                           /* 20 frames a second is plenty */
         return;
     h = hash(hash(2166136261u, (uint32_t)what | (uint32_t)ui.view << 4 | (uint32_t)ui.help << 8), proj.piece);
@@ -2661,6 +2481,7 @@ static void draw_main(void)
         h = hash(h, plat_ms() / 50u);           /* (the trace drifts) */
         break;
     case 9:
+        h = hash(h, parts_sig());
         for (i = 0; i < 4; i++)
             h = hash(h, (uint32_t)(mix_meter[i] * 16.0f) | (uint32_t)proj.par[i] << 8);
         h = hash(h, (uint32_t)ui.mutes | (uint32_t)ui.solos << 4);
@@ -2692,6 +2513,8 @@ static void draw_main(void)
                  (uint32_t)(en_arc * 100.0f + 100.0f));
         break;
     default:
+        if (ring_focus() >= 0)
+            h = hash(h, parts_sig());
     rings_too:
         for (i = 0; i < EN_NPAD; i++)
             h = hash(h, en_chord[i]);
@@ -2719,14 +2542,12 @@ static void draw_main(void)
     case 6: draw_feel(); break;
     case 7: draw_setup(); break;
     case 8: draw_system(); break;
-    case 9: draw_mixer(); break;
+    case 9: draw_inst_strips(-1); break;
     case 10: draw_colours(); break;
     case 11: draw_bt(); break;
     default:
-        if (viz_style && ring_focus() >= 0)
-            viz_style == 1 ? draw_inst_steps(ring_focus()) : viz_style == 2 ? draw_inst_meters(ring_focus()) :
-            viz_style == 3 ? draw_inst_sky(ring_focus()) : viz_style == 4 ? draw_inst_strips(ring_focus(), 0) :
-            viz_style == 5 ? draw_inst_strips(ring_focus(), 1) : draw_inst_steps_all(ring_focus());
+        if (ring_focus() >= 0)                   /* (0.7: an instrument's page, every instrument's strips, its own bright) */
+            draw_inst_strips(ring_focus());
         else
             draw_rings(ring_focus());
         break;
