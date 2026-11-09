@@ -91,9 +91,30 @@ static int slot_ok(const slot_t *s)
     return pool_ok(s->pool);
 }
 
+static void clamp_pars(void)                    /* (0.5) a value out of range (a sound since removed: the lead's banjo)
+                                                  * brought into it, not the whole project refused */
+{
+    int i, p;
+    for (p = 0; p < P_NPARAMS; p++) {
+        const en_param_t *e = en_param_info(p);
+        if (proj.par[p] < e->lo)
+            proj.par[p] = (int16_t)e->lo;
+        if (proj.par[p] > e->hi)
+            proj.par[p] = (int16_t)e->hi;
+        for (i = 0; i < NPIECES; i++) {
+            if (proj.slot[i].par[p] < e->lo)
+                proj.slot[i].par[p] = (int8_t)e->lo;
+            if (proj.slot[i].par[p] > e->hi)
+                proj.slot[i].par[p] = (int8_t)e->hi;
+        }
+    }
+}
+
 static int project_valid(void)                  /* an older format: the recipes again */
 {
     int i;
+    if (proj.magic == PROJ_MAGIC && proj.format == PROJ_FORMAT)
+        clamp_pars();
     if (proj.magic != PROJ_MAGIC || !pool_ok(proj.pool) || !pars_ok(proj.par))
         return 0;
     if (proj.format != PROJ_FORMAT || proj.piece >= NPIECES || proj.vibe > 1 || proj.wander > 100 || proj.fade > 100)

@@ -124,40 +124,42 @@ Sound notes (2026-11-09):
 
 From Zach, playing 0.4 (2026-11-09):
 
-- [ ] ACTS keyboard too full, its banks hard to tell apart, the screen's lists don't help: a clearer layout (stings to
+- [x] ACTS keyboard too full, its banks hard to tell apart, the screen's lists don't help: a clearer layout (stings to
       the black keys?), lighting by bank, the screen echoing the keyboard (proposal sent)
-- [ ] Stings still too loud
-- [ ] Scatter doesn't sound good: another draft, more a shimmer or a sparkle
+- [x] Stings still too loud
+- [x] Scatter doesn't sound good: another draft, more a shimmer or a sparkle
 - [ ] Reverse: not loving it yet (Zach to play more)
-- [ ] The page name's dots jump with the name's length: the dots in one place
-- [ ] Post Show's Stage Door good; more unusual chords across the acts (a minor, a maj7 now and then); its acts'
+- [x] The page name's dots jump with the name's length: the dots in one place
+- [x] Post Show's Stage Door good; more unusual chords across the acts (a minor, a maj7 now and then); its acts'
       drum patterns more distinct
-- [ ] Feel: brighter, more colour; Tension dark at 0; Next chord shows nothing (with a progression: en_drift is
+- [x] Feel: brighter, more colour; Tension dark at 0; Next chord shows nothing (with a progression: en_drift is
       only the free drift's); Energy set to half reads a quarter (the "now" marker? check)
-- [ ] Post Show: too minor, a little scary at times: jazzy instead, maj7s (replaces the "unusual chords" note)
-- [ ] ACTS keyboard (approved, Zach): acts F3 G3 A3 B3; the mix F#3 Pad, G#3 Melody, A#3 Bass, C#4 Drums, D#4
+- [x] Post Show: too minor, a little scary at times: jazzy instead, maj7s (replaces the "unusual chords" note)
+- [x] ACTS keyboard (approved, Zach): acts F3 G3 A3 B3; the mix F#3 Pad, G#3 Melody, A#3 Bass, C#4 Drums, D#4
       Break; stories from middle C: C4 D4 E4 F4 G4 A4 B4 C5 D5 E5 (reorder soon); stings C#5 D#5 F#5 (up to
       three); F5 G5, F#4 G#4 A#4 spare. Lights by bank
-- [ ] Story page: four rows of a short keyboard (F3-B3, C4-F4, F#4-C5, C#5-G5), the black keys' names above each
+- [x] Story page: four rows of a short keyboard (F3-B3, C4-F4, F#4-C5, C#5-G5), the black keys' names above each
       strip, the white keys' under, every key its letter (black keys wider, the letter in them); where it is filled
       (mockup acts-rows-2)
-- [ ] Story page rows: F3-B3, C4-F4, F#4-B4, C5-E5 (Intermission starts the last row, the stings over it); the spares
+- [x] Story page rows: F3-B3, C4-F4, F#4-B4, C5-E5 (Intermission starts the last row, the stings over it); the spares
       (F5 F#5 G5) not drawn until used (mockup acts-rows-3)
-- [ ] Banjo: a melody sound only (no lead banjo; Riebeck's lead another); quieter, less bright/sharp, less like the
+- [x] Banjo: a melody sound only (no lead banjo; Riebeck's lead another); quieter, less bright/sharp, less like the
       guitar (a banjo's plunk: its head's quick ring)
-- [ ] Lead Glide does nothing for most sounds (only Flute and Slide, legato): make it work for every lead sound (each
+- [x] Lead Glide does nothing for most sounds (only Flute and Slide, legato): make it work for every lead sound (each
       note gliding from the last)
-- [ ] Lead: every key plays its own note (no snapping to the scale); only the key's notes lit (the rest dark). Check
+- [x] Lead: every key plays its own note (no snapping to the scale); only the key's notes lit (the rest dark). Check
       the lit keys match the scale (Zach: some sounded wrong: the snapping moved out-of-key keys to a neighbour)
-- [ ] Colours page next to Mixer (Mixer, Colours, Feel, Story, ...)
-- [ ] Pages, left to right: Story (acts), Feel, Mixer, Colours, Effects (?), Pad, Melody, Bass, Drums, Lead, Setup,
+- [x] Colours page next to Mixer (Mixer, Colours, Feel, Story, ...)
+- [x] Pages, left to right: Story (acts), Feel, Mixer, Colours, Effects (?), Pad, Melody, Bass, Drums, Lead, Setup,
       System (replaces "Colours next to Mixer"). Buttons: HOME the acts (ACTS mode and the Story page), SEL Effects,
       FX Colours, EDIT Lead, GLO Setup
 - [x] SEL: Effects (right after Colours in the pages)
-- [ ] Freeze sounds muffled: it shuts the reverb's input (new notes go dry) and holds its tail forever (the plate's
+- [x] Freeze sounds muffled: it shuts the reverb's input (new notes go dry) and holds its tail forever (the plate's
       damping darkening it). Keep some reverb for what plays (~35%), hold the tail long but not forever, less damping
       while frozen
 - [ ] Bluetooth audio out (A2DP): wanted. fm1-base's own stack, bt_audio: about +18 KB RAM, +31 KB pool (of ~77 KB
       free), SBC at its best (bitpool 53, ~328 kbit/s, ~3 % CPU); 150-300 ms late (for listening); the FM-1's own
       output muted while streaming; four devices remembered, the last reconnected at power-on. Needs a page
       (scan, pick, forget). Test on hardware. Bluetooth MIDI: later (the same stack)
+- [x] A track silent after a mute and unmute (0.4, until a restart): the engine's command queue (64) could drop a word
+      when a story change posted many at once: 256 now, and the mutes said again every second
