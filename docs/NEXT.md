@@ -121,3 +121,16 @@ Sound notes (2026-11-09):
       (faster, brighter, the marimba an octave up), its drums looser (Structure down, more hits)
 - [x] Banjo (lead and melody); Riebeck (C4): an original campfire-and-stars piece in Outer Wilds' spirit
 - [ ] Battery reading: still to look into (Zach to try charging it switched off)
+
+From Zach, playing 0.4 (2026-11-09):
+
+- [ ] ACTS keyboard too full, its banks hard to tell apart, the screen's lists don't help: a clearer layout (stings to
+      the black keys?), lighting by bank, the screen echoing the keyboard (proposal sent)
+- [ ] Stings still too loud
+- [ ] Scatter doesn't sound good: another draft, more a shimmer or a sparkle
+- [ ] Reverse: not loving it yet (Zach to play more)
+- [ ] The page name's dots jump with the name's length: the dots in one place
+- [ ] Post Show's Stage Door good; more unusual chords across the acts (a minor, a maj7 now and then); its acts'
+      drum patterns more distinct
+- [ ] Feel: brighter, more colour; Tension dark at 0; Next chord shows nothing (with a progression: en_drift is
+      only the free drift's); Energy set to half reads a quarter (the "now" marker? check)
