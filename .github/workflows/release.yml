@@ -128,30 +128,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: gh release edit "$GITHUB_REF_NAME" --draft=false
-
-  # StoryBox: the newest build of main, always at one address: releases/tag/latest (a prerelease, replaced each time;
-  # the file itself at releases/download/latest/storybox.fwsc)
-  latest:
-    needs: verify
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    concurrency:
-      group: storybox-latest
-      cancel-in-progress: false
-    steps:
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093   # v4.3.0
-        with:
-          name: packages
-          path: build/attested
+      # StoryBox: the newest build of main, always at one address: releases/tag/latest (a prerelease, replaced each
+      # time; the file itself at releases/download/latest/storybox.fwsc). (Its own job stopped starting: here instead)
       - name: Replace the latest build
+        if: github.ref == 'refs/heads/main'
+        working-directory: build/attested
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          cd build/attested/build/release-assets
+          cd build/release-assets
           gh release delete latest --cleanup-tag --yes || true
           notes="The newest StoryBox build, from commit ${GITHUB_SHA:0:7} ($(date -u +'%Y-%m-%d %H:%M UTC')).
 
