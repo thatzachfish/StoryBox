@@ -134,3 +134,4 @@ From Zach, playing 0.4 (2026-11-09):
       drum patterns more distinct
 - [ ] Feel: brighter, more colour; Tension dark at 0; Next chord shows nothing (with a progression: en_drift is
       only the free drift's); Energy set to half reads a quarter (the "now" marker? check)
+- [ ] Post Show: too minor, a little scary at times: jazzy instead, maj7s (replaces the "unusual chords" note)
