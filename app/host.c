@@ -25,6 +25,12 @@ int app_expect(const char *what, int *got)
         g = en_fx_on;
     else if (!strcmp(what, "bd"))                 /* StoryBox: the breakdown (0 off, 1 down, 2 coming back) */
         g = en_bd;
+    else if (!strcmp(what, "answered"))           /* StoryBox 0.6: the answer's notes, started and let go */
+        g = en_ans_w;
+    else if (!strcmp(what, "answer"))             /* the Answer setting */
+        g = proj.answer;
+    else if (!strcmp(what, "btout"))              /* the sound to the speaker (1) or the FM-1 (0) */
+        g = plat_bta_out_device();
     else if (!strcmp(what, "dark"))               /* StoryBox: the screen dark (the sleep timer's) */
         g = ui.dark;
     else if (!strcmp(what, "mutes"))              /* the layers muted, then soloed << 4 */

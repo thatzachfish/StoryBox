@@ -19,8 +19,9 @@ void ui_splash(void);
 
 /* the store: the project at 0xFC000 and the panel calibration at 0xDC000, where AMB-1 0.9 kept them (an update keeps
  * the pieces) */
-enum { OBJ_PROJ, OBJ_PANEL, OBJ_NOBJ };
-#define APP_STORE_MAP {0xFC000u, 0xDC000u}
+enum { OBJ_PROJ, OBJ_PANEL, OBJ_BLE, OBJ_NOBJ };
+#define APP_STORE_MAP {0xFC000u, 0xDC000u, 0xDE000u}   /* (0.6: OBJ_BLE, the radio's address and the speakers known) */
+#define APP_BLE_AT_BOOT (proj.bt_off == 0)  /* Bluetooth at power-on unless the Bluetooth page turned it off */
 #define PROJ_MAGIC 0x31425453u           /* StoryBox: "STB1" (AMB-1's "ENO1" at the same place is not read: defaults) */
 #define PROJ_FORMAT 8u                   /* 2: Freedom; 3: Tension, Meter, Energy; 4: the lead; 5: Groove; 6: punch-ins;
                                           * 7: Fly, Intermission, Surf, Melody; 8: the slots in bytes, Post Show, the
@@ -42,7 +43,9 @@ typedef struct {
     uint8_t vibe;                        /* (unused: Wander 0 is Perform) */
     uint8_t wander;                      /* 0 Perform (acts wait for you); 1..50 the acts in order, 51..100 roaming, more and more often */
     uint8_t fade;                        /* a held act's crossfade, 0..100 (5 s .. 2 min) */
-    uint8_t rsv0[3];
+    uint8_t bt_off;                      /* 0.6: Bluetooth off (the Bluetooth page); 0 on (an older save: on) */
+    uint8_t answer;                      /* 0.6: the lead's answer, 0 off .. 100 free (an older save: off) */
+    uint8_t rsv0[1];
     slot_t slot[NPIECES];                /* every piece as it was left (Tune and MIDI out are global) */
     uint8_t rsv[16];                     /* room to grow */
 } project_t;

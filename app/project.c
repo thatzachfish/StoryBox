@@ -113,8 +113,12 @@ static void clamp_pars(void)                    /* (0.5) a value out of range (a
 static int project_valid(void)                  /* an older format: the recipes again */
 {
     int i;
-    if (proj.magic == PROJ_MAGIC && proj.format == PROJ_FORMAT)
+    if (proj.magic == PROJ_MAGIC && proj.format == PROJ_FORMAT) {
         clamp_pars();
+        proj.bt_off = proj.bt_off != 0;          /* (0.6's settings, in bytes kept spare before) */
+        if (proj.answer > 100)
+            proj.answer = 100;
+    }
     if (proj.magic != PROJ_MAGIC || !pool_ok(proj.pool) || !pars_ok(proj.par))
         return 0;
     if (proj.format != PROJ_FORMAT || proj.piece >= NPIECES || proj.vibe > 1 || proj.wander > 100 || proj.fade > 100)
@@ -226,4 +230,5 @@ void project_apply(void)
         en_set(i, proj.par[i]);
     en_pool(proj.pool);
     en_prog(proj.piece);
+    en_answer(proj.answer);
 }

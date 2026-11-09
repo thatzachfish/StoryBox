@@ -115,6 +115,9 @@ extern const char *const EN_MEL_NAME[EN_NMEL];
 int en_lead_snap(int note);                    /* the scale's note at or just below note (the main loop's view) */
 void en_lead_on(int note, int vel);
 void en_lead_off(int note);
+void en_answer(int amount);                     /* StoryBox 0.6: the lead answered, 0 off .. 100 free */
+extern volatile uint8_t en_ans_ring[16];        /* the answer's notes as they sound (key, | 0x80 let go) */
+extern volatile uint8_t en_ans_w;
 void en_breakdown(int on);
 extern volatile uint8_t en_bd;                 /* (UI) 0 off, 1 broken down, 2 coming back (the fill) */                       /* StoryBox: follow piece's progression (none: free), from its start */
 extern volatile int8_t en_prog_step;           /* (UI) the progression's step playing, -1 none */

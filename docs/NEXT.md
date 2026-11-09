@@ -166,8 +166,10 @@ From Zach, playing 0.4 (2026-11-09):
 
 Future (Zach, 2026-11-09):
 
-- [ ] Bluetooth audio (its own build, next)
+- [x] Bluetooth audio (0.6): the Bluetooth page after System (Speaker, Sound to, Bluetooth on/off); SAVE there connects
+      or lets go, held forgets; the last speaker called again at power-on. To try on hardware
 - [ ] Tap tempo: tap the beat to sync with live musicians
 - [ ] A chord mode: play chords live, change a story's progressions on the fly (a live-music tool)
-- [ ] Call and response (NACHFAHRT's idea)
+- [x] Call and response (0.6): Answer on the System page (0 off .. 100 free); a phrase on the lead, a beat's rest,
+      and StoryBox answers it (rhythm kept, notes moved along the scale, ending on the chord), in blue on the Lead page
 - [ ] Bluetooth MIDI (later)

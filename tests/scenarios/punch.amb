@@ -5,7 +5,7 @@ tap HOME
 press ARP
 wait 300
 expect fx 4
-expect view 14
+expect view 15
 spin K1 10
 expect par43 35
 release ARP
@@ -28,7 +28,7 @@ expect view 0
 tap LFO
 wait 300
 expect fx 2
-expect view 13
+expect view 14
 turn SELECT 1
 expect view 4
 tap LFO

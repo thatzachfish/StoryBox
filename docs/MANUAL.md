@@ -284,6 +284,26 @@ The top right of this page shows how much of the FM-1's time the sound takes (CP
 
 ---
 
+### Bluetooth (StoryBox 0.6)
+
+The page after System (turn SELECT past System). StoryBox sends its sound to Bluetooth headphones and speakers.
+
+- **Speaker** picks one from the list: the speakers it knows (the last one first), then the ones it finds around while
+  the page is up. Put a new speaker in pairing mode first.
+- **SAVE** on this page connects the speaker picked, or lets it go. **Hold SAVE** to forget it.
+- **Sound to** sends the sound to the speaker or back to the FM-1's own output, keeping the connection.
+- **Bluetooth** turns the radio on or off (kept when you save).
+
+At power-on StoryBox calls the last speaker again. While it plays on a speaker, the FM-1's own output is quiet, and
+the sound arrives 150-300 ms late (the speaker's own buffer): fine for listening, not for playing in time with it.
+
+### Answer (StoryBox 0.6)
+
+On the System page, **Answer** turns on call and response. Play a phrase on the lead (EDIT), stop for a beat, and
+StoryBox answers it on the next beat: your rhythm, its notes moved along the scale, ending on a note of the chord.
+Low settings stay close to what you played; higher ones move further (the shape turned over, moved up or down, an
+octave). Play again while it answers and it stops to listen. Its notes show in blue on the Lead page.
+
 ## 8. MIDI
 
 MIDI comes in over USB and the TRS jack, and goes out over USB.

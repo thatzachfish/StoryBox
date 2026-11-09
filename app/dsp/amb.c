@@ -555,7 +555,7 @@ const char *en_chord_name(const int *pcs, int n, char *buf)
 
 /* ------------------------------------------------------------ commands --- */
 enum { C_SET, C_POOL, C_PLAY, C_NEXT, C_FREEZE, C_SEED, C_PANIC, C_CLOCK, C_REGROW, C_PROG, C_STING, C_MUTE, C_BREAK,
-       C_LON, C_LOFF, C_FX };
+       C_LON, C_LOFF, C_FX, C_ANS };
 #define QN 256u                                   /* (0.5: from 64: a story's change posts some 50 values at once) */
 static uint32_t q[QN];
 static volatile uint32_t q_w, q_r;
@@ -581,6 +581,7 @@ void en_mute(uint32_t mask) { post(C_MUTE, 0, (int)(mask & 15u)); }
 void en_fx(uint32_t mask) { post(C_FX, 0, (int)(mask & 15u)); }
 void en_lead_on(int note, int vel) { post(C_LON, note & 127, vel & 127); }
 void en_lead_off(int note) { post(C_LOFF, note & 127, 0); }
+void en_answer(int amount) { post(C_ANS, 0, amount < 0 ? 0 : amount > 100 ? 100 : amount); }
 const char *const EN_MEL_NAME[EN_NMEL] = {"Bells", "Kalimba", "Marimba", "Vibes", "Slide", "Glass", "Music box", "Banjo"};
 const char *const EN_LEAD_NAME[EN_NLEAD] = {"Kalimba", "Bell", "Flute", "Guitar", "Rhodes", "Violin", "Cello", "Slide"};
 void en_breakdown(int on) { post(C_BREAK, on ? 1 : 0, 0); }
@@ -620,6 +621,11 @@ static float energy;                            /* Energy, -1 (calm) .. 0 (as th
 static float lead_vol, lead_tone = 0.5f, lead_glide_t;   /* the lead's level, tone, glide (s; 0 none) */
 static void lead_note_on(int key, int vel);
 static void lead_note_off(int key);
+static void call_on(int key, int vel);
+static void call_off(int key);
+static void ans_stop(void);
+static void ans_beat(void);
+static float ans_amt;                            /* the answer: 0 off .. 1 free (StoryBox 0.6) */
 #define NLEAD 3
 #define KS_N 1024                               /* the guitar's string: up to 1024 samples (down to 43 Hz) */
 typedef struct {
@@ -1547,6 +1553,8 @@ static void tick(void)
     }
     if (sting_pend >= 0 && (bar_pos & 3u) == 0u)
         sting_fire();                            /* a sting: on the beat */
+    if ((bar_pos & 3u) == 0u)
+        ans_beat();                              /* an answer waiting: it starts on the beat */
     if (++bar_pos >= en_bar_len)
         bar_pos = 0;
     sixteenth++;
@@ -2054,8 +2062,13 @@ static void drain(void)
         case C_FREEZE: en_frozen = (uint8_t)(a != 0); break;
         case C_MUTE: mute_mask = (uint32_t)b & 15u; break;
         case C_FX: fx_mask = (uint32_t)b & 15u; break;
-        case C_LON: lead_note_on(a, b ? b : 100); break;
-        case C_LOFF: lead_note_off(a); break;
+        case C_LON: call_on(a, b ? b : 100); break;
+        case C_LOFF: call_off(a); break;
+        case C_ANS:
+            ans_amt = (float)b * 0.01f;
+            if (!b)
+                ans_stop();
+            break;
         case C_BREAK:
             if (a && !bd)
                 bd_req = 1;
@@ -2641,6 +2654,199 @@ static void lead_note_off(int key)
             lead[i].held = 0;
             midi(0x84, lead[i].note, 0);
         }
+}
+
+/* StoryBox 0.6, the answer (call and response, as NACHFAHRT's): a phrase played on the lead, then a beat's rest, and
+ * StoryBox plays it back, changed: its rhythm kept (now and then a note left out), its notes moved along the scale,
+ * more the higher Answer (a step here and there, the shape turned over, the whole moved up or down, an octave), and
+ * its last note on a note of the chord. Kept as events, not sound. A key played while it answers stops it: it
+ * listens again. */
+#define ANS_N 16
+static struct {
+    uint8_t key, vel, state;                     /* (resp: 0 waiting, 1 sounding, 2 done) */
+    uint32_t on, off;
+} call[ANS_N], resp[ANS_N];
+static int call_n, call_held, resp_n, ans_state;   /* ans_state: 0 listening, 1 waiting for the beat, 2 answering */
+static uint32_t smp, call_last, ans_t0;
+volatile uint8_t en_ans_ring[16];                /* the answer's notes, for the screen: the key, | 0x80 let go */
+volatile uint8_t en_ans_w;
+
+static void ans_note(int key, int on)
+{
+    if (on)
+        lead_note_on(key, resp[0].vel);
+    else
+        lead_note_off(key);
+    en_ans_ring[en_ans_w & 15u] = (uint8_t)((key & 0x7F) | (on ? 0 : 0x80));
+    BARRIER();
+    en_ans_w++;
+}
+
+static void ans_stop(void)
+{
+    int i;
+    for (i = 0; i < resp_n; i++)
+        if (resp[i].state == 1) {
+            ans_note(resp[i].key, 0);
+            resp[i].state = 2;
+        }
+    ans_state = 0;
+    resp_n = 0;
+}
+
+static void call_on(int key, int vel)
+{
+    int i;
+    if (ans_state)
+        ans_stop();                              /* the player again: the answer gives way */
+    if (ans_amt > 0.0f) {
+        if (call_n && !call_held && smp - call_last > (uint32_t)(EN_SR * 4.0f))
+            call_n = 0;                          /* a long rest: a new phrase */
+        if (call_n == ANS_N) {                   /* (the last sixteen kept) */
+            for (i = 1; i < ANS_N; i++)
+                call[i - 1] = call[i];
+            call_n--;
+        }
+        call[call_n].key = (uint8_t)key;
+        call[call_n].vel = (uint8_t)vel;
+        call[call_n].on = smp;
+        call[call_n].off = 0;
+        call_n++;
+        call_held++;
+    }
+    lead_note_on(key, vel);
+}
+
+static void call_off(int key)
+{
+    int i;
+    for (i = call_n - 1; i >= 0; i--)
+        if (call[i].key == key && !call[i].off) {
+            call[i].off = smp ? smp : 1u;
+            if (call_held > 0)
+                call_held--;
+            call_last = smp;
+            break;
+        }
+    lead_note_off(key);
+}
+
+static int scale_note(int d, const int *sc, int m)   /* degree d of the scale (from the root's C below 28) */
+{
+    int r = par[P_ROOT] % 12, o = d >= 0 ? d / m : -((-d + m - 1) / m);
+    return r + 12 * o + sc[d - o * m];
+}
+static int scale_deg(int key, const int *sc, int m)  /* the degree at or just below key */
+{
+    int r = par[P_ROOT] % 12, o = (key - r) >= 0 ? (key - r) / 12 : -((r - key + 11) / 12), i, rel = key - r - 12 * o;
+    for (i = m - 1; i > 0 && sc[i] > rel; i--)
+        ;
+    return o * m + i;
+}
+
+static void ans_build(void)                      /* the call, changed, into resp */
+{
+    int sc[12], m = en_scale(pool, sc), i, j, d0, inv, shift, oct, n = 0;
+    const float a = ans_amt;
+    uint32_t t0 = call[0].on;
+    if (m < 3)
+        return;
+    d0 = scale_deg(call[0].key, sc, m);
+    inv = frand() < a * 0.5f;
+    shift = frand() < 0.2f + 0.5f * a ? (frand() < 0.5f ? -1 : 1) * (1 + (frand() < a)) : 0;
+    oct = frand() < a * 0.2f ? (call[0].key < 72 ? 12 : -12) : 0;
+    for (i = 0; i < call_n; i++) {
+        int d = scale_deg(call[i].key, sc, m) - d0, k;
+        if (i && i < call_n - 1 && call_n > 3 && frand() < a * 0.25f) {   /* a note left out: the one before held on */
+            if (n)
+                resp[n - 1].off = (call[i].off ? call[i].off : call[i].on + (uint32_t)(step_len * 2.0f)) - t0;
+            continue;
+        }
+        if (inv)
+            d = -d;
+        d += d0 + shift;
+        if (i && frand() < a * 0.5f)
+            d += frand() < 0.5f ? -1 : 1;
+        k = scale_note(d, sc, m) + oct;
+        if (i == call_n - 1) {                   /* the last: onto the chord */
+            for (j = 0; j < 3; j++) {
+                int c, pc[2] = {scale_note(d - j, sc, m) + oct, scale_note(d + j, sc, m) + oct}, h, f = 0;
+                for (h = 0; h < 2 && !f; h++) {
+                    int p = ((pc[h] % 12) + 12) % 12;
+                    if (p == en_chord_root % 12)
+                        f = 1;
+                    for (c = 0; c < EN_NPAD && !f; c++)
+                        if (en_chord[c] % 12 == p)
+                            f = 1;
+                    if (f)
+                        k = pc[h];
+                }
+                if (f)
+                    break;
+            }
+        }
+        while (k < 36)
+            k += 12;
+        while (k > 96)
+            k -= 12;
+        resp[n].key = (uint8_t)k;
+        resp[n].vel = (uint8_t)(call[i].vel * 0.85f);
+        resp[n].on = call[i].on - t0;
+        resp[n].off = (call[i].off > call[i].on ? call[i].off : call[i].on + (uint32_t)(step_len * 2.0f)) - t0;
+        resp[n].state = 0;
+        n++;
+    }
+    resp_n = n;
+}
+
+static void ans_go(void)
+{
+    ans_build();
+    call_n = 0;
+    ans_t0 = smp;
+    ans_state = resp_n ? 2 : 0;
+}
+
+static void ans_beat(void)                       /* a beat: an answer waiting starts */
+{
+    if (ans_state == 1)
+        ans_go();
+}
+
+static void ans_tick(uint32_t n)                 /* each chunk: is the call over? the answer's notes, on time */
+{
+    int i, left = 0;
+    smp += n;
+    if (ans_amt <= 0.0f) {
+        call_n = 0;
+        return;
+    }
+    if (!ans_state && call_n >= 2 && !call_held && smp - call_last > (uint32_t)(step_len * 4.0f)) {
+        ans_state = 1;                           /* a beat's rest: the call is over */
+        if (!en_playing)
+            ans_go();
+    }
+    if (ans_state != 2)
+        return;
+    for (i = 0; i < resp_n; i++) {
+        if (resp[i].state == 0 && smp - ans_t0 >= resp[i].on) {
+            for (left = 0; left < i; left++)     /* (one key once: an earlier one on it let go first) */
+                if (resp[left].state == 1 && resp[left].key == resp[i].key) {
+                    ans_note(resp[left].key, 0);
+                    resp[left].state = 2;
+                }
+            ans_note(resp[i].key, 1);
+            resp[i].state = 1;
+        }
+        if (resp[i].state == 1 && smp - ans_t0 >= resp[i].off) {
+            ans_note(resp[i].key, 0);
+            resp[i].state = 2;
+        }
+    }
+    for (i = 0, left = 0; i < resp_n; i++)
+        left += resp[i].state != 2;
+    if (!left)
+        ans_state = 0;
 }
 
 static void render_lead(uint32_t n)
@@ -3256,6 +3462,7 @@ void en_render(int32_t *out, uint32_t n, uint32_t gain_q12)
         if (timed)
             pulse_left -= (float)k;
         control(k);
+        ans_tick(k);
         render_chunk(out, k, gain);
         drums_wait_step((int32_t)k);
         out += 2 * k;

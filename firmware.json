@@ -14,7 +14,7 @@
   "hardware": {
     "models": ["FM-1"],
     "flash": ["856014", "B36014"],
-    "features": ["usb-audio-in", "screen-reader"]
+    "features": ["bluetooth-midi", "bluetooth-audio", "usb-audio-in", "screen-reader"]
   },
   "credits": "A fork of AMB-1 by Charles Vestal. Built on fm1-base and felucca-bsp, from Felucca by Leo Kuroshita (Hügelton Instruments)."
 }

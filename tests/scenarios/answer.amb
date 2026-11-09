@@ -1,0 +1,51 @@
+# The answer (0.6, call and response): Answer on (System), a phrase on the lead, a beat's rest, and StoryBox plays it
+# back changed; a key while it answers stops it
+wait 300
+listen
+tap GLO
+turn SELECT 1
+wait 100
+spin K4 1
+wait 100
+said ANSWER ON
+expect answered 0
+tap EDIT
+wait 100
+key 7 down
+wait 250
+key 7 up
+key 9 down
+wait 250
+key 9 up
+key 11 down
+wait 250
+key 11 up
+key 14 down
+wait 500
+key 14 up
+wait 1500
+shot answer.png
+wait 2500
+expect answered 8
+# again: a key cuts it short
+key 12 down
+wait 200
+key 12 up
+key 16 down
+wait 200
+key 16 up
+wait 1000
+key 7 down
+wait 100
+key 7 up
+wait 2000
+# off: nothing answers
+tap GLO
+turn SELECT 1
+wait 100
+expect view 11
+expect answer 1
+spin K4 -1
+wait 100
+expect answer 0
+said ANSWER OFF

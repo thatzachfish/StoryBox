@@ -13,21 +13,22 @@
  *   SAVE           saves (it also saves by itself a few seconds after a change, while resting);
  *                  held 1.5 s: the piece back to its recipe */
 #include "fastmath.h"
+#include <string.h>
 
 /* StoryBox 0.5's pages, left to right as SELECT steps through them; then the punch-ins' (while one is held, or a
  * latched one tapped). HOME: Story (and the keys back to the acts); FX: Colours; SEL: Effects; EDIT: Lead; GLO: Setup */
-enum { V_STORY, V_GARDEN, V_MIX, V_COLR, V_SPACE, V_PAD, V_BELLS, V_BASS, V_PULSE, V_LEAD, V_SETUP, V_SYSTEM,
+enum { V_STORY, V_GARDEN, V_MIX, V_COLR, V_SPACE, V_PAD, V_BELLS, V_BASS, V_PULSE, V_LEAD, V_SETUP, V_SYSTEM, V_BT,
        V_REV, V_STUT, V_FILT, V_SCAT, NVIEWS };
 #define NPAGES V_REV
 #define NOBTN 0xFF
 static const char *const VIEW_NAME[NVIEWS] = {"Story", "Feel", "Mixer", "Colours", "Effects", "Pad", "Melody", "Bass",
-                                              "Drums", "Lead", "Setup", "System", "Reverse", "Stutter", "Filter", "Sparkle"};
+                                              "Drums", "Lead", "Setup", "System", "Bluetooth", "Reverse", "Stutter", "Filter", "Sparkle"};
 static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, NOBTN, NOBTN, B_FX, B_SEL, NOBTN, NOBTN, NOBTN, NOBTN, B_EDIT, B_GLO, NOBTN,
-                                         B_ENV, B_LFO, B_ARP, B_SEQ};
+                                         NOBTN, B_ENV, B_LFO, B_ARP, B_SEQ};
 /* the punch-ins: ENV Reverse, LFO Stutter, ARP Filter, SEQ Sparkle (held; a double tap latches one on) */
 static const uint8_t FX_BTN[EN_NFX] = {B_ENV, B_LFO, B_ARP, B_SEQ};
 /* the four knobs of each page: a parameter, or one of these; and what the knob is called there */
-enum { K_LEDS = 100, K_CPU, K_NONE, K_PLAYMODE, K_WANDER, K_FADE, K_ACT, K_TIMER };
+enum { K_LEDS = 100, K_CPU, K_NONE, K_PLAYMODE, K_WANDER, K_FADE, K_ACT, K_TIMER, K_ANSWER, K_BTDEV, K_BTOUT, K_BTON };
 static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {K_ACT, P_GROOVE, P_TENSION, K_WANDER},
     {P_EVOLVE, P_FREEDOM, P_DRIFT, P_MOTION},
@@ -40,7 +41,8 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_PULSE, P_HITS, P_KIT, P_SWING},
     {P_LLEVEL, P_LGLIDE, P_LSOUND, P_LTONE},
     {P_ROOT, P_TEMPO, K_TIMER, K_FADE},
-    {P_TUNE, K_LEDS, P_MIDI, K_CPU},
+    {P_TUNE, K_LEDS, P_MIDI, K_ANSWER},
+    {K_BTDEV, K_BTOUT, K_BTON, K_NONE},
     {P_RVLEN, P_RVMIX, K_NONE, K_NONE},
     {P_STRATE, P_STMIX, K_NONE, K_NONE},
     {P_FLCUT, P_FLRES, K_NONE, K_NONE},
@@ -58,7 +60,8 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
     {"Level", "Hits", "Kit", "Swing"},
     {"Level", "Glide", "Sound", "Tone"},
     {"Root", "Tempo", "Sleep", "Fade"},
-    {"Tune", "Lights", "MIDI out", "CPU"},
+    {"Tune", "Lights", "MIDI out", "Answer"},
+    {"Speaker", "Sound to", "Bluetooth", ""},
     {"Length", "Mix", "", ""},
     {"Rate", "Mix", "", ""},
     {"Cutoff", "Resonance", "", ""},
@@ -402,6 +405,168 @@ static int key_target(int k)
     return v < EN_NSTORY ? v * EN_NACT : -1;
 }
 
+/* ------------------------------------------------------------ Bluetooth --- */
+/* StoryBox 0.6: the sound to headphones and speakers (fm1-base's A2DP source, plat_bta_*). The Bluetooth page lists
+ * the speakers known (the last one first) and those found around (it looks while the page is up and nothing plays);
+ * Speaker picks one, SAVE connects it or lets it go, SAVE held forgets it. Sound to: the speaker or the FM-1's own
+ * (the link kept). At power-on the last speaker is called again. While it streams the FM-1's own output is quiet,
+ * and the sound comes 150-300 ms late (the speaker's buffer). */
+#define BT_N 8
+static struct {
+    int sel, n, last_state, boot_tries, asked;   /* asked: a connect asked for (its no answer said) */
+    uint8_t src[BT_N];                           /* a known one (0..3), or 10 + a found one */
+    char name[BT_N][17], want[17], conn[17];     /* the list; the one picked (kept by name); the one connecting */
+    uint32_t scan_t, boot_t;
+} bt;
+
+static int bt_busy(int st)
+{
+    return st == PLAT_BTA_PAGING || st == PLAT_BTA_LINKED || st == PLAT_BTA_SETUP || st == PLAT_BTA_STREAMING;
+}
+
+static void bt_list(void)                       /* the known, then the found not known; the pick kept by its name */
+{
+    char nm[17];
+    int i, j, n = 0;
+    for (i = 0; i < 4 && n < BT_N; i++)
+        if (plat_bta_known(i, nm)) {
+            memcpy(bt.name[n], nm, 17);
+            bt.src[n++] = (uint8_t)i;
+        }
+    for (i = 0; i < 8 && n < BT_N; i++)
+        if (plat_bta_found(i, nm)) {
+            for (j = 0; j < n && strcmp(bt.name[j], nm); j++)
+                ;
+            if (j == n) {
+                memcpy(bt.name[n], nm, 17);
+                bt.src[n++] = (uint8_t)(10 + i);
+            }
+        }
+    bt.n = n;
+    for (i = 0; i < n && strcmp(bt.name[i], bt.want); i++)
+        ;
+    bt.sel = i < n ? i : 0;
+}
+
+static void bt_knob(int k, int v)
+{
+    if (k == K_BTON) {
+        v = v != 0;
+        if (v == !proj.bt_off)
+            return;
+        proj.bt_off = (uint8_t)!v;
+        if (v) {
+            plat_ble_enable(1);
+            plat_bta_on(1);
+        } else {
+            plat_bta_hangup();
+            plat_bta_on(0);
+            plat_ble_enable(0);
+        }
+        mark_dirty();
+        say("BLUETOOTH", v ? "ON" : "OFF");
+    } else if (k == K_BTOUT) {
+        if (plat_bta_state() != PLAT_BTA_STREAMING) {
+            say("SOUND TO", "NO SPEAKER YET");
+            return;
+        }
+        plat_bta_output(v != 0);
+        say("SOUND TO", v ? "SPEAKER" : "FM-1");
+    } else if (k == K_BTDEV && bt.n) {
+        bt.sel = v < 0 ? 0 : v >= bt.n ? bt.n - 1 : v;
+        memcpy(bt.want, bt.name[bt.sel], 17);
+        say("SPEAKER", bt.name[bt.sel]);
+    }
+}
+
+static void bt_save(void)                       /* SAVE on the page: connect the pick, or let it go */
+{
+    int st = plat_bta_state();
+    if (proj.bt_off) {
+        say("BLUETOOTH IS OFF", "TURN IT ON FIRST");
+        return;
+    }
+    if (bt_busy(st)) {
+        plat_bta_hangup();
+        bt.asked = 0;
+        say("LET GO", bt.conn);
+        return;
+    }
+    if (!bt.n) {
+        say("NO SPEAKER FOUND", "PUT IT IN PAIRING MODE");
+        return;
+    }
+    memcpy(bt.conn, bt.name[bt.sel], 17);
+    plat_bta_scan(0);
+    if (bt.src[bt.sel] < 10)
+        (void)plat_bta_reconnect(bt.src[bt.sel]);
+    else
+        plat_bta_pick(bt.src[bt.sel] - 10);
+    bt.boot_tries = 99;                          /* (asked: no more calling at power-on) */
+    bt.asked = 1;
+    say("CONNECTING", bt.conn);
+}
+
+static void bt_forget(void)                     /* SAVE held on the page: the pick forgotten */
+{
+    if (!bt.n || bt.src[bt.sel] >= 10) {
+        say("NOTHING TO FORGET", 0);
+        return;
+    }
+    if (bt_busy(plat_bta_state()) && !strcmp(bt.conn, bt.name[bt.sel]))
+        plat_bta_hangup();
+    bt.asked = 0;
+    say("FORGOTTEN", bt.name[bt.sel]);
+    plat_bta_forget(bt.src[bt.sel]);
+    bt.want[0] = 0;
+}
+
+static void bt_tick(int page)                   /* every frame: what happened, said; the page looks; power-on calls */
+{
+    int st, lost;
+    uint32_t now = plat_ms();
+    char nm[17];
+    if (proj.bt_off)
+        return;
+    if (!bt.boot_t) {                            /* the radio up, and the last speaker called (for 20 s) */
+        bt.boot_t = now ? now : 1u;
+        plat_bta_on(1);
+    }
+    st = plat_bta_state();
+    if (bt.boot_tries < 6 && now - bt.boot_t > 1500u + 3000u * (uint32_t)bt.boot_tries && !bt_busy(st) &&
+        st != PLAT_BTA_SCANNING && st != PLAT_BTA_OFF) {
+        if (plat_bta_known(0, nm) && plat_bta_reconnect(0) == 0) {
+            memcpy(bt.conn, nm, 17);
+            st = plat_bta_state();
+        }
+        bt.boot_tries++;
+    }
+    if (bt_busy(st))
+        bt.boot_tries = 99;
+    if (st == PLAT_BTA_STREAMING)
+        bt.asked = 0;                            /* (answered) */
+    if ((lost = plat_bta_lost()) != PLAT_BTA_LOST_NONE)
+        warn("SPEAKER LOST", bt.conn);
+    else if (st != bt.last_state) {
+        if (st == PLAT_BTA_STREAMING)
+            say("PLAYING ON", bt.conn);
+        else if ((st == PLAT_BTA_FAILED || st == PLAT_BTA_REFUSED) && bt.asked)
+            say("NO ANSWER FROM", bt.conn);
+    }
+    bt.last_state = st;
+    if (page) {
+        bt_list();
+        if (!bt_busy(st) && st != PLAT_BTA_SCANNING && (!bt.scan_t || now - bt.scan_t > 12000u)) {
+            plat_bta_scan(bt.scan_t ? 2 : 1);    /* looking, the list kept after the first */
+            bt.scan_t = now;
+        }
+    } else if (bt.scan_t) {
+        if (st == PLAT_BTA_SCANNING)
+            plat_bta_scan(0);
+        bt.scan_t = 0;
+    }
+}
+
 /* ------------------------------------------------------------ values --- */
 static int knob_get(int k)
 {
@@ -421,6 +586,14 @@ static int knob_get(int k)
         return tr_shown_act();
     if (k == K_TIMER)
         return ui.timer;
+    if (k == K_ANSWER)
+        return proj.answer;
+    if (k == K_BTDEV)
+        return bt.sel;
+    if (k == K_BTOUT)
+        return plat_bta_out_device();
+    if (k == K_BTON)
+        return !proj.bt_off;
     return 0;
 }
 static void knob_range(int k, int *lo, int *hi)
@@ -431,7 +604,8 @@ static void knob_range(int k, int *lo, int *hi)
     } else {
         *lo = 0;
         *hi = k == K_LEDS ? 2 : k == K_CPU || k == K_WANDER || k == K_FADE ? 100 : k == K_PLAYMODE ? 1 :
-              k == K_ACT ? EN_NACT - 1 : k == K_TIMER ? 4 : 0;
+              k == K_ACT ? EN_NACT - 1 : k == K_TIMER ? 4 : k == K_ANSWER ? 100 : k == K_BTDEV ? (bt.n ? bt.n - 1 : 0) :
+              k == K_BTOUT || k == K_BTON ? 1 : 0;
     }
 }
 static const char *knob_name(int k)
@@ -439,7 +613,8 @@ static const char *knob_name(int k)
     if (k < P_NPARAMS)
         return en_param_info(k)->name;
     return k == K_LEDS ? "Lights" : k == K_CPU ? "CPU" : k == K_PLAYMODE ? "Mode" : k == K_WANDER ? (!proj.wander ? "Wander" : proj.wander <= 50 ? "In order" : "Roaming") :
-           k == K_FADE ? "Fade" : k == K_ACT ? "Act" : k == K_TIMER ? "Sleep" : "";
+           k == K_FADE ? "Fade" : k == K_ACT ? "Act" : k == K_TIMER ? "Sleep" : k == K_ANSWER ? "Answer" :
+           k == K_BTDEV ? "Speaker" : k == K_BTOUT ? "Sound to" : k == K_BTON ? "Bluetooth" : "";
 }
 static void knob_text(int k, char *b)
 {
@@ -460,6 +635,25 @@ static void knob_text(int k, char *b)
         const char *n = k == K_ACT ? en_act_name(tr_goal() / EN_NACT * EN_NACT + v) : v ? "Vibe" : "Perform";
         int j = 0;
         while (n[j] && j < 9) {
+            b[j] = n[j];
+            j++;
+        }
+        b[j] = 0;
+    } else if (k == K_BTDEV && bt.n) {           /* which of the list: "2/3" (its name on the page below) */
+        itoa_u((uint32_t)v + 1u, b);
+        while (*b)
+            b++;
+        *b++ = '/';
+        itoa_u((uint32_t)bt.n, b);
+    } else if (k == K_ANSWER || k == K_BTOUT || k == K_BTON || k == K_BTDEV) {
+        const char *n = k == K_ANSWER ? (v ? 0 : "Off") : k == K_BTOUT ? (v ? "Speaker" : "FM-1") : k == K_BTON ? (v ? "On" : "Off") :
+                        bt.n ? bt.name[v] : "None";
+        int j = 0;
+        if (!n) {
+            itoa_u((uint32_t)v, b);
+            return;
+        }
+        while (n[j] && j < 10) {
             b[j] = n[j];
             j++;
         }
@@ -526,6 +720,10 @@ static void knob_set(int k, int v)
     int lo, hi;
     if (k == K_CPU || k == K_NONE)
         return;
+    if (k == K_BTDEV || k == K_BTOUT || k == K_BTON) {
+        bt_knob(k, v);
+        return;
+    }
     knob_range(k, &lo, &hi);
     v = v < lo ? lo : v > hi ? hi : v;
     if (v == knob_get(k))
@@ -547,6 +745,11 @@ static void knob_set(int k, int v)
         tr.phrases = 0;
     } else if (k == K_FADE) {
         proj.fade = (uint8_t)v;
+    } else if (k == K_ANSWER) {
+        if (!proj.answer != !v)
+            say("ANSWER", v ? "ON" : "OFF");
+        proj.answer = (uint8_t)v;
+        en_answer(v);
     } else if (k == K_ACT) {
         tr_queue(tr_goal() / EN_NACT * EN_NACT + v, 0);
         return;
@@ -697,6 +900,10 @@ static void button(int b)
         }
         break;
     case B_SAVE:
+        if (ui.view == V_BT) {                   /* the Bluetooth page: connect, or let go */
+            bt_save();
+            break;
+        }
         if (project_save() == 0) {
             ui.dirty = 0;
             say("SAVED", 0);
@@ -959,11 +1166,15 @@ static void input(void)
         ui.reset_done = 1;                     /* held: the piece back to its recipe (not saved) */
         ui.btn_used |= 1u << B_SAVE;
         ui.help = 0;
-        project_piece_reset();
-        project_apply();
-        en_regrow();
-        say("RESET", piece_name(proj.piece));
-        mark_dirty();
+        if (ui.view == V_BT) {                 /* (the Bluetooth page: the speaker picked, forgotten) */
+            bt_forget();
+        } else {
+            project_piece_reset();
+            project_apply();
+            en_regrow();
+            say("RESET", piece_name(proj.piece));
+            mark_dirty();
+        }
     }
     for (i = 0; i < 4; i++)
         if ((e = enc_in(EN_K1 + (int)i)) != 0) {
@@ -1515,7 +1726,17 @@ static int help_lines(int b, const char *l[HELP_LINES])
     case B_REC: L("FREEZE: THE CHORD HOLDS"); L(" AND THE REVERB RINGS ON"); L("AGAIN: THAW"); break;
     case B_OCTDN: L("THE BELLS AN OCTAVE DOWN"); L("WITH OCT+, 5 S: UPDATE MODE"); break;
     case B_OCTUP: L("THE BELLS AN OCTAVE UP"); L("WITH OCT-, 5 S: UPDATE MODE"); break;
-    case B_SAVE: L("SAVES EVERY ACT"); L("KEEP HOLDING: THE ACT"); L(" BACK TO ITS RECIPE"); break;
+    case B_SAVE:
+        if (ui.view == V_BT) {
+            L("CONNECTS THE SPEAKER");
+            L("OR LETS IT GO");
+            L("KEEP HOLDING: FORGET IT");
+        } else {
+            L("SAVES EVERY ACT");
+            L("KEEP HOLDING: THE ACT");
+            L(" BACK TO ITS RECIPE");
+        }
+        break;
     case B_HOME: L("HOME STORY, FX COLOURS, SEL EFFECTS,"); L(" ENV REVERSE, LFO STUTTER, EDIT LEAD, GLO SETUP,");
         L(" SAVE, ARP FILTER, SEQ SPARKLE,"); L(" PLAY, REC FREEZE"); break;
     default: break;
@@ -1647,11 +1868,13 @@ static void draw_map(void)
 #define TRACE_N 24
 #define TRACE_MS 8000u
 static struct {
-    uint8_t pitch, on;                           /* pitch: 0..26 above F3 (the key's, snapped); on: still held */
+    uint8_t pitch, on, ans;                      /* pitch: 0..26 above F3 (the key's, snapped); on: still held; ans: the
+                                                  * answer's (0.6: its own colour; on: its note) */
     uint32_t t0, t1;
 } trace[TRACE_N];
 static int trace_head;
 static uint32_t trace_keys;
+static uint8_t trace_ans_r;
 static void lead_trace_tick(void)                /* the keys down and let go, into the trace */
 {
     uint32_t keys = ui.lead ? ui.keys : 0u, ch = keys ^ trace_keys, now = plat_ms();
@@ -1663,18 +1886,41 @@ static void lead_trace_tick(void)                /* the keys down and let go, in
             int pt = k;                          /* (every key its own note) */
             trace[trace_head].pitch = (uint8_t)(pt < 0 ? 0 : pt > 26 ? 26 : pt);
             trace[trace_head].on = (uint8_t)(k + 1);
+            trace[trace_head].ans = 0;
             trace[trace_head].t0 = now;
             trace[trace_head].t1 = now;
             trace_head = (trace_head + 1) % TRACE_N;
         } else {                                 /* let go */
             for (e = 0; e < TRACE_N; e++)
-                if (trace[e].on == k + 1) {
+                if (trace[e].on == k + 1 && !trace[e].ans) {
                     trace[e].on = 0;
                     trace[e].t1 = now;
                 }
         }
     }
     trace_keys = keys;
+    while (trace_ans_r != en_ans_w) {            /* the answer's notes */
+        uint8_t w = en_ans_ring[trace_ans_r & 15u], key = w & 0x7Fu;
+        int pt = (int)key - 53;
+        trace_ans_r++;
+        while (pt > 26)
+            pt -= 12;
+        while (pt < 0)
+            pt += 12;
+        if (!(w & 0x80u)) {
+            trace[trace_head].pitch = (uint8_t)pt;
+            trace[trace_head].on = key;
+            trace[trace_head].ans = 1;
+            trace[trace_head].t0 = trace[trace_head].t1 = now;
+            trace_head = (trace_head + 1) % TRACE_N;
+        } else {
+            for (e = 0; e < TRACE_N; e++)
+                if (trace[e].ans && trace[e].on == key) {
+                    trace[e].on = 0;
+                    trace[e].t1 = now;
+                }
+        }
+    }
 }
 static void draw_lead(void)
 {
@@ -1707,10 +1953,11 @@ static void draw_lead(void)
             xb = xa + 6;
         y = bot - trace[e].pitch * (bot - top) / 26;
         age = (float)a1 / (float)TRACE_MS;
-        cv_round(xa, y - 3, xb - xa, 7, 3, mix(K_BG, mix(K_ACC, K_PAD, (uint32_t)(fm_minf(age * 2.0f, 1.0f) * 16.0f)),
+        cv_round(xa, y - 3, xb - xa, 7, 3, mix(K_BG, mix(trace[e].ans ? K_BELL : K_ACC, trace[e].ans ? K_FROST : K_PAD,
+                                                         (uint32_t)(fm_minf(age * 2.0f, 1.0f) * 16.0f)),
                                               (uint32_t)(16.0f - 11.0f * age)));
         if (trace[e].on)
-            cv_disc(x1 - 2, y, 6, K_ACC);
+            cv_disc(x1 - 2, y, 6, trace[e].ans ? K_BELL : K_ACC);
     }
     caps(t, EN_LEAD_NAME[proj.par[P_LSOUND]], sizeof t);
     cv_text(x1 - text_w(&FONT_XS, t), 0, &FONT_XS, t, K_PAD);
@@ -1719,6 +1966,8 @@ static void draw_lead(void)
         int32_t w = text_w(&FONT_B, c);
         cv_round(x0 - 4, 0, w + 8, 17, 3, K_BG);
         cv_text(x0, 0, &FONT_B, c, K_ACC);
+        if (proj.answer)                         /* (0.6: the answer on, in its colour) */
+            cv_text(x0 + w + 8, 3, &FONT_XS, "answer on", K_BELL);
     }
 }
 
@@ -1750,6 +1999,55 @@ static void draw_setup(void)
         text_c(CX, CY - 1, &FONT_B, t, K_TEXT);
         text_c(CX, CY + 13, &FONT_XS, "bpm", K_DIM);
     }
+}
+
+/* Bluetooth (0.6): what it is doing, in words; the speakers, known and found, the one picked outlined, the one
+ * connected green; how to work it */
+static void draw_bt(void)
+{
+    int st = plat_bta_state(), busy = bt_busy(st), i, first, rows = 5, dots = (int)(plat_ms() / 400u % 4u);
+    char t[40];
+    const char *w;
+    int n = 0;
+    if (proj.bt_off)
+        w = "Bluetooth is off";
+    else if (st == PLAT_BTA_STREAMING)
+        w = plat_bta_out_device() ? "Playing on" : "Linked (sound on the FM-1)";
+    else if (busy)
+        w = "Connecting to";
+    else if (st == PLAT_BTA_SCANNING)
+        w = "Looking for speakers";
+    else
+        w = bt.n ? "Pick a speaker" : "No speakers yet";
+    while (*w && n < 30)
+        t[n++] = *w++;
+    if (st == PLAT_BTA_SCANNING && !proj.bt_off)
+        for (i = 0; i < dots; i++)
+            t[n++] = '.';
+    t[n] = 0;
+    cv_text(8, 2, &FONT_B, t, proj.bt_off ? K_DIM : busy ? K_PAD : K_TEXT);
+    if (busy && !proj.bt_off)
+        cv_text(8 + text_w(&FONT_B, t) + 6, 2, &FONT_B, bt.conn, K_ACC);
+    first = bt.sel - rows / 2;
+    if (first > bt.n - rows)
+        first = bt.n - rows;
+    if (first < 0)
+        first = 0;
+    for (i = first; i < bt.n && i < first + rows; i++) {
+        int32_t y = 24 + (i - first) * 20;
+        int on = busy && !strcmp(bt.name[i], bt.conn), known = bt.src[i] < 10;
+        uint16_t c = on ? K_PAD : known ? K_BELL : K_LINE;
+        if (i == bt.sel)
+            cv_round(6, y, 228, 18, 5, K_ACC);
+        cv_round(i == bt.sel ? 8 : 6, y + (i == bt.sel ? 2 : 0), i == bt.sel ? 224 : 228, i == bt.sel ? 14 : 18, 4, K_PANEL);
+        cv_disc(18, y + 9, 4, c);
+        cv_text(28, y + 2, &FONT_XS, bt.name[i], on ? K_PAD : K_TEXT);
+        w = on ? (st == PLAT_BTA_STREAMING ? "playing" : "connecting") : known ? "known" : "new";
+        cv_text(228 - text_w(&FONT_XS, w), y + 2, &FONT_XS, w, on ? K_PAD : K_DIM);
+    }
+    if (!bt.n && !proj.bt_off)
+        text_c(120, 56, &FONT_XS, "Put the speaker in pairing mode", K_DIM);
+    cv_text(8, 128, &FONT_XS, proj.bt_off ? "The Bluetooth knob turns it on" : "SAVE: connect / let go. Hold: forget", K_LINE);
 }
 
 /* System: a little StoryBox, blinking now and then, in front of the dimmed rings; under it, in words, how it is */
@@ -1900,7 +2198,7 @@ static void draw_main(void)
     uint32_t h, i;
     int what = ui.help ? 1 : ui.view == V_STORY ? 2 : ui.view == V_LEAD ? 3 : ui.view == V_SPACE ? 4 : ui.view >= V_REV ? 5 :
                ui.view == V_GARDEN ? 6 : ui.view == V_SETUP ? 7 : ui.view == V_SYSTEM ? 8 : ui.view == V_MIX ? 9 :
-               ui.view == V_COLR ? 10 : 0;
+               ui.view == V_COLR ? 10 : ui.view == V_BT ? 11 : 0;
     lead_trace_tick();
     mix_meter_tick();
     if (ui.frame % 3u)                           /* 20 frames a second is plenty */
@@ -1941,6 +2239,11 @@ static void draw_main(void)
         h = hash(hash(h, (uint32_t)(batt() + 1) | (uint32_t)proj.leds << 4 | (uint32_t)proj.par[P_MIDI] << 8),
                  (plat_ms() % 4200u < 160u) | (plat_ms() / 700u % 6u) << 1 | (plat_ms() / 1000u) << 4);
         goto rings_too;
+    case 11:
+        h = hash(hash(hash(h, (uint32_t)plat_bta_state() | (uint32_t)bt.sel << 4 | (uint32_t)bt.n << 8 |
+                                  (uint32_t)plat_bta_out_device() << 12 | (uint32_t)proj.bt_off << 13),
+                      plat_ms() / 400u), (uint32_t)bt.name[bt.sel][0] | (uint32_t)bt.conn[0] << 8 | (uint32_t)bt.name[0][1] << 16);
+        break;
     case 6:
         h = hash(hash(h, (uint32_t)proj.par[P_ENERGY] | (uint32_t)proj.par[P_TENSION] << 8 | (uint32_t)(en_drift * 40.0f) << 16),
                  (uint32_t)(en_arc * 100.0f + 100.0f));
@@ -1973,6 +2276,7 @@ static void draw_main(void)
     case 8: draw_system(); break;
     case 9: draw_mixer(); break;
     case 10: draw_colours(); break;
+    case 11: draw_bt(); break;
     default: draw_rings(ring_focus()); break;
     }
     cv_blit(0, MAIN_Y);
@@ -2155,6 +2459,10 @@ static int sp_same(const char *a, const char *b)
 static void sp_value(int k)
 {
     char t[16];
+    if (k == K_BTDEV && bt.n) {                  /* (the speaker by its name) */
+        sp_cat(bt.name[bt.sel]);
+        return;
+    }
     knob_text(k, t);
     if (k == P_DRIFT) {
         uint32_t m = 0, s = 0, i;
@@ -2216,6 +2524,8 @@ static void sp_page(int all)
     sp_cat(VIEW_NAME[ui.view]);
     sp_cat(" page");
     for (i = 0; i < 4; i++) {
+        if (VIEW_KNOB[ui.view][i] == K_NONE)
+            continue;
         sp_cat(i ? ", " : ": ");
         sp_knob(ui.view, i);
     }
@@ -2570,6 +2880,7 @@ void ui_init(void)
     ui.touched = -1;
     ui.acts = 1;                                 /* the keys: the acts, from the start */
     memset(&tr, 0, sizeof tr);
+    memset(&bt, 0, sizeof bt);
     tr.pending = -1;
     lcd_fill(0, 0, 240, 240, K_BG);
     if (!en_playing)
@@ -2583,6 +2894,7 @@ void ui_frame(void)
 {
     input();
     tr_tick();
+    bt_tick(ui.view == V_BT);
     autosave();
     if (ui.frame % 60u == 30u)                   /* the mutes said again now and then (a lost word would leave a track
                                                   * silent, the screen saying it's heard) */
