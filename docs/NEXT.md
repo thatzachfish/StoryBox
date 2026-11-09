@@ -99,3 +99,12 @@ Sound notes (2026-11-09):
 - [ ] Breakdown's label: with the tracks' row (the black keys), not off by the story's name
 - [ ] Fly's Buzz: a fly buzzing (a buzzy tone wobbling in pitch, swelling, flying across left to right), not bells;
       The web: liked
+- [ ] Knob layout: keep Drums' Swing and Melody's Octave (Zach). Proposal B: same order everywhere (Level, how busy,
+      Sound, range), every control kept; the instruments' own effects (Shimmer, Echo, Drive, Crush) on one new
+      page, in the Mixer's order. Awaiting Zach
+- [x] Scatter in place of Phaser: yes
+- [ ] Harp: replace it (with what: propose)
+- [ ] Mockups first: Mixer's channel strips, Lead's own picture, a clearer Feel (no tide)
+- [ ] Fly: more waltz (oom-pah-pah: the brushes' rim on 2 and 3), more Structure; Entry not scary yet; Approach's
+      melody instrument wrong: a slide guitar running there (a Melody sound "Slide": each note sliding into the
+      next, its vibrato); Tension building across the acts (Devour higher); Good-bye liked as it is
