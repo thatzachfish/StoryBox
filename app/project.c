@@ -94,6 +94,14 @@ int project_load(void)
     memset(&buf, 0, sizeof buf);
     n = plat_store_load(OBJ_PROJ, &buf, sizeof buf);
     proj = buf;
+    if (n >= 8 && proj.magic == PROJ_MAGIC && proj.format == 6u) {   /* 0.2's: its 24 pieces kept, Fly's four added
+                                                                     * (Surf, new, 0 in them) */
+        int i;
+        for (i = 6 * EN_NACT; i < NPIECES; i++)
+            recipe(i, &proj.slot[i]);
+        memset(proj.rsv, 0, sizeof proj.rsv);
+        proj.format = PROJ_FORMAT;
+    }
     if (n >= 8 && project_valid())
         return 0;
     project_defaults();

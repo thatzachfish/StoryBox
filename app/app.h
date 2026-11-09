@@ -22,7 +22,8 @@ void ui_splash(void);
 enum { OBJ_PROJ, OBJ_PANEL, OBJ_NOBJ };
 #define APP_STORE_MAP {0xFC000u, 0xDC000u}
 #define PROJ_MAGIC 0x31425453u           /* StoryBox: "STB1" (AMB-1's "ENO1" at the same place is not read: defaults) */
-#define PROJ_FORMAT 6u                   /* 2: Freedom; 3: Tension, Meter, Energy; 4: the lead; 5: Groove; 6: punch-ins */
+#define PROJ_FORMAT 7u                   /* 2: Freedom; 3: Tension, Meter, Energy; 4: the lead; 5: Groove; 6: punch-ins;
+                                          * 7: Fly (a seventh story), Surf (6 read: Fly added) */
 #define NPIECES EN_NPIECES
 
 typedef struct {

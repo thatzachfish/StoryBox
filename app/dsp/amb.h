@@ -71,6 +71,7 @@ enum {
                                                        * snare and clap on two and four, a boom-bap kick; 4/4) */
     P_RVLEN, P_RVMIX, P_STRATE, P_STMIX,              /* the punch-in effects (the player's): Reverse's length and mix, */
     P_FLCUT, P_FLRES, P_PHRATE, P_PHDEPTH,            /* Stutter's rate and mix, Filter's cutoff and resonance, Phaser's */
+    P_SURF,                                           /* the act's: an ocean's rush, waves of filtered noise (0 none) */
     P_NPARAMS
 };
 typedef struct {
@@ -100,9 +101,9 @@ enum { FX_REVERSE, FX_STUTTER, FX_FILTER, FX_PHASER, EN_NFX };
 void en_fx(uint32_t mask);
 extern volatile float en_fade;                 /* StoryBox: the whole sound's level (the sleep timer), 0..1 */
 extern volatile uint8_t en_fx_on;              /* (UI) the effects heard now */
-/* the lead: the keys in Lead mode (and MIDI in), snapped to the scale. Struck sounds ring on, three at a time;
- * held sounds (the flute) are one voice, gliding from note to note while held */
-enum { LEAD_KALIMBA, LEAD_BELL, LEAD_FLUTE, LEAD_GUITAR, LEAD_PIANO, LEAD_STRINGS, EN_NLEAD };
+/* the lead: the keys in Lead mode (and MIDI in), snapped to the scale, three notes at a time. Struck sounds ring
+ * on; bowed ones (violin, cello) last while held; the flute and the slide are one voice, gliding from note to note */
+enum { LEAD_KALIMBA, LEAD_BELL, LEAD_FLUTE, LEAD_GUITAR, LEAD_RHODES, LEAD_VIOLIN, LEAD_CELLO, LEAD_SLIDE, EN_NLEAD };
 extern const char *const EN_LEAD_NAME[EN_NLEAD];
 int en_lead_snap(int note);                    /* the scale's note at or just below note (the main loop's view) */
 void en_lead_on(int note, int vel);
@@ -154,7 +155,7 @@ const char *en_chord_name(const int *pcs, int n, char *buf);   /* "Em7", "Dsus4"
 
 /* StoryBox: stories of EN_NACT acts; a piece is one act of one story (piece = story * EN_NACT + act), its recipe
  * for every parameter (Tune, MIDI out and Root included, but they are the player's) */
-#define EN_NSTORY 6
+#define EN_NSTORY 7
 #define EN_NACT 4
 #define EN_NPIECES (EN_NSTORY * EN_NACT)
 const char *en_story_name(int s);

@@ -42,6 +42,7 @@ static const en_param_t PARAMS[P_NPARAMS] = {
     {"Lead oct", -2, 2, 0},   {"Structure", 0, 100, 0}, {"Kit", 0, 1, 0},
     {"Length", 0, 100, 40},   {"Mix", 0, 100, 100},     {"Rate", 0, 3, 1},        {"Mix", 0, 100, 100},
     {"Cutoff", 0, 100, 25},   {"Resonance", 0, 100, 40}, {"Rate", 0, 100, 30},     {"Depth", 0, 100, 70},
+    {"Surf", 0, 100, 0},
 };
 const en_param_t *en_param_info(int i) { return (i >= 0 && i < P_NPARAMS) ? &PARAMS[i] : &PARAMS[0]; }
 
@@ -106,6 +107,16 @@ static const struct {
         {"G:2 Bm/F#:2 Em:2 D:2", "G:2 Em:2 D:2 Em:2", "Gm:2 F#:2 F:2 Em:2 F:2 F#:2",
          "G:2 Bm/F#:2 Em:2 D:2 G:2 Em:2 D:2 Gmagic:4"},
         7, {"G6", "G2 G3 D4 E4 F#4 G4"}, {"High G", "Magic"}},
+    /* Fly: a fly who helps the spider undo him. A slow, spooky waltz in A minor (with E minor, and an E7 bending the
+     * scale), plucked bells, a slide guitar's lead. Entry: classy and spare. Approach: fuller, the voices in.
+     * Devour: heavier, the backbeat, Tension. Good-bye: no drums, the bass and the pad heavy, an ocean rushing in */
+    {"Fly", {"Entry", "Approach", "Devour", "Good-bye"}, {
+        {40, 50, 40, 30, 25, 25, 30, 30, 45, 2, 65, 85, 35, 50, 30, 35, 0, 1, 80, 9, 5, 0, 0, 0, 10, 25, 0, 30, 15, 0, 1, 50, 7, 60, 45, 55, 0, 70, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {50, 60, 50, 40, 40, 40, 30, 40, 50, 2, 65, 85, 45, 45, 40, 50, 0, 1, 84, 9, 5, 0, 1, 0, 20, 30, 0, 40, 20, 5, 1, 50, 7, 65, 50, 60, 0, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {60, 55, 65, 60, 50, 50, 25, 60, 45, 2, 60, 80, 50, 35, 55, 70, 0, 1, 88, 9, 5, 0, 1, -1, 15, 40, 0, 60, 15, 25, 1, 50, 7, 70, 60, 50, 0, 70, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {75, 20, 70, 0, 15, 20, 70, 0, 35, 4, 72, 92, 20, 85, 20, 40, 0, 1, 60, 9, 5, -1, 1, -1, 40, 20, 0, 0, 30, 10, 1, 50, 7, 50, 35, 70, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 70}},
+        {"Am:2 Em:2 Am:2 Em:2", "Am:2 Em:2 F:2 E7:2", "Am:2 F:2 Dm:2 E7:2", "Am:4 Em:4 Fmaj7:4 Em:4"},
+        9, {"E6 D#6 E6", "A2 E3 A3 C4 B3 A3"}, {"Buzz", "The web"}},
 };
 
 /* the progressions and stings, parsed once. A step: a degree (prog_deg >= 0), or a named chord: its root and bass
@@ -494,7 +505,7 @@ void en_mute(uint32_t mask) { post(C_MUTE, 0, (int)(mask & 15u)); }
 void en_fx(uint32_t mask) { post(C_FX, 0, (int)(mask & 15u)); }
 void en_lead_on(int note, int vel) { post(C_LON, note & 127, vel & 127); }
 void en_lead_off(int note) { post(C_LOFF, note & 127, 0); }
-const char *const EN_LEAD_NAME[EN_NLEAD] = {"Kalimba", "Bell", "Flute", "Guitar", "Piano", "Strings"};
+const char *const EN_LEAD_NAME[EN_NLEAD] = {"Kalimba", "Bell", "Flute", "Guitar", "Rhodes", "Violin", "Cello", "Slide"};
 void en_breakdown(int on) { post(C_BREAK, on ? 1 : 0, 0); }
 void en_sting(int piece, int k)
 {
@@ -1238,6 +1249,7 @@ static void drums_wait_step(int32_t k)          /* k samples went by: hits whose
 /* the grid: one call a sixteenth (MIDI clock: 6 ticks) */
 static uint32_t sixteenth;
 static uint8_t bar_pos, meter_next;             /* StoryBox: the sixteenth in the bar; 3/4 asked for (from the next bar) */
+static uint8_t fill_bar;                        /* StoryBox: this bar ends its phrase with a fill */
 static void loops_for(uint8_t *len)             /* the loops' lengths for Structure and the meter */
 {
     static const uint8_t L[3][2][EN_NLOOP] = {
@@ -1351,16 +1363,39 @@ static void tick(void)
         if (frand() < evolve * 0.25f * (1.0f - 0.01f * (float)par[P_GROOVE]))
             drums_evolve();                      /* (Groove steadies them: at 100 they stay put) */
     }
+    if (bar)                                    /* StoryBox: a phrase's last bar (of four) may end in a fill: more
+                                                 * surely with Structure, more often with Energy */
+        fill_bar = (en_barno & 3u) == 0u && !pulse_rest && !bd && drum_kb[0] > 0 &&
+                   frand() < (0.2f + 0.45f * (float)par[P_GROOVE] * 0.01f) * (0.7f + 0.3f * energy);
     if (par[P_KIT] && en_bar_len == 16 && !pulse_rest && !bd && par[P_PULSE] > 0) {   /* the backbeat kit */
         int b = bar_pos;
         if (b == 4 || b == 12)
             snare_fire((0.75f + 0.2f * frand()) * pa);
         else if ((b == 7 || b == 15) && frand() < 0.15f + 0.3f * (energy + 1.0f) * 0.5f)
             snare_fire(0.18f * pa);              /* a ghost */
+    } else if (par[P_KIT] && en_bar_len == 12 && !pulse_rest && !bd && par[P_PULSE] > 0) {   /* a waltz's: pah, pah */
+        int b = bar_pos;
+        if (b == 4 || b == 8)
+            snare_fire((0.38f + 0.12f * frand() + (b == 8 ? 0.08f : 0.0f)) * pa);
+        else if (b == 11 && frand() < 0.1f + 0.2f * (energy + 1.0f) * 0.5f)
+            snare_fire(0.15f * pa);
+    }
+    if (!pulse_rest && !bd && drum_kb[0] > 0 && !fill_bar && bar_pos == en_bar_len - 2 &&
+        !(drum_pat[0] >> drum_pos[0] & 1u) && frand() < 0.08f + 0.1f * (energy + 1.0f))
+        drum_hit(0, (0.5f + 0.15f * frand()) * pa, 0);   /* now and then a kick leading into the bar */
+    if (fill_bar && bar_pos >= en_bar_len - 4 && bd_ret != 2) {   /* the fill: the last beat's sixteenths, rising */
+        int f = bar_pos - (en_bar_len - 4);
+        drum_hit(1, (0.4f + 0.15f * (float)f) * pa, (int)(sixteenth & 1u));
+        if (par[P_KIT] && f >= 2)
+            snare_fire((0.4f + 0.2f * (float)(f - 2)) * pa);
+        else if (!par[P_KIT] && f == 2)
+            drum_hit(0, 0.6f * pa, 0);
     }
     for (d = 0; d < EN_NDRUM; d++) {
-        if (drum_pat[d] >> drum_pos[d] & 1u && !pulse_rest && !bd)
-            drum_hit(d, ((drum_pos[d] == 0 ? 0.95f : 0.6f) + 0.25f * frand()) * pa, (int)(sixteenth & 1u));
+        int p = drum_pos[d];
+        if (drum_pat[d] >> p & 1u && !pulse_rest && !bd && !(fill_bar && d == 1 && bar_pos >= en_bar_len - 4))
+            drum_hit(d, ((p == 0 ? 0.95f : (p & 3) == 0 ? 0.75f : 0.55f) + 0.25f * frand()) * pa,   /* accents */
+                     (int)(sixteenth & 1u));
         en_drum_pos[d] = drum_pos[d];
         if (++drum_pos[d] >= drum_n[d])
             drum_pos[d] = 0;
@@ -2220,7 +2255,7 @@ static void render_snare(uint32_t n, float g)
 static void render_drums(uint32_t n)
 {
     uint32_t j;
-    const float g = pulse_vol * 1.1f * mg[3];
+    const float g = pulse_vol * 1.45f * mg[3];   /* (StoryBox 0.3: louder) */
     drum_t *v;
     v = &drum[0];                                /* thump: a sine falling to its note */
     if (v->on) {
@@ -2249,29 +2284,43 @@ static void render_drums(uint32_t n)
 }
 
 /* ------------------------------------------------------------------ lead --- */
-/* StoryBox's lead, three voices. Five ways to make a sound:
+/* StoryBox's lead, three voices. Five ways to make a sound (StoryBox 0.3: Rhodes for the piano, a bowed solo voice
+ * through a body's resonances for Violin and Cello, a slide guitar):
  *   FM      two operators: a bright strike (the index fading) over a body that rings (kalimba, bell)
  *   FLUTE   a warm tone (a little self-modulation and an octave), a breath band-passed from noise, a chiff as the note
  *           starts, vibrato easing in after a moment
  *   STRING  a plucked string (Karplus-Strong): a burst of filtered noise in a delay line the length of the note, fed
  *           back through a gentle low-pass; a guitar
- *   PIANO   two pairs: a body (FM 1:1, its index fading to a floor, ringing long) and a tine (14:1, a short bright
- *           clang); the body's twin a little sharp, panned apart
- *   BOWED   a section: two players a little apart in pitch and in the stereo field, swelling in, slow vibrato
+ *           (Slide: one voice, the string's length gliding from note to note: a bottleneck's slide, sliding up into
+ *           a fresh note)
+ *   PIANO   a Rhodes: two pairs, a body (FM 1:1, its index fading to a floor, ringing long) and a tine (14:1, a
+ *           short bright clang); the body's twin a little sharp; a slow stereo tremolo
+ *   BOWED   a bowed string: a near-saw, brighter as the bow presses (the swell), a slow vibrato easing in, the bow's
+ *           hiss, through the body's resonances (a violin's: its air, its wood and the bridge's hill; a cello's,
+ *           an octave and more lower)
  * ring: how long a struck note rings (s; 0 held: it lasts while the key is down, then fades over rel) */
 enum { LK_FM, LK_FLUTE, LK_STRING, LK_PIANO, LK_BOWED };
-static float lead_vib;
+static float lead_vib, lead_trem;
+static float body_s[2][3][2];                    /* the bowed body's three resonators a side: band, low */
 static int16_t ks[NLEAD][KS_N] EN_POOL;          /* the strings, as 16-bit samples (x 16384) */
 static const struct {
-    uint8_t kind;
-    float ratio, idx, idx_t, ring, atk, rel, vib, breath, detune;
+    uint8_t kind, legato, body;                  /* legato: one voice, gliding (with Glide); body: 1 violin, 2 cello */
+    int8_t oct;
+    float ratio, idx, idx_t, ring, atk, rel, vib, breath, detune, gain;
 } LEADS[EN_NLEAD] = {
-    {LK_FM, 5.4f, 1.4f, 0.07f, 2.4f, 0.002f, 0.4f, 0.0f, 0.0f, 0.0f},        /* kalimba: a tick, a round body ringing on */
-    {LK_FM, 3.5f, 2.2f, 0.9f, 3.5f, 0.003f, 0.6f, 0.0f, 0.0f, 0.0f},         /* bell: a music box's */
-    {LK_FLUTE, 1.0f, 0.0f, 0.0f, 0.0f, 0.09f, 0.35f, 0.0045f, 0.06f, 0.0f},  /* flute */
-    {LK_STRING, 1.0f, 0.0f, 0.0f, 4.0f, 0.001f, 0.15f, 0.0f, 0.0f, 0.0f},    /* guitar */
-    {LK_PIANO, 1.0f, 1.3f, 1.4f, 5.5f, 0.002f, 0.45f, 0.0f, 0.05f, 0.0011f}, /* piano: a felt hammer's knock first */
-    {LK_BOWED, 1.0f, 1.75f, 60.0f, 0.0f, 0.28f, 0.8f, 0.0055f, 0.018f, 0.005f},   /* strings: brighter (near a saw), the bow's hiss */
+    {LK_FM, 0, 0, 0, 5.4f, 1.4f, 0.07f, 2.4f, 0.002f, 0.4f, 0.0f, 0.0f, 0.0f, 1.0f},        /* kalimba: a tick, a round body */
+    {LK_FM, 0, 0, 0, 3.5f, 2.2f, 0.9f, 3.5f, 0.003f, 0.6f, 0.0f, 0.0f, 0.0f, 1.0f},         /* bell: a music box's */
+    {LK_FLUTE, 1, 0, 0, 1.0f, 0.0f, 0.0f, 0.0f, 0.09f, 0.35f, 0.0045f, 0.06f, 0.0f, 1.0f},  /* flute */
+    {LK_STRING, 0, 0, 0, 1.0f, 0.0f, 0.0f, 4.0f, 0.001f, 0.15f, 0.0f, 0.0f, 0.0f, 1.3f},    /* guitar */
+    {LK_PIANO, 0, 0, 0, 1.0f, 0.9f, 1.1f, 4.5f, 0.002f, 0.35f, 0.0f, 0.0f, 0.0008f, 1.05f}, /* Rhodes: warm, a bell-like tine */
+    {LK_BOWED, 0, 1, 0, 1.0f, 1.9f, 60.0f, 0.0f, 0.16f, 0.45f, 0.0065f, 0.03f, 0.0018f, 1.25f},  /* violin */
+    {LK_BOWED, 0, 2, -1, 1.0f, 1.8f, 60.0f, 0.0f, 0.24f, 0.6f, 0.0055f, 0.025f, 0.0015f, 1.35f}, /* cello */
+    {LK_STRING, 1, 0, 0, 1.0f, 0.0f, 0.0f, 10.0f, 0.001f, 0.25f, 0.0075f, 0.0f, 0.0f, 1.35f}, /* slide guitar: long */
+};
+/* the bodies' resonances: Hz, Q, gain; and how much of the string goes straight through */
+static const float BODY[2][3][3] = {
+    {{290.0f, 3.0f, 0.9f}, {470.0f, 4.0f, 1.1f}, {2900.0f, 1.4f, 0.8f}},     /* violin: its air, its wood, the bridge */
+    {{110.0f, 3.0f, 1.0f}, {210.0f, 3.5f, 1.1f}, {1400.0f, 1.4f, 0.7f}},     /* cello */
 };
 
 int en_lead_snap(int n)                          /* down to the scale (the root kept) */
@@ -2307,14 +2356,14 @@ static void ks_pluck(lead_t *v, int i, float f, float vel)   /* the string's fir
 
 static void lead_note_on(int key, int vel)
 {
-    int sd = par[P_LSOUND], n = en_lead_snap(key) + 12 * par[P_LOCT], i, best = 0;
-    float lo = 9.0f, fv = (float)vel / 127.0f;
+    int sd = par[P_LSOUND], n = en_lead_snap(key) + 12 * (par[P_LOCT] + LEADS[sd].oct), i, best = 0, kind = LEADS[sd].kind;
+    float lo = 9.0f, fv = (float)vel / 127.0f, from = 0.0f;
     lead_t *v;
     while (n > 100)
         n -= 12;
-    while (n < 36)
+    while (n < 28)
         n += 12;
-    if (LEADS[sd].ring <= 0.0f && lead_glide_t > 0.0f) {   /* a held sound with Glide: one voice, gliding legato */
+    if (LEADS[sd].legato && lead_glide_t > 0.0f) {   /* one voice, gliding legato (the flute, the slide) */
         v = &lead[0];
         for (i = 1; i < NLEAD; i++)
             lead[i].on = 0;
@@ -2326,6 +2375,8 @@ static void lead_note_on(int key, int vel)
             midi(0x94, (uint32_t)n, (uint32_t)vel);
             return;
         }
+        if (v->on && kind == LK_STRING)          /* the string still ringing: picked again, sliding from its note */
+            from = v->inc;
         best = 0;
     } else {
         for (i = 0; i < NLEAD; i++) {            /* a free voice, or the quietest */
@@ -2347,14 +2398,16 @@ static void lead_note_on(int key, int vel)
     v->chiff = 1.0f;
     v->vt = 0.0f;
     v->inc = v->inc_t = mtof((float)n) * (1.0f / EN_SR);
+    if (LEADS[sd].legato && kind == LK_STRING)   /* the slide: from the last note, or up into this one */
+        v->inc = from > 0.0f ? from : v->inc_t * 0.9439f;
     v->amp = 0.35f + 0.65f * fv;
     v->amp2 = 0.5f * fv + 0.15f;
     v->att = 0.0f;
     v->idx = LEADS[sd].idx * (0.3f + 1.4f * lead_tone) * (0.6f + 0.6f * fv) * (1.0f / FM_TWO_PI);
     v->idx2 = (0.4f + 1.2f * lead_tone) * fv * (1.0f / FM_TWO_PI);
     v->rel = 1.0f;
-    if (LEADS[sd].kind == LK_STRING)
-        ks_pluck(v, best, mtof((float)n), fv);
+    if (kind == LK_STRING)
+        ks_pluck(v, best, v->inc * EN_SR, fv);
     midi(0x94, (uint32_t)n, (uint32_t)vel);
 }
 
@@ -2371,7 +2424,11 @@ static void lead_note_off(int key)
 static void render_lead(uint32_t n)
 {
     int i, sd = par[P_LSOUND], kind = LEADS[sd].kind;
-    const float g = lead_vol * 0.4f, dt = 1.0f + LEADS[sd].detune;
+    const float g = lead_vol * 0.4f * LEADS[sd].gain, dt = 1.0f + LEADS[sd].detune;
+    const int body = kind == LK_BOWED ? LEADS[sd].body : 0;
+    static float bodl[BLK], bodr[BLK];
+    float trem;
+    uint32_t j0;
     const float idec = LEADS[sd].idx_t > 0.0f ? fm_expf(-6.9f / (LEADS[sd].idx_t * EN_SR)) : 1.0f,
                 adec = LEADS[sd].ring > 0.0f ? fm_expf(-6.9f / (LEADS[sd].ring * EN_SR)) : 1.0f,
                 rdec = fm_expf(-6.9f / (LEADS[sd].rel * EN_SR)), arate = 1.0f / (LEADS[sd].atk * EN_SR * 0.25f + 1.0f),
@@ -2383,6 +2440,13 @@ static void render_lead(uint32_t n)
     if (lead_vib >= 1.0f)
         lead_vib -= 1.0f;
     vib = LEADS[sd].vib * sine(lead_vib);
+    lead_trem += (float)n * (4.6f / EN_SR);      /* the Rhodes' tremolo, side to side */
+    if (lead_trem >= 1.0f)
+        lead_trem -= 1.0f;
+    trem = 0.2f * sine(lead_trem);
+    if (body)
+        for (j0 = 0; j0 < n; j0++)
+            bodl[j0] = bodr[j0] = 0.0f;
     for (i = 0; i < NLEAD; i++) {
         lead_t *v = &lead[i];
         float cph = v->cph, cph2 = v->cph2, mph = v->mph, mph2 = v->mph2, amp = v->amp, amp2 = v->amp2, att = v->att,
@@ -2397,8 +2461,11 @@ static void render_lead(uint32_t n)
         pi = inc * vd;
         if (kind == LK_FLUTE)
             fl = 0.25f + 0.4f * lead_tone;       /* the flute's warmth: its self-modulation */
-        if (kind == LK_STRING)                   /* the loop's loss a pass: the note rings LEADS.ring s */
-            ksg = fm_expf(-6.9f / (LEADS[sd].ring * EN_SR * (1.0f / v->ksl))) * 0.5f;
+        if (kind == LK_STRING) {                 /* the string's length: the note's (gliding, wavering: the slide) */
+            v->ksl = fm_clampf(1.0f / pi - 0.5f, 8.0f, (float)(KS_N - 4));
+            ksg = fm_expf(-6.9f / (LEADS[sd].ring * EN_SR * (1.0f / v->ksl))) * 0.5f;   /* the loss a pass: it rings
+                                                                                         * LEADS.ring s */
+        }
         for (j = 0; j < n; j++) {
             float x, xr, m, l = 0.5f, r = 0.5f;
             switch (kind) {
@@ -2427,14 +2494,15 @@ static void render_lead(uint32_t n)
                 v->kslp += (x - v->kslp) * (0.6f + 0.35f * lead_tone);   /* a gentle low-pass in the loop */
                 ks[i][v->ksw & (KS_N - 1)] = (int16_t)(fm_clampf((v->kslp + x) * ksg, -1.99f, 1.99f) * 16384.0f);
                 v->ksw = (v->ksw + 1) & (KS_N - 1);
-                x *= 3.9f;
+                bhp += (x - bhp) * 0.004f;       /* (its DC, out: ~28 Hz) */
+                x = (x - bhp) * 3.9f;
                 break;
             }
             case LK_PIANO:
                 m = sine(mph) * (idx * 0.25f + idx * 0.75f * amp2);   /* the body's index falls to a quarter */
                 x = sine(cph + m + 4.0f);
                 xr = sine(cph2 + m + 4.0f);
-                l = 0.62f, r = 0.38f;
+                l = 0.5f + trem, r = 0.5f - trem;
                 {                                /* the tine: a short bright clang, an octave and a half of overtones */
                     float t = sine(cph + sine(mph2) * idx2 + 4.0f) * amp2 * 0.35f;
                     x += t;
@@ -2452,7 +2520,7 @@ static void render_lead(uint32_t n)
                 xr = xr * r * 3.6f;
                 break;
             case LK_BOWED:
-                m = sine(mph) * idx;
+                m = sine(mph) * idx * (0.45f + 0.55f * att);   /* brighter as the bow presses in */
                 x = sine(cph + m + 4.0f) * 1.24f;
                 xr = sine(cph2 + m + 4.0f) * 1.24f;
                 cph2 += pi * dt;
@@ -2480,10 +2548,15 @@ static void render_lead(uint32_t n)
             {
                 float k = amp * att * rel * g;
                 float ol = x * k, orr = xr * k;
-                mixl[j] += ol;
-                mixr[j] += orr;
-                rsend[j] += (ol + orr) * 0.3f;
-                esend[j] += (ol + orr) * 0.33f;
+                if (body) {                      /* bowed: into the body first (below) */
+                    bodl[j] += ol;
+                    bodr[j] += orr;
+                } else {
+                    mixl[j] += ol;
+                    mixr[j] += orr;
+                    rsend[j] += (ol + orr) * 0.3f;
+                    esend[j] += (ol + orr) * 0.33f;
+                }
             }
             cph += pi;
             mph += pi * ratio;
@@ -2509,6 +2582,31 @@ static void render_lead(uint32_t n)
             v->on = 0;
             if (v->held)
                 midi(0x84, v->note, 0);
+        }
+    }
+    if (body) {                                  /* the body: three resonators a side, and a little of the string */
+        const float (*bp)[3] = BODY[body - 1];
+        int c, k;
+        for (c = 0; c < 2; c++) {
+            float *b = c ? bodr : bodl, *o = c ? mixr : mixl;
+            for (k = 0; k < 3; k++) {
+                const float f = FM_TWO_PI * bp[k][0] * (1.0f / EN_SR), q = 1.0f / bp[k][1], gk = bp[k][2] * q * 2.2f;
+                float band = body_s[c][k][0], low = body_s[c][k][1];
+                for (j0 = 0; j0 < n; j0++) {     /* Chamberlin's state variable filter: its band */
+                    float hi = b[j0] - low - q * band;
+                    band += f * hi;
+                    low += f * band;
+                    o[j0] += band * gk;
+                    rsend[j0] += band * gk * 0.3f;
+                    esend[j0] += band * gk * 0.33f;
+                }
+                body_s[c][k][0] = band;
+                body_s[c][k][1] = low;
+            }
+            for (j0 = 0; j0 < n; j0++) {
+                o[j0] += b[j0] * 0.3f;
+                rsend[j0] += b[j0] * 0.09f;
+            }
         }
     }
 }
@@ -2673,6 +2771,43 @@ static void fx_sample(float *l, float *r)        /* one frame of the whole sound
     *r = y;
 }
 
+/* Surf: an ocean's rush, waves of noise (each side its own) through two low-passes that open as a wave rises; a wave
+ * every 9 s or so, the right side a little behind the left */
+static float surf_lp[2][2], surf_ph, surf_lvl;
+static void render_surf(uint32_t n)
+{
+    uint32_t j;
+    int c;
+    const float want = (float)par[P_SURF] * 0.01f;
+    surf_lvl += (want - surf_lvl) * fm_minf((float)n / (3.0f * EN_SR), 1.0f);   /* (in and out over seconds) */
+    if (surf_lvl < 0.0005f)
+        return;
+    surf_ph += (float)n * (1.0f / (9.3f * EN_SR));
+    if (surf_ph >= 1.0f)
+        surf_ph -= 1.0f;
+    for (c = 0; c < 2; c++) {
+        float sp = surf_ph + (c ? 0.91f : 0.0f), w, a, k, l1 = surf_lp[c][0], l2 = surf_lp[c][1];
+        if (sp >= 1.0f)                          /* (the right a little behind: sine() takes 0 .. 1) */
+            sp -= 1.0f;
+        w = 0.5f + 0.5f * sine(sp);
+        float *o = c ? mixr : mixl;
+        w = w * w;                               /* a wave: rising slowly, falling back */
+        k = 0.012f + 0.09f * w;                  /* (~90 Hz .. 750 Hz) */
+        a = surf_lvl * (0.15f + 0.85f * w) * 1.3f;
+        for (j = 0; j < n; j++) {
+            float nz;
+            noise = noise * 1664525u + 1013904223u;
+            nz = (float)(int32_t)noise * (1.0f / 2147483648.0f);
+            l1 += (nz - l1) * k;
+            l2 += (l1 - l2) * k;
+            o[j] += l2 * a;
+            rsend[j] += l2 * a * 0.25f;
+        }
+        surf_lp[c][0] = l1;
+        surf_lp[c][1] = l2;
+    }
+}
+
 static void render_chunk(int32_t *out, uint32_t n, float gain)
 {
     uint32_t j;
@@ -2685,6 +2820,7 @@ static void render_chunk(int32_t *out, uint32_t n, float gain)
     render_bells(n);
     render_drums(n);
     render_lead(n);
+    render_surf(n);
     for (j = 0; j < n; j++) {
         float wl, wr, l, r, el, er, xl, xr;
         echoes(esend[j] * eg, &el, &er, &xl, &xr);
