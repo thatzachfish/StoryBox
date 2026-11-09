@@ -378,9 +378,11 @@ static void tr_tick(void)
  * breakdown. KEY_ACT: an act 0..3; a story 10 + s; else as below; -1 nothing */
 /* StoryBox 0.5's keyboard, one zone a job: the acts F3 G3 A3 B3, the mix on the black keys around them (F#3 Pad,
  * G#3 Melody, A#3 Bass, C#4 Drums, D#4 the breakdown); the stories on the white keys from middle C (C4 .. E5); the
- * stings on the top black keys (C#5 D#5 F#5); F#4 G#4 A#4, F5 G5 spare */
+ * stings on the top black keys (C#5 D#5 F#5); F#4 G#4 A#4, F5 G5 spare. The stories by whose: C4 D4 E4 Zach's (Inside,
+ * Fly, Riebeck), F4 .. B4 Claude's (Lighthouse, Market, Forest, Sleep), C5 D5 E5 the show's (Pre-show, Intermission,
+ * Post Show) */
 #define BLACK_KEY(k) ((0x0252A52Au >> (k)) & 1u)   /* F#3 G#3 A#3 C#4 D#4 F#4 G#4 A#4 C#5 D#5 F#5 */
-static const int8_t KEY_ACT[NKEYS] = {0, 50, 1, 51, 2, 52, 3, 10, 53, 11, 40, 12, 13, -1, 14, -1, 15, -1, 16, 17, 30, 18, 31, 19, -1, 32, -1};
+static const int8_t KEY_ACT[NKEYS] = {0, 50, 1, 51, 2, 52, 3, 15, 53, 16, 40, 19, 12, -1, 13, -1, 14, -1, 11, 10, 30, 17, 31, 18, -1, 32, -1};
 static const char *const TRACK_NAME[4] = {"PAD", "MELODY", "BASS", "DRUMS"};
 static void mutes_apply(void)                  /* what is heard: the solos if any, else all but the mutes */
 {
@@ -933,7 +935,13 @@ static void input(void)
     }
     if ((e = enc_in(EN_PRESET)) != 0) {       /* PRESETS: the next / previous story, from its first act */
         int st = (tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : proj.piece) / EN_NACT;
-        st = ((st + (e > 0 ? 1 : -1)) % EN_NSTORY + EN_NSTORY) % EN_NSTORY;
+        {                                       /* in the keys' order, low to high: Zach's, Claude's, the show's */
+            static const uint8_t ORDER[EN_NSTORY] = {5, 6, 9, 2, 3, 4, 1, 0, 7, 8};
+            int i = 0;
+            while (i < EN_NSTORY - 1 && ORDER[i] != st)
+                i++;
+            st = ORDER[((i + (e > 0 ? 1 : -1)) % EN_NSTORY + EN_NSTORY) % EN_NSTORY];
+        }
         tr_queue(st * EN_NACT, 0);
         say("STORY", en_story_name(st));
         ui.turn_t = plat_ms();
@@ -1598,7 +1606,11 @@ static void draw_map(void)
             {                                     /* a long name on a row's first key leans left, out of its neighbour's way */
                 int32_t w = text_w(&FONT_XS, nm), lx = xs[k - a] - w / 2;
                 if (k == a && w > ww - 4)
-                    lx = xs[k - a] + ww / 2 - 4 - w;
+                    lx = xs[k - a] + ww / 2 - 8 - w;
+                else if (k >= b - 1 && w > ww - 4)       /* and on its last, right */
+                    lx = xs[k - a] - ww / 2 + 8;
+                if (lx + w > 238)
+                    lx = 238 - w;
                 cv_text(lx < 2 ? 2 : lx, y0 + 23, &FONT_XS, nm, here ? K_TEXT : going ? (blink ? K_ACC : K_DIM) : c);
             }
         }

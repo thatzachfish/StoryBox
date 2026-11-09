@@ -38,8 +38,8 @@ press SAVE
 wait 1700
 release SAVE
 expect par1 55
-# the stories: the white key E4 is the third story (Lighthouse), from its first act
-tapkey 11
+# the stories: the white key F4 is Lighthouse, from its first act
+tapkey 12
 wait 15000
 expect piece 8
 expect par18 66
