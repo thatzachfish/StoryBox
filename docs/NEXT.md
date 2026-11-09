@@ -59,3 +59,12 @@ From Zach, playing 0.2 on the FM-1 (2026-11-08 night):
 Also in 0.3: Melody (the bells' page) with a Sound per act; Pad Strings and Organ; a Brushes kit; the story's path on
 Story; Lead's keyboard; Setup's sleep timer and key; System in words; a picture for each effect; RAM packed (80 KB free).
 - [x] Intermission (D5): a structured boom-bap groove in C minor, 90 bpm, swung (Lights Up, Lobby, Snack Bar, Last Call)
+
+From Zach, after 0.3 (2026-11-08 late), for the next build:
+
+- [ ] Call and response (as NACHFAHRT's): play a melody, StoryBox answers it, improvising on it (notes kept as
+      events, not audio: its rhythm with notes moved in the scale, a turn, an octave; cheap)
+- [ ] A Scatter effect (as TONITOR's) in place of the least liked punch-in (the Phaser?): the last moment cut in
+      slices, replayed out of order, some reversed or an octave up (from the punch-in ring we have)
+- [ ] An effect of its own for each instrument (suggested: Pad Shimmer, Melody a ping-pong echo, Bass Drive,
+      Drums Crush), or a Space knob each: to discuss
