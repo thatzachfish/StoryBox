@@ -81,7 +81,12 @@ void en_freeze(int on);
 void en_seed(uint32_t s);                      /* stir some entropy into the generators */
 void en_panic(void);                           /* everything quiet, now */
 void en_regrow(void);                          /* a new piece: fresh loops, the home chord */
-void en_prog(int piece);                       /* StoryBox: follow piece's progression (none: free), from its start */
+void en_prog(int piece);
+/* StoryBox performance: layers muted (bit 0 pad, 1 bells, 2 bass, 3 pulse; faded in and out quickly), and the
+ * breakdown: the bass and the pulse drop out on the next bar (on 1); on 0 they come back a bar after a fill */
+void en_mute(uint32_t mask);
+void en_breakdown(int on);
+extern volatile uint8_t en_bd;                 /* (UI) 0 off, 1 broken down, 2 coming back (the fill) */                       /* StoryBox: follow piece's progression (none: free), from its start */
 extern volatile int8_t en_prog_step;           /* (UI) the progression's step playing, -1 none */
 int en_prog_len(int piece);                    /* its steps, 0 none */
 /* MIDI clock in (as FoMni): ticks drive the 1/16 grid (6 a step) while they keep coming */

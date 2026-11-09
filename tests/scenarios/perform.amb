@@ -1,0 +1,33 @@
+# performance: in ACTS, D5 E5 F5 G5 are the pad, bells, bass and drums (a tap mutes, a hold solos; a tap while
+# soloed clears the solos); A#3 the breakdown (the bass and drums out on the next bar; again: back after a fill bar);
+# HOME twice: the Mix page, the four levels
+wait 300
+tap SEL
+tapkey 23
+expect mutes 2
+tapkey 23
+expect mutes 0
+key 26 down
+wait 600
+key 26 up
+expect mutes 0x80
+tapkey 21
+expect mutes 0
+# the breakdown: on the next bar (Pre-show: 84 bpm, a bar 2.86 s)
+tapkey 5
+expect bd 0
+wait 3000
+expect bd 1
+wait 4000
+expect bd 1
+tapkey 5
+expect bd 1
+wait 6500
+expect bd 0
+# the Mix page: HOME, then HOME again
+tap HOME
+expect view 1
+tap HOME
+expect view 8
+spin K4 -10
+expect par3 20

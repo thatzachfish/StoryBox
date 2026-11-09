@@ -457,7 +457,7 @@ const char *en_chord_name(const int *pcs, int n, char *buf)
 }
 
 /* ------------------------------------------------------------ commands --- */
-enum { C_SET, C_POOL, C_PLAY, C_NEXT, C_FREEZE, C_SEED, C_PANIC, C_CLOCK, C_REGROW, C_PROG, C_STING };
+enum { C_SET, C_POOL, C_PLAY, C_NEXT, C_FREEZE, C_SEED, C_PANIC, C_CLOCK, C_REGROW, C_PROG, C_STING, C_MUTE, C_BREAK };
 #define QN 64u
 static uint32_t q[QN];
 static volatile uint32_t q_w, q_r;
@@ -479,6 +479,8 @@ void en_seed(uint32_t s) { post(C_SEED, 0, (int)(s & 0xFFFFu)); }
 void en_panic(void) { post(C_PANIC, 0, 0); }
 void en_clock(int msg) { post(C_CLOCK, msg, 0); }
 void en_regrow(void) { post(C_REGROW, 0, 0); }
+void en_mute(uint32_t mask) { post(C_MUTE, 0, (int)(mask & 15u)); }
+void en_breakdown(int on) { post(C_BREAK, on ? 1 : 0, 0); }
 void en_sting(int piece, int k)
 {
     if (!prog_parsed)
@@ -512,6 +514,12 @@ static int16_t par[P_NPARAMS];
 static uint32_t pool = 0xAADu;                  /* Ionian until told */
 static int nsteps, steps[12];                   /* the scale */
 static float energy;                            /* Energy, -1 (calm) .. 0 (as the act has it) .. +1 (full) */
+/* StoryBox performance: the layers' mutes, each layer's gain gliding to 0 or 1 (mg: pad, bells, bass, pulse); the
+ * breakdown (bd_req: asked for, from the next bar; bd_ret: 1 asked to come back, 2 this bar is the fill) */
+static uint32_t mute_mask;
+static float mg[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+static uint8_t bd, bd_req, bd_ret;
+volatile uint8_t en_bd;
 /* StoryBox: a named chord in play (chord_x): its tones and its bass (-1: the root), absolute pitch classes */
 static int chord_x, x_pcs[4], x_n, x_bass = -1;
 static float tension;                           /* Tension, 0..1 */
@@ -1227,7 +1235,21 @@ static void tick(void)
     if (bar) {
         meter_bar();
         en_barno++;
+        if (bd_req) {                            /* the breakdown, on the bar */
+            bd_req = 0;
+            bd = 1;
+            bd_ret = 0;
+        } else if (bd_ret == 1) {                /* coming back: this bar is the fill */
+            bd_ret = 2;
+        } else if (bd_ret == 2) {                /* and back */
+            bd = 0;
+            bd_ret = 0;
+            drum_hit(0, 1.0f, 0);                /* landing on the one */
+        }
+        en_bd = (uint8_t)(bd ? (bd_ret ? 2 : 1) : 0);
     }
+    if (bd_ret == 2 && bar_pos >= en_bar_len - 4) /* the fill: the last beat's sixteenths, rising */
+        drum_hit(1, 0.45f + 0.15f * (float)(bar_pos - (en_bar_len - 4)), (int)(sixteenth & 1u));
     if (bar) {                                  /* a bar: Evolve's rests and turns */
         if (pulse_rest > 0)
             pulse_rest--;
@@ -1238,7 +1260,7 @@ static void tick(void)
             drums_evolve();
     }
     for (d = 0; d < EN_NDRUM; d++) {
-        if (drum_pat[d] >> drum_pos[d] & 1u && !pulse_rest)
+        if (drum_pat[d] >> drum_pos[d] & 1u && !pulse_rest && !bd)
             drum_hit(d, ((drum_pos[d] == 0 ? 0.95f : 0.6f) + 0.25f * frand()) * pa, (int)(sixteenth & 1u));
         en_drum_pos[d] = drum_pos[d];
         if (++drum_pos[d] >= drum_n[d])
@@ -1765,6 +1787,15 @@ static void drain(void)
                 chord_change();
             break;
         case C_FREEZE: en_frozen = (uint8_t)(a != 0); break;
+        case C_MUTE: mute_mask = (uint32_t)b & 15u; break;
+        case C_BREAK:
+            if (a && !bd)
+                bd_req = 1;
+            else if (!a && bd_req)
+                bd_req = 0;
+            else if (!a && bd && !bd_ret)
+                bd_ret = 1;
+            break;
         case C_STING:                            /* on the next beat (now while resting) */
             if ((unsigned)b < EN_NPIECES && sting_n[b / EN_NACT][a & 1]) {
                 sting_pend = b / EN_NACT * EN_NSTING + (a & 1);
@@ -1844,7 +1875,7 @@ static void render_pad(uint32_t n)
     uint32_t j0;
     for (j0 = 0; j0 < n; j0++)
         padl[j0] = padr[j0] = 0.0f;
-    const float g = pad_vol * 0.5f;
+    const float g = pad_vol * 0.5f * mg[0];
     pad_gain += (pad_gate - pad_gain) * fm_minf((float)n / ((pad_gate > 0.0f ? 2.0f : 5.0f) * EN_SR), 1.0f);
     for (i = 0; i < EN_NPAD; i++) {
         pad_t *v = &pad[i];
@@ -1921,7 +1952,7 @@ static void render_pad(uint32_t n)
 static void render_bass(uint32_t n)
 {
     uint32_t j;
-    const float g = bass_vol * 0.42f, tgt = en_playing && !bass.rest ? 1.0f : 0.0f,
+    const float g = bass_vol * 0.42f * mg[2], tgt = en_playing && !bass.rest ? 1.0f : 0.0f,
                 rate = tgt > 0.0f ? 1.0f / (2.5f * EN_SR) : 1.0f / (4.0f * EN_SR);
     float ph = bass.ph, amp = bass.amp, inc;
     if (amp < 1e-5f && !en_playing) {
@@ -1950,7 +1981,7 @@ static void render_bass(uint32_t n)
 static void render_bells(uint32_t n)
 {
     int i;
-    const float g = bell_vol * 0.62f, arate = 0.0004f + 0.0056f * fm_minf(btone * 2.0f, 1.0f);
+    const float g = bell_vol * 0.62f * mg[1], arate = 0.0004f + 0.0056f * fm_minf(btone * 2.0f, 1.0f);
     for (i = 0; i < NBELL; i++) {
         bell_t *v = &bell[i];
         float cph = v->cph, mph = v->mph, amp = v->amp, idx = v->idx, att = v->att;
@@ -2035,7 +2066,7 @@ static void render_hat(drum_t *v, uint32_t n, float g, float pl, float pr)
 static void render_drums(uint32_t n)
 {
     uint32_t j;
-    const float g = pulse_vol * 1.1f;
+    const float g = pulse_vol * 1.1f * mg[3];
     drum_t *v;
     v = &drum[0];                                /* thump: a sine falling to its note */
     if (v->on) {
@@ -2090,6 +2121,16 @@ static uint32_t arc_left;
 static void control(uint32_t n)                 /* once a chunk: the slow things */
 {
     int i;
+    {                                            /* the mutes and the breakdown: each layer's gain, quickly (40 ms) */
+        int l;
+        const float k = fm_minf((float)n / (0.04f * EN_SR), 1.0f);
+        for (l = 0; l < 4; l++) {
+            float t = mute_mask >> l & 1u ? 0.0f : 1.0f;
+            if (bd && (l == 2 || (l == 3 && bd_ret != 2)))
+                t = 0.0f;
+            mg[l] += (t - mg[l]) * k;
+        }
+    }
     mods_step(n);
     heads_step(n);
     if (arc_left <= n) {
