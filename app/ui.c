@@ -1538,7 +1538,7 @@ static void draw_help(void)
 static void draw_map(void)
 {
     static const char *const NOTE[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
-    static const uint8_t ROW0[5] = {0, 7, 13, 19, 24};
+    static const uint8_t ROW0[5] = {0, 7, 12, 19, 24};
     static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
     static const char *const TN[4] = {"Pad", "Melody", "Bass", "Drums"};
     int cur = proj.piece, goal = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : -1, blink = (plat_ms() / 300u) & 1u, r;
