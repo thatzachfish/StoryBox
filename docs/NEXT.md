@@ -141,3 +141,9 @@ From Zach, playing 0.4 (2026-11-09):
 - [ ] Story page: four rows of a short keyboard (F3-B3, C4-F4, F#4-C5, C#5-G5), the black keys' names above each
       strip, the white keys' under, every key its letter (black keys wider, the letter in them); where it is filled
       (mockup acts-rows-2)
+- [ ] Story page rows: F3-B3, C4-F4, F#4-B4, C5-E5 (Intermission starts the last row, the stings over it); the spares
+      (F5 F#5 G5) not drawn until used (mockup acts-rows-3)
+- [ ] Banjo: a melody sound only (no lead banjo; Riebeck's lead another); quieter, less bright/sharp, less like the
+      guitar (a banjo's plunk: its head's quick ring)
+- [ ] Lead Glide does nothing for most sounds (only Flute and Slide, legato): make it work for every lead sound (each
+      note gliding from the last)
