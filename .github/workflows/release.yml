@@ -7,6 +7,7 @@ name: Build and attest firmware
 on:
   push:
     tags: ['v[0-9]*']
+    branches: [main]                 # StoryBox: every change on main becomes the "latest" build (below)
   workflow_dispatch:
 
 permissions:
@@ -127,3 +128,33 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: gh release edit "$GITHUB_REF_NAME" --draft=false
+
+  # StoryBox: the newest build of main, always at one address: releases/tag/latest (a prerelease, replaced each time;
+  # the file itself at releases/download/latest/storybox.fwsc)
+  latest:
+    needs: verify
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    concurrency:
+      group: storybox-latest
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: build/attested
+      - name: Replace the latest build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          cd build/attested/build/release-assets
+          gh release delete latest --cleanup-tag --yes || true
+          notes="The newest StoryBox build, from commit ${GITHUB_SHA:0:7} ($(date -u +'%Y-%m-%d %H:%M UTC')).
+
+          Download **storybox.fwsc** below. Try it in the browser emulator (https://joakimeriksson.github.io/fm1-emu/, open the file), or install it on an FM-1 with the FM-1 Firmware Hub. Installing firmware is at your own risk; holding OCT- while powering on is the USB rescue."
+          gh release create latest --prerelease --latest=false --target "$GITHUB_SHA" \
+            --title "StoryBox: latest build" --notes "$notes" storybox.fwsc firmware.json
