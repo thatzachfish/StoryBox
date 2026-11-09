@@ -13,7 +13,6 @@
  *   SAVE           saves (it also saves by itself a few seconds after a change, while resting);
  *                  held 1.5 s: the piece back to its recipe */
 #include "fastmath.h"
-#include <string.h>
 
 /* StoryBox 0.5's pages, left to right as SELECT steps through them; then the punch-ins' (while one is held, or a
  * latched one tapped). HOME: Story (and the keys back to the acts); FX: Colours; SEL: Effects; EDIT: Lead; GLO: Setup */
@@ -419,6 +418,22 @@ static struct {
     uint32_t scan_t, boot_t;
 } bt;
 
+static void bt_cpy(char *d, const char *s)      /* a name (17 bytes) */
+{
+    int i;
+    for (i = 0; i < 16 && s[i]; i++)
+        d[i] = s[i];
+    d[i] = 0;
+}
+static int bt_eq(const char *a, const char *b)
+{
+    int i;
+    for (i = 0; i < 17 && a[i] == b[i]; i++)
+        if (!a[i])
+            return 1;
+    return i == 17;
+}
+
 static int bt_busy(int st)
 {
     return st == PLAT_BTA_PAGING || st == PLAT_BTA_LINKED || st == PLAT_BTA_SETUP || st == PLAT_BTA_STREAMING;
@@ -430,20 +445,20 @@ static void bt_list(void)                       /* the known, then the found not
     int i, j, n = 0;
     for (i = 0; i < 4 && n < BT_N; i++)
         if (plat_bta_known(i, nm)) {
-            memcpy(bt.name[n], nm, 17);
+            bt_cpy(bt.name[n], nm);
             bt.src[n++] = (uint8_t)i;
         }
     for (i = 0; i < 8 && n < BT_N; i++)
         if (plat_bta_found(i, nm)) {
-            for (j = 0; j < n && strcmp(bt.name[j], nm); j++)
+            for (j = 0; j < n && !bt_eq(bt.name[j], nm); j++)
                 ;
             if (j == n) {
-                memcpy(bt.name[n], nm, 17);
+                bt_cpy(bt.name[n], nm);
                 bt.src[n++] = (uint8_t)(10 + i);
             }
         }
     bt.n = n;
-    for (i = 0; i < n && strcmp(bt.name[i], bt.want); i++)
+    for (i = 0; i < n && !bt_eq(bt.name[i], bt.want); i++)
         ;
     bt.sel = i < n ? i : 0;
 }
@@ -474,7 +489,7 @@ static void bt_knob(int k, int v)
         say("SOUND TO", v ? "SPEAKER" : "FM-1");
     } else if (k == K_BTDEV && bt.n) {
         bt.sel = v < 0 ? 0 : v >= bt.n ? bt.n - 1 : v;
-        memcpy(bt.want, bt.name[bt.sel], 17);
+        bt_cpy(bt.want, bt.name[bt.sel]);
         say("SPEAKER", bt.name[bt.sel]);
     }
 }
@@ -496,7 +511,7 @@ static void bt_save(void)                       /* SAVE on the page: connect the
         say("NO SPEAKER FOUND", "PUT IT IN PAIRING MODE");
         return;
     }
-    memcpy(bt.conn, bt.name[bt.sel], 17);
+    bt_cpy(bt.conn, bt.name[bt.sel]);
     plat_bta_scan(0);
     if (bt.src[bt.sel] < 10)
         (void)plat_bta_reconnect(bt.src[bt.sel]);
@@ -513,7 +528,7 @@ static void bt_forget(void)                     /* SAVE held on the page: the pi
         say("NOTHING TO FORGET", 0);
         return;
     }
-    if (bt_busy(plat_bta_state()) && !strcmp(bt.conn, bt.name[bt.sel]))
+    if (bt_busy(plat_bta_state()) && bt_eq(bt.conn, bt.name[bt.sel]))
         plat_bta_hangup();
     bt.asked = 0;
     say("FORGOTTEN", bt.name[bt.sel]);
@@ -536,7 +551,7 @@ static void bt_tick(int page)                   /* every frame: what happened, s
     if (bt.boot_tries < 6 && now - bt.boot_t > 1500u + 3000u * (uint32_t)bt.boot_tries && !bt_busy(st) &&
         st != PLAT_BTA_SCANNING && st != PLAT_BTA_OFF) {
         if (plat_bta_known(0, nm) && plat_bta_reconnect(0) == 0) {
-            memcpy(bt.conn, nm, 17);
+            bt_cpy(bt.conn, nm);
             st = plat_bta_state();
         }
         bt.boot_tries++;
@@ -2035,7 +2050,7 @@ static void draw_bt(void)
         first = 0;
     for (i = first; i < bt.n && i < first + rows; i++) {
         int32_t y = 24 + (i - first) * 20;
-        int on = busy && !strcmp(bt.name[i], bt.conn), known = bt.src[i] < 10;
+        int on = busy && bt_eq(bt.name[i], bt.conn), known = bt.src[i] < 10;
         uint16_t c = on ? K_PAD : known ? K_BELL : K_LINE;
         if (i == bt.sel)
             cv_round(6, y, 228, 18, 5, K_ACC);
