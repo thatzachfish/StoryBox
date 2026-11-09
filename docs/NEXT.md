@@ -68,3 +68,16 @@ From Zach, after 0.3 (2026-11-08 late), for the next build:
       slices, replayed out of order, some reversed or an octave up (from the punch-in ring we have)
 - [ ] An effect of its own for each instrument (suggested: Pad Shimmer, Melody a ping-pong echo, Bass Drive,
       Drums Crush), or a Space knob each: to discuss
+
+From Zach, playing 0.3 (2026-11-09 morning):
+
+- [ ] Feel's tide picture confusing (keep Surf: loved)
+- [ ] One knob order for every instrument page, and as far as it goes every page: the same place, the same job
+- [ ] Lead mode: the keys go dark (they should light; the scale's keys at least)
+- [ ] Lights (System) seems to do nothing: in ACTS the keys ignore it; make it govern everything, say what it does
+- [ ] Battery: read 1 of 3 bars after a night's play, and still after hours on a charger. The bars come from the
+      battery's voltage, 3 steps; a wall charger isn't seen (the bolt only with a computer). Look into it
+- [ ] (Sleep timer: worked well; the lights going dark too: liked)
+- [ ] Home isn't homey: call it Mixer (it is the four levels)?
+- [ ] ACTS page: the black keys' row (tracks, breakdown) at the top, as on the keyboard (above the white keys)
+- [ ] Lead's picture distinct from the instrument pages', at a glance
