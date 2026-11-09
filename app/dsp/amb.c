@@ -487,7 +487,7 @@ void en_regrow(void) { post(C_REGROW, 0, 0); }
 void en_mute(uint32_t mask) { post(C_MUTE, 0, (int)(mask & 15u)); }
 void en_lead_on(int note, int vel) { post(C_LON, note & 127, vel & 127); }
 void en_lead_off(int note) { post(C_LOFF, note & 127, 0); }
-const char *const EN_LEAD_NAME[EN_NLEAD] = {"Kalimba", "Bell", "Flute", "Pluck"};
+const char *const EN_LEAD_NAME[EN_NLEAD] = {"Kalimba", "Bell", "Flute", "Pluck", "Piano", "Strings"};
 void en_breakdown(int on) { post(C_BREAK, on ? 1 : 0, 0); }
 void en_sting(int piece, int k)
 {
@@ -527,7 +527,7 @@ static void lead_note_on(int key, int vel);
 static void lead_note_off(int key);
 #define NLEAD 3
 typedef struct {
-    float cph, mph, inc, inc_t, amp, att, idx, rel;
+    float cph, cph2, mph, inc, inc_t, amp, att, idx, rel, blp;   /* cph2: the detuned twin; blp: the breath's low-pass */
     uint8_t on, held, key, note;                 /* key: the note asked for (its note off), note: the one played */
 } lead_t;
 static lead_t lead[NLEAD];
@@ -2122,13 +2122,17 @@ static void render_drums(uint32_t n)
  * strike), how long the note rings (0: as long as it is held, the flute), its attack and its release (s) */
 
 static float lead_vib;
+/* detune: a second carrier that far sharp (a ratio), mixed in equally: a chorus (the piano's strings, the section's
+ * players). Held sounds (ring 0) fade in over atk and out over rel */
 static const struct {
-    float ratio, idx, idx_t, ring, atk, rel, vib, breath;
+    float ratio, idx, idx_t, ring, atk, rel, vib, breath, detune;
 } LEADS[EN_NLEAD] = {
-    {5.4f, 1.6f, 0.06f, 1.4f, 0.002f, 0.25f, 0.0f, 0.0f},    /* kalimba: a bright tick, a round body */
-    {3.5f, 2.2f, 0.9f, 3.5f, 0.003f, 0.6f, 0.0f, 0.0f},      /* bell: a music box's */
-    {1.0f, 0.35f, 9.0f, 0.0f, 0.07f, 0.18f, 0.004f, 0.025f}, /* flute: held, a breath, a slow vibrato */
-    {1.0f, 3.0f, 0.12f, 1.0f, 0.002f, 0.12f, 0.0f, 0.0f},    /* pluck */
+    {5.4f, 1.6f, 0.06f, 1.4f, 0.002f, 0.25f, 0.0f, 0.0f, 0.0f},       /* kalimba: a bright tick, a round body */
+    {3.5f, 2.2f, 0.9f, 3.5f, 0.003f, 0.6f, 0.0f, 0.0f, 0.0f},         /* bell: a music box's */
+    {2.0f, 0.18f, 30.0f, 0.0f, 0.16f, 0.55f, 0.003f, 0.004f, 0.0f},   /* flute: soft, a touch of breath, slow in and out */
+    {1.0f, 3.0f, 0.12f, 1.0f, 0.002f, 0.12f, 0.0f, 0.0f, 0.0f},       /* pluck */
+    {1.0f, 1.7f, 0.5f, 3.2f, 0.002f, 0.3f, 0.0f, 0.0f, 0.0012f},      /* piano: a hammer's bright start, two strings */
+    {1.0f, 1.05f, 60.0f, 0.0f, 0.38f, 0.9f, 0.004f, 0.0f, 0.0045f},   /* strings: a bowed section, swelling in */
 };
 
 int en_lead_snap(int n)                          /* down to the scale (the root kept) */
@@ -2149,11 +2153,11 @@ static void lead_note_on(int key, int vel)
         n -= 12;
     while (n < 36)
         n += 12;
-    if (LEADS[sd].ring <= 0.0f) {                /* a held sound: one voice, gliding while a key is down */
+    if (LEADS[sd].ring <= 0.0f && lead_glide_t > 0.0f) {   /* a held sound with Glide: one voice, gliding legato */
         v = &lead[0];
         for (i = 1; i < NLEAD; i++)
             lead[i].on = 0;
-        if (v->on && v->held && lead_glide_t > 0.0f) {
+        if (v->on && v->held) {
             v->inc_t = mtof((float)n) * (1.0f / EN_SR);
             midi(0x84, v->note, 0);
             v->key = (uint8_t)key;
@@ -2176,6 +2180,8 @@ static void lead_note_on(int key, int vel)
     v->key = (uint8_t)key;
     v->note = (uint8_t)n;
     v->cph = v->mph = 0.0f;
+    v->cph2 = 0.37f;
+    v->blp = 0.0f;
     v->inc = v->inc_t = mtof((float)n) * (1.0f / EN_SR);
     v->amp = 0.35f + 0.65f * (float)vel / 127.0f;
     v->att = 0.0f;
@@ -2200,8 +2206,9 @@ static void render_lead(uint32_t n)
     const float g = lead_vol * 0.55f;
     const float idec = fm_expf(-6.9f / (LEADS[sd].idx_t * EN_SR)),
                 adec = LEADS[sd].ring > 0.0f ? fm_expf(-6.9f / (LEADS[sd].ring * EN_SR)) : 1.0f,
-                rdec = fm_expf(-6.9f / (LEADS[sd].rel * EN_SR)), arate = 1.0f / (LEADS[sd].atk * EN_SR + 1.0f),
-                ratio = LEADS[sd].ratio, br = LEADS[sd].breath;
+                rdec = fm_expf(-6.9f / (LEADS[sd].rel * EN_SR)), arate = 1.0f / (LEADS[sd].atk * EN_SR * 0.25f + 1.0f),
+                ratio = LEADS[sd].ratio, br = LEADS[sd].breath, dt = 1.0f + LEADS[sd].detune;
+    const int held_sound = LEADS[sd].ring <= 0.0f, twin = LEADS[sd].detune > 0.0f;
     float vib = 1.0f;
     if (LEADS[sd].vib > 0.0f) {                  /* a slow vibrato, the same for the chunk */
         lead_vib += (float)n * (5.0f / EN_SR);
@@ -2211,7 +2218,8 @@ static void render_lead(uint32_t n)
     }
     for (i = 0; i < NLEAD; i++) {
         lead_t *v = &lead[i];
-        float cph = v->cph, mph = v->mph, amp = v->amp, att = v->att, idx = v->idx, rel = v->rel, inc = v->inc;
+        float cph = v->cph, cph2 = v->cph2, mph = v->mph, amp = v->amp, att = v->att, idx = v->idx, rel = v->rel,
+              inc = v->inc, blp = v->blp;
         uint32_t j;
         if (!v->on)
             continue;
@@ -2219,9 +2227,16 @@ static void render_lead(uint32_t n)
         for (j = 0; j < n; j++) {
             float m = sine(mph) * idx, x;
             x = sine(cph + m + 4.0f);
-            if (br > 0.0f) {                     /* the breath: a little noise, with the note */
+            if (twin) {                          /* the detuned twin, the same modulation */
+                x = 0.5f * (x + sine(cph2 + m + 4.0f));
+                cph2 += inc * vib * dt;
+                if (cph2 >= 1.0f)
+                    cph2 -= 1.0f;
+            }
+            if (br > 0.0f) {                     /* the breath: soft, low-passed noise */
                 noise = noise * 1664525u + 1013904223u;
-                x += br * ((float)(int32_t)noise * (1.0f / 2147483648.0f));
+                blp += ((float)(int32_t)noise * (1.0f / 2147483648.0f) - blp) * 0.08f;
+                x += br * 8.0f * blp;
             }
             x *= amp * att * rel * g;
             mixl[j] += x;
@@ -2237,10 +2252,11 @@ static void render_lead(uint32_t n)
             amp *= adec;
             idx *= idec;
             att += (1.0f - att) * arate;
-            if (!v->held && LEADS[sd].ring <= 0.0f)   /* struck sounds ring on; held ones fade once let go */
+            if (!v->held && held_sound)          /* struck sounds ring on; held ones fade once let go */
                 rel *= rdec;
         }
-        v->cph = cph, v->mph = mph, v->amp = amp, v->att = att, v->idx = idx, v->rel = rel, v->inc = inc;
+        v->cph = cph, v->cph2 = cph2, v->mph = mph, v->amp = amp, v->att = att, v->idx = idx, v->rel = rel, v->inc = inc;
+        v->blp = blp;
         if (amp * rel < 0.0005f) {
             v->on = 0;
             if (v->held)

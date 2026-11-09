@@ -89,7 +89,7 @@ void en_prog(int piece);
 void en_mute(uint32_t mask);
 /* the lead: the keys in Lead mode (and MIDI in), snapped to the scale. Struck sounds ring on, three at a time;
  * held sounds (the flute) are one voice, gliding from note to note while held */
-enum { LEAD_KALIMBA, LEAD_BELL, LEAD_FLUTE, LEAD_PLUCK, EN_NLEAD };
+enum { LEAD_KALIMBA, LEAD_BELL, LEAD_FLUTE, LEAD_PLUCK, LEAD_PIANO, LEAD_STRINGS, EN_NLEAD };
 extern const char *const EN_LEAD_NAME[EN_NLEAD];
 int en_lead_snap(int note);                    /* the scale's note at or just below note (the main loop's view) */
 void en_lead_on(int note, int vel);
