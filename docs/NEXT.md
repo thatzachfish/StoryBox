@@ -150,3 +150,6 @@ From Zach, playing 0.4 (2026-11-09):
 - [ ] Lead: every key plays its own note (no snapping to the scale); only the key's notes lit (the rest dark). Check
       the lit keys match the scale (Zach: some sounded wrong: the snapping moved out-of-key keys to a neighbour)
 - [ ] Colours page next to Mixer (Mixer, Colours, Feel, Story, ...)
+- [ ] Pages, left to right: Story (acts), Feel, Mixer, Colours, Effects (?), Pad, Melody, Bass, Drums, Lead, Setup,
+      System (replaces "Colours next to Mixer"). Buttons: HOME the acts (ACTS mode and the Story page), SEL Effects,
+      FX Colours, EDIT Lead, GLO Setup
