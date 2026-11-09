@@ -238,7 +238,11 @@ static uint32_t fade_ms(void)                  /* Fade 0..100: 5 s .. 2 min, as 
     float f = (float)proj.fade / 100.0f;
     return 5000u + (uint32_t)(115000.0f * f * f);
 }
-static uint32_t wander_phrases(void) { return 2u + (uint32_t)(100 - proj.wander) * 14u / 99u; }   /* 16 .. 2 */
+static uint32_t wander_phrases(void)           /* in order (1..50): 32 .. 6 phrases; roaming (51..100): 6 .. 2 */
+{
+    uint32_t w = proj.wander;
+    return w <= 50u ? 32u - (w - 1u) * 26u / 49u : 6u - (w - 51u) * 4u / 49u;
+}
 static uint32_t phrase_ms(void) { return PHRASE_BARS * en_bar_len * 60000u / ((uint32_t)proj.par[P_TEMPO] * 4u); }
 static int tr_goal(void) { return tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : proj.piece; }   /* where it's going */
 static int tr_shown_act(void)                  /* the act the screen shows: where it is going, else where it is */
@@ -321,7 +325,11 @@ static void tr_tick(void)
         } else if (proj.wander && !tr.on && en_playing && ++tr.phrases >= wander_phrases()) {
             int a = proj.piece % EN_NACT, b;
             tr.rng = tr.rng * 1664525u + 1013904223u + now;
-            b = (a + 1 + (int)(tr.rng >> 16) % (EN_NACT - 1)) % EN_NACT;
+            /* up to 50, the next act in order; above, more and more often any other act */
+            if ((int)(tr.rng >> 8 & 0xFFu) * 50 < (proj.wander - 50) * 256)
+                b = (a + 1 + (int)(tr.rng >> 16) % (EN_NACT - 1)) % EN_NACT;
+            else
+                b = (a + 1) % EN_NACT;
             tr_start(proj.piece / EN_NACT * EN_NACT + b, fade_ms());
             say_as("DRIFTING TO", en_act_name(proj.piece / EN_NACT * EN_NACT + b), 0);
         }
@@ -428,7 +436,7 @@ static const char *knob_name(int k)
 {
     if (k < P_NPARAMS)
         return en_param_info(k)->name;
-    return k == K_LEDS ? "Lights" : k == K_CPU ? "CPU" : k == K_PLAYMODE ? "Mode" : k == K_WANDER ? "Wander" :
+    return k == K_LEDS ? "Lights" : k == K_CPU ? "CPU" : k == K_PLAYMODE ? "Mode" : k == K_WANDER ? (!proj.wander ? "Wander" : proj.wander <= 50 ? "In order" : "Roaming") :
            k == K_FADE ? "Fade" : k == K_ACT ? "Act" : k == K_TIMER ? "Sleep" : "";
 }
 static void knob_text(int k, char *b)
@@ -471,14 +479,24 @@ static void knob_text(int k, char *b)
         const char *n = "Perform";
         while ((*b++ = *n++))
             ;
-    } else if (k == K_WANDER) {                   /* Vibe: moves on every N phrases */
-        itoa_u((uint32_t)wander_phrases(), b);
-        while (*b)
-            b++;
-        *b++ = ' ';
-        *b++ = 'p';
-        *b++ = 'h';
-        *b = 0;
+    } else if (k == K_WANDER) {                   /* Vibe: moves on every N phrases, in order up to 50, then roaming */
+        {                                         /* how long an act lasts, at this tempo */
+            uint32_t sec = (wander_phrases() * phrase_ms() + 500u) / 1000u;
+            if (sec < 60u) {
+                itoa_u(sec, b);
+                while (*b)
+                    b++;
+                *b++ = 's';
+            } else {
+                itoa_u(sec / 60u, b);
+                while (*b)
+                    b++;
+                *b++ = ':';
+                *b++ = (char)('0' + sec % 60u / 10u);
+                *b++ = (char)('0' + sec % 10u);
+            }
+            *b = 0;
+        }
     } else if (k == K_FADE) {
         uint32_t sec = fade_ms() / 1000u;
         if (sec < 60u) {
@@ -1971,7 +1989,7 @@ static void draw_knobs(void)
         }
         knob_text(k, t);
         text_c(cx, 27, &FONT_B, t, hot ? K_ACC : K_TEXT);
-        text_c(cx, 42, &FONT_XS, KNOB_LABEL[ui.view][i], hot ? K_TEXT : K_DIM);
+        text_c(cx, 42, &FONT_XS, VIEW_KNOB[ui.view][i] == K_WANDER && proj.wander ? (proj.wander <= 50 ? "In order" : "Roaming") : KNOB_LABEL[ui.view][i], hot ? K_TEXT : K_DIM);
     }
     cv_blit(0, KNB_Y);
 }

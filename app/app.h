@@ -40,7 +40,7 @@ typedef struct {
     uint8_t leds;                        /* lights: 0 off, 1 keys and the buttons' glow, 2 keys only */
     uint8_t piece;                       /* which piece: story * EN_NACT + act */
     uint8_t vibe;                        /* (unused: Wander 0 is Perform) */
-    uint8_t wander;                      /* 0 Perform (acts wait for you); 1..100 Vibe, moving on more and more often */
+    uint8_t wander;                      /* 0 Perform (acts wait for you); 1..50 the acts in order, 51..100 roaming, more and more often */
     uint8_t fade;                        /* a held act's crossfade, 0..100 (5 s .. 2 min) */
     uint8_t rsv0[3];
     slot_t slot[NPIECES];                /* every piece as it was left (Tune and MIDI out are global) */

@@ -1,0 +1,20 @@
+# Wander: 0 the acts wait; up to 50 they move on in order (Doors, Warm Up, Lounge, Lights Down, Doors...);
+# above, more and more often to any other act
+wait 300
+expect piece 0
+spin K4 1
+spin K4 1
+spin K4 1
+spin K4 1
+spin K4 1
+spin K4 1
+spin K4 1
+spin K4 1
+wait 90000
+expect piece 1
+wait 80000
+expect piece 2
+wait 80000
+expect piece 3
+wait 80000
+expect piece 0
