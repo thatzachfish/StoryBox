@@ -1,0 +1,20 @@
+# the sleep timer (Setup, KNOB 3): a quarter hour, the last three minutes fading, then it rests
+wait 500
+expect playing 1
+tap GLO
+spin K3 1
+wait 100
+shot timer.png
+wait 700000
+expect playing 1
+wav fade.wav
+wait 200000
+wavstop
+expect playing 0
+# PLAY again: heard again
+wait 3000
+tap PLAY
+peakreset
+wait 4000
+expect playing 1
+expect peak_db_min -40

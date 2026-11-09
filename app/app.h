@@ -8,6 +8,8 @@
 #include "amb.h"
 
 #define APP_NAME "StoryBox"
+#define APP_SPLASH                       /* the loading screen in StoryBox's colours (ui_splash) */
+void ui_splash(void);
 #define APP_BLOCK 256u                   /* frames per audio block: 5.8 ms at 44.1 kHz */
 #ifdef APP_VERSION                       /* a release build passes its own (tools/build.py --release) */
 #define EN_VERSION APP_VERSION

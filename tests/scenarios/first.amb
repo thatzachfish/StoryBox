@@ -14,19 +14,19 @@ wavstop
 expect peak_db_max -0.5
 expect peak_db_min -30
 tap GLO
-turn SELECT -5
+turn SELECT -4
 wait 100
 shot pad.png
 tap GLO
-turn SELECT -4
+turn SELECT -3
 wait 100
 shot bells.png
 tap GLO
-turn SELECT -3
+turn SELECT -2
 wait 100
 shot bass.png
 tap GLO
-turn SELECT -2
+turn SELECT -1
 wait 100
 shot pulse.png
 tap FX
@@ -36,6 +36,6 @@ tap GLO
 wait 100
 shot setup.png
 # SELECT steps through the pages, from the last back to the first
-turn SELECT -7 100
+turn SELECT -9 100
 expect view 0
 tap HOME

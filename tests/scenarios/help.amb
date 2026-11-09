@@ -14,8 +14,7 @@ expect frozen 1
 tap REC
 wait 200
 expect frozen 0
-tap GLO
-turn SELECT -5
+tap HOME
 turn K1 3 10
 expect par0 53
 wait 500
@@ -44,4 +43,4 @@ press HOME
 turn SELECT 3 100
 release HOME
 expect par18 89
-expect view 6
+expect view 4

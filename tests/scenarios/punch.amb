@@ -1,17 +1,17 @@
 # the punch-ins: ENV Reverse, LFO Stutter, ARP Filter, SEQ Phaser; held: on, the knobs theirs (their page), back on
-# letting go; a double tap latches one, a press turns it off
+# letting go; a double tap latches one; a tap then shows its page, another turns it off
 wait 3000
 tap HOME
 press ARP
 wait 300
 expect fx 4
-expect view 12
+expect view 13
 spin K1 10
 expect par43 35
 release ARP
 wait 300
 expect fx 0
-expect view 1
+expect view 0
 press ENV
 press SEQ
 wait 300
@@ -23,6 +23,12 @@ tap LFO
 tap LFO
 wait 500
 expect fx 2
+expect view 0
+# a latched one: a tap shows its page (its knobs), it stays on; another tap there turns it off
+tap LFO
+wait 300
+expect fx 2
+expect view 12
 tap LFO
 wait 300
 expect fx 0

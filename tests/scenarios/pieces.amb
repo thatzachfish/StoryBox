@@ -4,7 +4,7 @@ wait 500
 expect piece 0
 expect view 0
 tap SEL
-expect view 0
+expect view 1
 # a tap on G3 (act 2, Warm Up): it waits for the next phrase, then glides over one
 tapkey 2
 wait 100
@@ -15,7 +15,8 @@ expect par3 62
 shot warmup.png
 # the bells' level on this act (the Bells page), kept with it
 tap GLO
-turn SELECT -4
+turn SELECT -3
+expect view 6
 spin K1 -5
 expect par1 50
 # a hold on B3 (act 4, Lights Down): it fades over Fade, starting now
@@ -47,10 +48,12 @@ shot lighthouse.png
 turn PRESET 1
 wait 15000
 expect piece 12
-# a key while ACTS is off plays the scale again
-tap SEL
-tapkey 2
-expect pool 0xA95
+# EDIT: LEAD, its page; again: back to the acts, and Home
+tap EDIT
+expect view 3
+tap EDIT
+expect view 0
+expect piece 12
 # saved, and still there after a restart
 tap SAVE
 reboot

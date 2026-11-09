@@ -23,6 +23,7 @@ void app_panic(void)
     en_panic();
 }
 void app_ui_init(void) { ui_init(); }
+void app_splash(void) { ui_splash(); }
 void app_frame(void) { ui_frame(); }
 void app_input_only(void) { ui_input_only(); }
 void app_say(const char *a, const char *b) { ui_say(a, b); }

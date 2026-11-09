@@ -2523,6 +2523,7 @@ static int rb_w;
 static float rb_acc, rb_pos, rb_start, rb_len, fxw[EN_NFX];
 static float fl_s[2][2], ph_lfo, ph_x[2][4], ph_y[2][4], ph_fb[2];
 volatile uint8_t en_fx_on;
+volatile float en_fade = 1.0f;
 
 static float rb_read(float p)                    /* the ring at p (22 kHz samples, any value), between two samples */
 {
@@ -2691,8 +2692,8 @@ static void render_chunk(int32_t *out, uint32_t n, float gain)
         l = (mixl[j] + 0.75f * el + 0.3f * xl + 1.3f * wl) * 0.36f;
         r = (mixr[j] + 0.75f * er + 0.3f * xr + 1.3f * wr) * 0.36f;
         fx_sample(&l, &r);                       /* the punch-ins */
-        l *= gain;
-        r *= gain;
+        l *= gain * en_fade;
+        r *= gain * en_fade;
         out[2 * j] = (int32_t)(fm_tanhf(l) * 8300000.0f);
         out[2 * j + 1] = (int32_t)(fm_tanhf(r) * 8300000.0f);
     }

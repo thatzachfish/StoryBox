@@ -3,58 +3,63 @@
 wait 200
 listen
 wait 100
-said Story page: Act Doors, Freedom 30, Tension 0, Wander Perform
-# (the garden follows, queued: the chord, how far to the next, the scale from the root up)
+said Home page: Pad 50, Bells 40, Bass 50, Drums 45. Piece Pre-show, D minor
+# (the rings follow, queued: the chord, how far to the next, the scale from the root up)
 listen
 where
 said Scale D, E, F, G, A, B, C
 # a page settles before it is said
 tap GLO
-turn SELECT -5
+turn SELECT -4
 wait 300
 said Pad page: Level 50, Swell 45, Bright 45, Colour Rhodes
 tap GLO
 wait 300
-said Setup page: Root D, Fade 19s, Tune 0, Lights On
-# a knob: its name and value, once it settles
-spin K3 3
+said Setup page: Root D, Tempo 86, Sleep Off, Fade 19s
+# the sleep timer: a quarter hour
+spin K3 1
+wait 300
+said SLEEP TIMER ON
+spin K3 -1
+wait 300
+said SLEEP TIMER OFF
+# SELECT turns the pages: System
+turn SELECT 1
+wait 300
+said System page: Tune 0, Lights On
+spin K1 3
 wait 300
 said Tune +3
-spin K4 1
+spin K2 1
 wait 300
 said Lights Keys
-spin K4 -1
-wait 300
-# SELECT turns the pages
-turn SELECT -1
-wait 300
-said Space page: Echo 40, Echo time 1/2., Reverb 50, Size 65
 spin K2 -1
 wait 300
+# FX: the effects
+tap FX
+wait 300
+said Effects page: Reverb 50, Room 65, Echo 40, Echo time 1/2.
+spin K4 -1
+wait 300
 said Echo time 1/2
+# SEL: the acts
+tap SEL
+wait 300
+said ACTS ON THE KEYS
 tap HOME
 wait 300
-said Garden page
-spin K4 20
-wait 300
-said Drift 1 minute 17 seconds
-# HOME + SELECT: the tempo (the Garden's first knob says it)
+said HOME
+# HOME + SELECT: the tempo
 press HOME
 turn SELECT 2 200
 release HOME
 wait 300
-said Tempo 88
-# the keys: a note out of the scale and back in; the root stays
-tapkey w1
-said REMOVED G
-tapkey w1
-said ADDED G
-tapkey b3
-said ADDED C#
-tapkey b3
-said REMOVED C#
-tapkey w5
-said THE ROOT STAYS (SETUP)
+said TEMPO 88
+# the keys, in ACTS: a black key mutes its track and back
+tapkey b0
+said MUTE PAD
+tapkey b0
+said UNMUTE PAD
 # the encoders: Energy, the story
 turn ALGO 1
 said ENERGY 51
@@ -112,4 +117,4 @@ wait 1000
 said Tempo 88
 # WHERE: everything again
 where
-said Garden page: Tempo 88, Evolve 30, Motion 40
+said Home page: Pad 50, Bells 40, Bass 50, Drums 45. Piece Pre-show

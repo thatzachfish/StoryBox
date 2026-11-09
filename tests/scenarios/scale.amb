@@ -1,40 +1,26 @@
-# the keys are the scale: toggles, the root stays, three notes at least; the root; ALGORITHM is Energy
+# StoryBox has no scale editing: in ACTS a white key is an act or a story, a black key a track; ALGORITHM is Energy;
+# Setup's first knob the root
 wait 300
-# D Dorian: D E F G A B C. F#3 is key 1: add F# (relative 4)
-tapkey 1
-expect pool 0x6BD
+expect pool 0x6AD
+# key 1 (F#3) is the pad's track: a tap mutes it, the scale stays
 tapkey 1
 expect pool 0x6AD
-# key 9 is D4: the root stays
-tapkey 9
-expect pool 0x6AD
+expect mutes 1
+tapkey 1
+expect mutes 0
 # ALGORITHM: Energy (the player's, 50 as the act has it)
 expect par31 50
 turn ALGO 1
 expect par31 51
 turn ALGO -1
 expect par31 50
-# the root up a tone (Setup page, KNOB 1): E Dorian
+# the root up a tone (Setup page, KNOB 1)
 tap GLO
 spin K1 2
 expect par19 4
 tap HOME
+expect view 0
 expect pool 0x6AD
-wait 300
-shot e_dorian.png
-# E Dorian: E F# G A B C# D. Down to three notes (E B D): F# (key 1), G (key 2), A (key 4), C# (key 8)
-tapkey 1
-tapkey 2
-tapkey 4
-tapkey 8
-expect pool 0x481
-# B (key 6): would leave two
-tapkey 6
-expect pool 0x481
-wait 300
-shot three.png
-# MIDI in, channel 1: A (note 57) back in
-midi 90 39 64
-wait 20
-expect pool 0x4A1
 expect dirty 1
+wait 300
+shot e_root.png

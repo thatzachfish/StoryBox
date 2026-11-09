@@ -2,7 +2,7 @@
 # the next chord
 wait 300
 tap EDIT
-expect view 9
+expect view 3
 tapkey 9
 tapkey 10
 expect midi_out >0
@@ -11,5 +11,7 @@ expect par36 1
 spin K1 2
 expect par32 2
 tap EDIT
+expect view 0
 tapkey 1
-expect pool 0x6BD
+expect mutes 1
+expect pool 0x6AD

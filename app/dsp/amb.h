@@ -98,6 +98,7 @@ void en_mute(uint32_t mask);
  * 1 Stutter (the last slice of a beat, again and again), 2 Filter (a sweep down to its cutoff), 3 Phaser */
 enum { FX_REVERSE, FX_STUTTER, FX_FILTER, FX_PHASER, EN_NFX };
 void en_fx(uint32_t mask);
+extern volatile float en_fade;                 /* StoryBox: the whole sound's level (the sleep timer), 0..1 */
 extern volatile uint8_t en_fx_on;              /* (UI) the effects heard now */
 /* the lead: the keys in Lead mode (and MIDI in), snapped to the scale. Struck sounds ring on, three at a time;
  * held sounds (the flute) are one voice, gliding from note to note while held */

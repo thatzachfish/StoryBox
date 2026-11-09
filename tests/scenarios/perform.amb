@@ -1,6 +1,6 @@
 # performance: in ACTS, the black keys F#3 G#3 A#3 C#4 are the pad, bells, bass and drums (a tap mutes, a hold solos; a tap while
 # soloed clears the solos); F#5 the breakdown (the bass and drums out on the next bar; again: back after a fill bar);
-# HOME twice: the Mix page, the four levels
+# HOME: the Home page, its knobs the four levels
 wait 300
 tap SEL
 tapkey 3
@@ -23,10 +23,8 @@ expect bd 1
 tapkey 25
 wait 6500
 expect bd 0
-# the Mix page: HOME, then HOME again
+# HOME: the Home page, the four levels
 tap HOME
-expect view 1
-tap HOME
-expect view 8
+expect view 0
 spin K4 -10
 expect par3 35
