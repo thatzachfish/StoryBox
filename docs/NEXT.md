@@ -49,7 +49,9 @@ From Zach, playing 0.2 on the FM-1 (2026-11-08 night):
 - [ ] SELECT wraps around: past the last page to the first, and back
 - [ ] Guitar lead a little louder
 - [ ] Piano out: a Rhodes, polyphonic
-- [ ] Strings still not right (what input would help: to discuss)
+- [ ] Strings: a bowed solo violin, polyphonic (a cello is fine; a section if much better). Try a bowed voice
+      with body resonances, slow swell, delayed vibrato, bow noise; Violin and Cello registers
 - [ ] Colours a little brighter
-- [ ] Drums a little louder, more variation (to discuss)
+- [ ] Drums a little louder, more variation: Zach trusts me (fills at phrase ends, bar-to-bar variation,
+      human velocities, more kits). Keep the Structure knob, liked
 - [ ] A new story: Fly (Zach to describe)
