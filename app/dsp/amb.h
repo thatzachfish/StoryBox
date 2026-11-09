@@ -66,6 +66,8 @@ enum {
                                                        * bright), glide (legato sounds) and octave */
     P_GROOVE,                                         /* the pulse: 0 loose (polyrhythms that drift and turn), 100 steady
                                                        * (every pattern a bar or two long, staying put) */
+    P_RVLEN, P_RVMIX, P_STRATE, P_STMIX,              /* the punch-in effects (the player's): Reverse's length and mix, */
+    P_FLCUT, P_FLRES, P_PHRATE, P_PHDEPTH,            /* Stutter's rate and mix, Filter's cutoff and resonance, Phaser's */
     P_NPARAMS
 };
 typedef struct {
@@ -89,6 +91,11 @@ void en_prog(int piece);
 /* StoryBox performance: layers muted (bit 0 pad, 1 bells, 2 bass, 3 pulse; faded in and out quickly), and the
  * breakdown: the bass and the pulse drop out on the next bar (on 1); on 0 they come back a bar after a fill */
 void en_mute(uint32_t mask);
+/* the punch-in effects on the whole sound, each fading in and out in 30 ms: bit 0 Reverse (the last moment backwards),
+ * 1 Stutter (the last slice of a beat, again and again), 2 Filter (a sweep down to its cutoff), 3 Phaser */
+enum { FX_REVERSE, FX_STUTTER, FX_FILTER, FX_PHASER, EN_NFX };
+void en_fx(uint32_t mask);
+extern volatile uint8_t en_fx_on;              /* (UI) the effects heard now */
 /* the lead: the keys in Lead mode (and MIDI in), snapped to the scale. Struck sounds ring on, three at a time;
  * held sounds (the flute) are one voice, gliding from note to note while held */
 enum { LEAD_KALIMBA, LEAD_BELL, LEAD_FLUTE, LEAD_GUITAR, LEAD_PIANO, LEAD_STRINGS, EN_NLEAD };

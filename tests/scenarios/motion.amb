@@ -15,7 +15,8 @@ release EDIT
 wait 4000
 tap OCT+
 expect par21 1
-tap ENV
+tap GLO
+turn SELECT -5
 spin K1 -20
 expect par0 30
 tap PLAY

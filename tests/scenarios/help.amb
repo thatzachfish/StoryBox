@@ -14,7 +14,8 @@ expect frozen 1
 tap REC
 wait 200
 expect frozen 0
-tap ENV
+tap GLO
+turn SELECT -5
 turn K1 3 10
 expect par0 53
 wait 500

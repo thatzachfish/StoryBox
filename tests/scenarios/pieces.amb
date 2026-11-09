@@ -14,7 +14,8 @@ expect piece 1
 expect par3 55
 shot warmup.png
 # the bells' level on this act (the Bells page), kept with it
-tap ARP
+tap GLO
+turn SELECT -4
 spin K1 -5
 expect par1 50
 # a hold on B3 (act 4, Lights Down): it fades over Fade, starting now

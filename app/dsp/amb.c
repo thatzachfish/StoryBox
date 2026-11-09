@@ -38,6 +38,8 @@ static const en_param_t PARAMS[P_NPARAMS] = {
     {"Tension", 0, 100, 0},   {"Meter", 0, 1, 0},       {"Energy", 0, 100, 50},
     {"Lead", 0, EN_NLEAD - 1, 0}, {"Lead level", 0, 100, 65}, {"Lead tone", 0, 100, 50}, {"Glide", 0, 100, 20},
     {"Lead oct", -2, 2, 0},   {"Groove", 0, 100, 0},
+    {"Length", 0, 100, 40},   {"Mix", 0, 100, 100},     {"Rate", 0, 3, 1},        {"Mix", 0, 100, 100},
+    {"Cutoff", 0, 100, 25},   {"Resonance", 0, 100, 40}, {"Rate", 0, 100, 30},     {"Depth", 0, 100, 70},
 };
 const en_param_t *en_param_info(int i) { return (i >= 0 && i < P_NPARAMS) ? &PARAMS[i] : &PARAMS[0]; }
 
@@ -462,7 +464,7 @@ const char *en_chord_name(const int *pcs, int n, char *buf)
 
 /* ------------------------------------------------------------ commands --- */
 enum { C_SET, C_POOL, C_PLAY, C_NEXT, C_FREEZE, C_SEED, C_PANIC, C_CLOCK, C_REGROW, C_PROG, C_STING, C_MUTE, C_BREAK,
-       C_LON, C_LOFF };
+       C_LON, C_LOFF, C_FX };
 #define QN 64u
 static uint32_t q[QN];
 static volatile uint32_t q_w, q_r;
@@ -485,6 +487,7 @@ void en_panic(void) { post(C_PANIC, 0, 0); }
 void en_clock(int msg) { post(C_CLOCK, msg, 0); }
 void en_regrow(void) { post(C_REGROW, 0, 0); }
 void en_mute(uint32_t mask) { post(C_MUTE, 0, (int)(mask & 15u)); }
+void en_fx(uint32_t mask) { post(C_FX, 0, (int)(mask & 15u)); }
 void en_lead_on(int note, int vel) { post(C_LON, note & 127, vel & 127); }
 void en_lead_off(int note) { post(C_LOFF, note & 127, 0); }
 const char *const EN_LEAD_NAME[EN_NLEAD] = {"Kalimba", "Bell", "Flute", "Guitar", "Piano", "Strings"};
@@ -537,7 +540,7 @@ typedef struct {
 static lead_t lead[NLEAD];
 /* StoryBox performance: the layers' mutes, each layer's gain gliding to 0 or 1 (mg: pad, bells, bass, pulse); the
  * breakdown (bd_req: asked for, from the next bar; bd_ret: 1 asked to come back, 2 this bar is the fill) */
-static uint32_t mute_mask;
+static uint32_t mute_mask, fx_mask;
 static float mg[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 static uint8_t bd, bd_req, bd_ret;
 volatile uint8_t en_bd;
@@ -1819,6 +1822,7 @@ static void drain(void)
             break;
         case C_FREEZE: en_frozen = (uint8_t)(a != 0); break;
         case C_MUTE: mute_mask = (uint32_t)b & 15u; break;
+        case C_FX: fx_mask = (uint32_t)b & 15u; break;
         case C_LON: lead_note_on(a, b ? b : 100); break;
         case C_LOFF: lead_note_off(a); break;
         case C_BREAK:
@@ -2380,12 +2384,159 @@ static void render_lead(uint32_t n)
     }
 }
 
+/* ------------------------------------------------------------- punch-in --- */
+/* The whole sound, before MASTER. A ring of the last moment (mono, 22 kHz, 0.93 s) for Reverse and Stutter: it stops
+ * recording while either plays, so what they play stays put. Filter: a resonant low-pass (Zavalishin's TPT SVF) swept
+ * from wide open down to its cutoff. Phaser: four all-passes a side, swept by a slow LFO */
+#define RB_N 20480
+static int16_t rb[RB_N] EN_POOL;
+static int rb_w, rb_held;
+static float rb_acc, rb_pos, rb_start, rb_len, fxw[EN_NFX];
+static float fl_s[2][2], ph_lfo, ph_x[2][4], ph_y[2][4], ph_fb[2];
+volatile uint8_t en_fx_on;
+
+static float rb_read(float p)                    /* the ring at p (22 kHz samples, any value), between two samples */
+{
+    int i;
+    float f;
+    while (p < 0.0f)
+        p += (float)RB_N;
+    i = (int)p;
+    f = p - (float)i;
+    i %= RB_N;
+    return ((float)rb[i] + ((float)rb[(i + 1) % RB_N] - (float)rb[i]) * f) * (1.0f / 32768.0f);
+}
+
+static void fx_chunk(uint32_t n)                 /* once a chunk: the fades, the grab, the filter's and phaser's settings */
+{
+    int i, grab = (fx_mask & 3u) != 0;
+    const float k = fm_minf((float)n / (0.03f * EN_SR), 1.0f);
+    uint8_t on = 0;
+    for (i = 0; i < EN_NFX; i++) {
+        fxw[i] += ((fx_mask >> i & 1u ? 1.0f : 0.0f) - fxw[i]) * k;
+        if (fxw[i] > 0.01f)
+            on |= (uint8_t)(1u << i);
+    }
+    en_fx_on = on;
+    if (grab && !rb_held) {                      /* Reverse or Stutter: the moment just gone, held */
+        static const float SLICE[4] = {1.0f, 0.5f, 0.25f, 0.125f};
+        float beat = 60.0f / (float)par[P_TEMPO] * 22050.0f;
+        rb_held = 1;
+        rb_start = (float)rb_w;
+        if (fx_mask & 1u) {
+            rb_len = (0.15f + 0.0075f * (float)par[P_RVLEN]) * 22050.0f;
+            rb_pos = rb_start;
+        } else {
+            rb_len = beat * SLICE[par[P_STRATE] & 3];
+            rb_pos = rb_start - rb_len;
+        }
+        if (rb_len > (float)(RB_N - 64))
+            rb_len = (float)(RB_N - 64);
+    } else if (!grab && fxw[FX_REVERSE] < 0.01f && fxw[FX_STUTTER] < 0.01f) {
+        rb_held = 0;                             /* both faded out: recording again */
+    }
+    ph_lfo += (float)n * (0.08f + 0.02f * (float)par[P_PHRATE]) / EN_SR;   /* 0.08 .. 2.1 Hz */
+    if (ph_lfo >= 1.0f)
+        ph_lfo -= 1.0f;
+}
+
+static int rb_odd;
+static void fx_sample(float *l, float *r)        /* one frame of the whole sound through the punch-ins */
+{
+    float x = *l, y = *r;
+    if (!rb_held) {                              /* the ring: mono, every other frame (a pair's average) */
+        rb_acc += 0.5f * (x + y);
+        if (rb_odd ^= 1) {
+        } else {
+            float v = fm_clampf(rb_acc * 0.5f, -1.0f, 1.0f);
+            rb[rb_w] = (int16_t)(v * 32767.0f);
+            rb_w = rb_w + 1 >= RB_N ? 0 : rb_w + 1;
+            rb_acc = 0.0f;
+        }
+    }
+    if (fxw[FX_REVERSE] > 0.0005f || fxw[FX_STUTTER] > 0.0005f) {   /* the held moment, backwards or again */
+        float wet, w;
+        if (fxw[FX_REVERSE] >= fxw[FX_STUTTER]) {
+            rb_pos -= 0.5f;
+            if (rb_pos < rb_start - rb_len)
+                rb_pos += rb_len;
+            w = fxw[FX_REVERSE] * (float)par[P_RVMIX] * 0.01f;
+        } else {
+            rb_pos += 0.5f;
+            if (rb_pos >= rb_start)
+                rb_pos -= rb_len;
+            w = fxw[FX_STUTTER] * (float)par[P_STMIX] * 0.01f;
+        }
+        {                                        /* a short fade at the seam, so the loop does not click */
+            float d = rb_start - rb_pos, e = d < 0.0f ? d + rb_len : d, fade = fm_minf(fm_minf(e, rb_len - e) / 220.0f, 1.0f);
+            wet = rb_read(rb_pos) * fade;
+        }
+        x = x * (1.0f - w) + wet * w;
+        y = y * (1.0f - w) + wet * w;
+    }
+    if (fxw[FX_FILTER] > 0.0005f) {              /* the filter: wide open, down to Cutoff as it comes in */
+        static float g_, k_, h_;
+        static uint32_t cnt;
+        int c;
+        float in[2] = {x, y};
+        if (!(cnt++ & 31u)) {
+            float fc = 18000.0f * fm_exp2f(-fxw[FX_FILTER] * (1.0f - 0.01f * (float)par[P_FLCUT]) * 7.0f), t;
+            t = FM_PI * fc / EN_SR;
+            g_ = t * (1.0f + t * t * 0.3333f + t * t * t * t * 0.1333f);    /* tan(t) */
+            k_ = 2.0f - 1.85f * 0.01f * (float)par[P_FLRES];
+            h_ = 1.0f / (1.0f + g_ * (g_ + k_));
+        }
+        for (c = 0; c < 2; c++) {
+            float hp = (in[c] - (k_ + g_) * fl_s[c][0] - fl_s[c][1]) * h_, bp = g_ * hp + fl_s[c][0], lp;
+            fl_s[c][0] = fm_flush(g_ * hp + bp);
+            lp = g_ * bp + fl_s[c][1];
+            fl_s[c][1] = fm_flush(g_ * bp + lp);
+            in[c] = lp;
+        }
+        x = in[0];
+        y = in[1];
+    } else {
+        fl_s[0][0] = fl_s[0][1] = fl_s[1][0] = fl_s[1][1] = 0.0f;
+    }
+    if (fxw[FX_PHASER] > 0.0005f) {              /* the phaser: four all-passes a side, their corner swept */
+        static float a_[2];
+        static uint32_t cnt;
+        int c, st;
+        float in[2] = {x, y};
+        if (!(cnt++ & 31u)) {
+            for (c = 0; c < 2; c++) {            /* the two sides a quarter turn apart */
+                float sw = 0.5f + 0.5f * sine(ph_lfo + 4.0f + 0.25f * (float)c), fc = 250.0f * fm_exp2f(3.3f * sw), t;
+                t = FM_PI * fc / EN_SR;
+                t = t * (1.0f + t * t * 0.3333f);
+                a_[c] = (1.0f - t) / (1.0f + t);
+            }
+        }
+        for (c = 0; c < 2; c++) {
+            float v = in[c] + 0.45f * ph_fb[c];
+            for (st = 0; st < 4; st++) {
+                float o = a_[c] * v + ph_x[c][st] - a_[c] * ph_y[c][st];
+                ph_x[c][st] = v;
+                ph_y[c][st] = fm_flush(o);
+                v = o;
+            }
+            ph_fb[c] = v;
+            in[c] += v * fxw[FX_PHASER] * 0.01f * (float)par[P_PHDEPTH];
+            in[c] *= 1.0f - 0.25f * fxw[FX_PHASER];
+        }
+        x = in[0];
+        y = in[1];
+    }
+    *l = x;
+    *r = y;
+}
+
 static void render_chunk(int32_t *out, uint32_t n, float gain)
 {
     uint32_t j;
     const float rg = rev_send * rev_in_gain * (1.0f - 0.25f * arcm), eg = echo_send;
     for (j = 0; j < n; j++)
         mixl[j] = mixr[j] = rsend[j] = esend[j] = 0.0f;
+    fx_chunk(n);
     render_pad(n);
     render_bass(n);
     render_bells(n);
@@ -2395,8 +2546,11 @@ static void render_chunk(int32_t *out, uint32_t n, float gain)
         float wl, wr, l, r, el, er, xl, xr;
         echoes(esend[j] * eg, &el, &er, &xl, &xr);
         reverb((rsend[j] * rg + (el + er + xl + xr) * 0.35f * rev_send) * 0.8f, &wl, &wr);
-        l = (mixl[j] + 0.75f * el + 0.3f * xl + 1.3f * wl) * 0.36f * gain;
-        r = (mixr[j] + 0.75f * er + 0.3f * xr + 1.3f * wr) * 0.36f * gain;
+        l = (mixl[j] + 0.75f * el + 0.3f * xl + 1.3f * wl) * 0.36f;
+        r = (mixr[j] + 0.75f * er + 0.3f * xr + 1.3f * wr) * 0.36f;
+        fx_sample(&l, &r);                       /* the punch-ins */
+        l *= gain;
+        r *= gain;
         out[2 * j] = (int32_t)(fm_tanhf(l) * 8300000.0f);
         out[2 * j + 1] = (int32_t)(fm_tanhf(r) * 8300000.0f);
     }

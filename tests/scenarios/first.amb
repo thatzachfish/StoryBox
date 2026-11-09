@@ -13,16 +13,20 @@ expect loopnotes >0
 wavstop
 expect peak_db_max -0.5
 expect peak_db_min -30
-tap ENV
+tap GLO
+turn SELECT -5
 wait 100
 shot pad.png
-tap ARP
+tap GLO
+turn SELECT -4
 wait 100
 shot bells.png
-tap LFO
+tap GLO
+turn SELECT -3
 wait 100
 shot bass.png
-tap SEQ
+tap GLO
+turn SELECT -2
 wait 100
 shot pulse.png
 tap FX

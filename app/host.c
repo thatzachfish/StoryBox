@@ -21,6 +21,8 @@ int app_expect(const char *what, int *got)
         g = proj.piece;
     else if (!strcmp(what, "pool"))               /* the scale, relative to the root (hex ok) */
         g = proj.pool;
+    else if (!strcmp(what, "fx"))                 /* StoryBox: the punch-ins heard (bit FX_*) */
+        g = en_fx_on;
     else if (!strcmp(what, "bd"))                 /* StoryBox: the breakdown (0 off, 1 down, 2 coming back) */
         g = en_bd;
     else if (!strcmp(what, "mutes"))              /* the layers muted, then soloed << 4 */

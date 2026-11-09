@@ -15,10 +15,16 @@
 #include "fastmath.h"
 
 /* the pages, one a layer (a button each); SELECT steps through them in this order */
-enum { V_STORY, V_GARDEN, V_PAD, V_BELLS, V_BASS, V_PULSE, V_SPACE, V_SETUP, V_MIX, V_LEAD, NVIEWS };
+enum { V_STORY, V_GARDEN, V_PAD, V_BELLS, V_BASS, V_PULSE, V_SPACE, V_SETUP, V_MIX, V_LEAD, V_REV, V_STUT, V_FILT, V_PHAS,
+       NVIEWS };
+#define NPAGES V_REV                           /* the pages SELECT steps through; the punch-ins' while one is held */
+#define NOBTN 0xFF
 static const char *const VIEW_NAME[NVIEWS] = {"Story", "Garden", "Pad", "Bells", "Bass", "Pulse", "Space", "Setup", "Mix",
-                                              "Lead"};
-static const uint8_t VIEW_BTN[NVIEWS] = {B_SEL, B_HOME, B_ENV, B_ARP, B_LFO, B_SEQ, B_FX, B_GLO, B_HOME, B_EDIT};
+                                              "Lead", "Reverse", "Stutter", "Filter", "Phaser"};
+static const uint8_t VIEW_BTN[NVIEWS] = {B_SEL, B_HOME, NOBTN, NOBTN, NOBTN, NOBTN, B_FX, B_GLO, B_HOME, B_EDIT,
+                                         B_ENV, B_LFO, B_ARP, B_SEQ};
+/* the punch-ins: ENV Reverse, LFO Stutter, ARP Filter, SEQ Phaser (held; a double tap latches one on) */
+static const uint8_t FX_BTN[EN_NFX] = {B_ENV, B_LFO, B_ARP, B_SEQ};
 /* the four knobs of each page: a parameter, or one of these; and what the knob is called there */
 enum { K_LEDS = 100, K_CPU, K_NONE, K_PLAYMODE, K_WANDER, K_FADE, K_ACT };
 static const uint8_t VIEW_KNOB[NVIEWS][4] = {
@@ -32,6 +38,10 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_ROOT, K_FADE, P_TUNE, K_LEDS},
     {P_PAD, P_BELLS, P_BASS, P_PULSE},
     {P_LSOUND, P_LLEVEL, P_LTONE, P_LGLIDE},
+    {P_RVLEN, P_RVMIX, K_NONE, K_NONE},
+    {P_STRATE, P_STMIX, K_NONE, K_NONE},
+    {P_FLCUT, P_FLRES, K_NONE, K_NONE},
+    {P_PHRATE, P_PHDEPTH, K_NONE, K_NONE},
 };
 static const char *const KNOB_LABEL[NVIEWS][4] = {
     {"Act", "Freedom", "Tension", "Wander"},
@@ -44,6 +54,10 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
     {"Root", "Fade", "Tune", "Lights"},
     {"Pad", "Bells", "Bass", "Drums"},
     {"Sound", "Level", "Tone", "Glide"},
+    {"Length", "Mix", "", ""},
+    {"Rate", "Mix", "", ""},
+    {"Cutoff", "Resonance", "", ""},
+    {"Rate", "Depth", "", ""},
 };
 
 /* the screen's colours: the cover of Ambient 1: Music for Airports (1978), as the web app and the site.
@@ -76,6 +90,9 @@ static struct {
     uint8_t edit_done;                 /* EDIT held: the next chord went this hold */
     uint8_t mutes, solos;              /* the layers muted, soloed (bit 0 pad .. 3 drums): the player's, not saved */
     uint8_t bd_asked;                  /* the breakdown asked for (or on) */
+    uint8_t fx_held, fx_latch;         /* the punch-ins held, latched (bit FX_*) */
+    uint8_t fx_back;                   /* the page to go back to when the last punch-in is let go (+1; 0 none) */
+    uint32_t fx_up_t[EN_NFX];          /* when each was let go (a double tap latches) */
     uint32_t key_t[NKEYS], key_held;
     uint8_t view;
     uint32_t btn, keys, btn_used;
@@ -195,7 +212,7 @@ static struct {
 
 static int global_p(int p)                     /* the player's: Root and the lead only within a story (a new story brings its own) */
 {
-    return p == P_TUNE || p == P_MIDI || p == P_ENERGY ||
+    return p == P_TUNE || p == P_MIDI || p == P_ENERGY || (p >= P_RVLEN && p <= P_PHDEPTH) ||
            ((p == P_ROOT || (p >= P_LSOUND && p <= P_LOCT)) && tr.piece / EN_NACT == proj.piece / EN_NACT);
 }
 static int switch_p(int p)
@@ -661,9 +678,42 @@ static void input(void)
     int32_t e;
     ch = btn ^ ui.btn;
     ui.btn = btn;
+    for (i = 0; i < EN_NFX; i++) {             /* the punch-ins: on while held; a quick second press latches */
+        uint32_t m = 1u << FX_BTN[i];
+        if (!(ch & m))
+            continue;
+        ui.btn_used |= m;
+        ui.help = 0;
+        if (btn & m) {
+            if (ui.fx_latch >> i & 1u) {         /* a latched one: off */
+                ui.fx_latch &= (uint8_t)~(1u << i);
+                say(VIEW_NAME[V_REV + i], "OFF");
+            } else {
+                ui.fx_held |= (uint8_t)(1u << i);
+                if (!ui.fx_back)
+                    ui.fx_back = (uint8_t)(ui.view + 1);
+                set_view(V_REV + (int)i);
+                if (plat_ms() - ui.fx_up_t[i] < 300u) {
+                    ui.fx_latch |= (uint8_t)(1u << i);
+                    say(VIEW_NAME[V_REV + i], "LATCHED");
+                } else {
+                    say(VIEW_NAME[V_REV + i], "ON");
+                }
+            }
+        } else {
+            ui.fx_held &= (uint8_t)~(1u << i);
+            ui.fx_up_t[i] = plat_ms();
+            if (!ui.fx_held && ui.fx_back) {     /* the last let go: back to the page */
+                if (ui.view >= V_REV)
+                    set_view(ui.fx_back - 1);
+                ui.fx_back = 0;
+            }
+        }
+        en_fx((uint32_t)(ui.fx_held | ui.fx_latch));
+    }
     for (i = 0; i < NB; i++) {
         uint32_t m = 1u << i;
-        if (!(ch & m))
+        if (!(ch & m) || i == B_ENV || i == B_LFO || i == B_ARP || i == B_SEQ)   /* (the punch-ins: above) */
             continue;
         if (btn & m) {
             ui.btn_used &= ~m;
@@ -754,7 +804,7 @@ static void input(void)
             }
         } else {
             int v = (int)ui.view + (e > 0 ? 1 : -1);
-            if (v >= 0 && v < NVIEWS)
+            if (v >= 0 && v < NPAGES)
                 set_view(v);
         }
         ui.turn_t = plat_ms();
@@ -1407,22 +1457,27 @@ static void draw_knobs(void)
     cv_blit(0, KNB_Y);
 }
 
-/* lights at three levels: lit, mid (~12 %) and dim. In ACTS: every loaded slot at mid; where it is breathes slowly
- * (lit, mid, dim, mid, lit: a 2.4 s fade); where it is going blinks quickly; empty slots and gaps dark. Tracks: heard at
- * mid, soloed lit, muted dark. The breakdown: lit while down, blinking while it waits or comes back */
+/* lights at three levels: lit, mid (~12 %) and dim. In ACTS: every loaded slot lit; where it is breathes (fading down
+ * to dark and back, 2.4 s); where it is going blinks quickly; empty slots and gaps dark. Tracks: heard lit, soloed
+ * breathing, muted dark. The breakdown: lit; breathing while down; blinking while it waits or comes back */
 #define L_OFF 0
 #define L_DIM 1
 #define L_MID 2
 #define L_LIT 3
-static int breath(void)
+static int breath(void)                          /* lit, then fading down to dark and back up: 2.4 s */
 {
     uint32_t t = plat_ms() % 2400u;
-    return t < 1000u ? L_LIT : t < 1300u ? L_MID : t < 1700u ? L_DIM : t < 2000u ? L_MID : L_LIT;
+    return t < 900u ? L_LIT : t < 1150u ? L_MID : t < 1400u ? L_DIM : t < 1700u ? L_OFF : t < 1950u ? L_DIM :
+           t < 2200u ? L_MID : L_LIT;
 }
 static void leds(void)
 {
     uint32_t b = 0, k = 0, km = 0, kd = 0, i, ap = pool_abs(), db, play = 1u << B_PLAY;
-    b |= 1u << VIEW_BTN[ui.view];
+    if (VIEW_BTN[ui.view] != NOBTN)
+        b |= 1u << VIEW_BTN[ui.view];
+    for (i = 0; i < EN_NFX; i++)                 /* the punch-ins on: lit */
+        if ((ui.fx_held | ui.fx_latch) >> i & 1u)
+            b |= 1u << FX_BTN[i];
     if (en_playing)
         b |= 1u << B_PLAY;
     if (en_frozen)
@@ -1437,15 +1492,15 @@ static void leds(void)
             int t = key_target((int)i), act = KEY_ACT[i] < EN_NACT, lv = L_OFF;
             if (KEY_ACT[i] >= KEY_TRACK) {
                 int l = KEY_ACT[i] - KEY_TRACK;
-                lv = ui.solos ? (ui.solos >> l & 1u ? L_LIT : L_OFF) : ui.mutes >> l & 1u ? L_OFF : L_MID;
+                lv = ui.solos ? (ui.solos >> l & 1u ? breath() : L_OFF) : ui.mutes >> l & 1u ? L_OFF : L_LIT;
             } else if (KEY_ACT[i] == KEY_BREAK) {
                 int down = en_bd == 1 && ui.bd_asked;
                 int moving = (en_bd == 1 && !ui.bd_asked) || en_bd == 2 || (ui.bd_asked && en_bd == 0);
-                lv = down ? L_LIT : moving ? (quick ? L_LIT : L_OFF) : L_MID;
+                lv = down ? breath() : moving ? (quick ? L_LIT : L_OFF) : L_LIT;
             } else if (KEY_ACT[i] >= KEY_STING) {
-                lv = en_sting_len(proj.piece, KEY_ACT[i] - KEY_STING) ? L_MID : L_OFF;
+                lv = en_sting_len(proj.piece, KEY_ACT[i] - KEY_STING) ? L_LIT : L_OFF;
             } else if (t >= 0) {
-                lv = L_MID;
+                lv = L_LIT;
                 if (goal >= 0 && (act ? t == goal : t / EN_NACT == goal / EN_NACT && goal / EN_NACT != proj.piece / EN_NACT))
                     lv = quick ? L_LIT : L_OFF;
                 else if (act ? t == proj.piece : t / EN_NACT == proj.piece / EN_NACT)

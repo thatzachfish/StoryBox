@@ -9,7 +9,8 @@ listen
 where
 said Scale D, E, F, G, A, B, C
 # a page settles before it is said
-tap ENV
+tap GLO
+turn SELECT -5
 wait 300
 said Pad page: Level 50, Swell 45, Bright 45, Colour Rhodes
 tap GLO
