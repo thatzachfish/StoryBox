@@ -46,7 +46,7 @@ void project_defaults(void)
         proj.par[i] = en_param_info(i)->def;
     take(&proj.slot[0]);
     proj.leds = 1;
-    proj.wander = 40;
+    proj.wander = 0;
     proj.fade = 35;
 }
 
@@ -133,4 +133,5 @@ void project_apply(void)
     for (i = 0; i < P_NPARAMS; i++)
         en_set(i, proj.par[i]);
     en_pool(proj.pool);
+    en_prog(proj.piece);
 }

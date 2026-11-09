@@ -55,6 +55,8 @@ enum {
     P_PADTONE,                                        /* the pad's colour, set by the piece: Rhodes, Voices */
     P_BASSOCT, P_GLIDE, P_FIFTH,                      /* bass: its octave, its glide, how often it leans on the fifth */
     P_SWING, P_HATS,                                  /* pulse: swing, the hats' colour */
+    P_FREEDOM,                                        /* StoryBox: the chords, 0 the act's progression as written ..
+                                                       * 100 free (the progression ignored) */
     P_NPARAMS
 };
 typedef struct {
@@ -74,6 +76,9 @@ void en_freeze(int on);
 void en_seed(uint32_t s);                      /* stir some entropy into the generators */
 void en_panic(void);                           /* everything quiet, now */
 void en_regrow(void);                          /* a new piece: fresh loops, the home chord */
+void en_prog(int piece);                       /* StoryBox: follow piece's progression (none: free), from its start */
+extern volatile int8_t en_prog_step;           /* (UI) the progression's step playing, -1 none */
+int en_prog_len(int piece);                    /* its steps, 0 none */
 /* MIDI clock in (as FoMni): ticks drive the 1/16 grid (6 a step) while they keep coming */
 enum { EN_CLK_TICK, EN_CLK_START, EN_CLK_CONTINUE, EN_CLK_STOP };
 void en_clock(int msg);

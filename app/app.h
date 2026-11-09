@@ -20,7 +20,7 @@
 enum { OBJ_PROJ, OBJ_PANEL, OBJ_NOBJ };
 #define APP_STORE_MAP {0xFC000u, 0xDC000u}
 #define PROJ_MAGIC 0x31425453u           /* StoryBox: "STB1" (AMB-1's "ENO1" at the same place is not read: defaults) */
-#define PROJ_FORMAT 1u
+#define PROJ_FORMAT 2u                   /* 2: Freedom */
 #define NPIECES EN_NPIECES
 
 typedef struct {
@@ -34,8 +34,8 @@ typedef struct {
     uint16_t pool;                       /* its scale, relative to the root (bit 0 = the root) */
     uint8_t leds;                        /* lights: 0 off, 1 keys and the buttons' glow, 2 keys only */
     uint8_t piece;                       /* which piece: story * EN_NACT + act */
-    uint8_t vibe;                        /* 0 Perform (acts wait for you), 1 Vibe (acts move on by themselves) */
-    uint8_t wander;                      /* Vibe: how often it moves on, 0..100 */
+    uint8_t vibe;                        /* (unused: Wander 0 is Perform) */
+    uint8_t wander;                      /* 0 Perform (acts wait for you); 1..100 Vibe, moving on more and more often */
     uint8_t fade;                        /* a held act's crossfade, 0..100 (5 s .. 2 min) */
     uint8_t rsv0[3];
     slot_t slot[NPIECES];                /* every piece as it was left (Tune and MIDI out are global) */

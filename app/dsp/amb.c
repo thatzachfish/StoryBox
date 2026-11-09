@@ -30,7 +30,7 @@ static const en_param_t PARAMS[P_NPARAMS] = {
     {"Tune", -50, 50, 0},     {"MIDI out", 0, 1, 1},    {"Tempo", 30, 120, 72},   {"Root", 0, 11, 2},
     {"Mode", 0, EN_NMODES - 1, 1}, {"Bell oct", -2, 2, 0}, {"Pad tone", 0, 1, 0},
     {"Bass oct", -1, 1, 0},   {"Glide", 0, 100, 20},    {"Fifth", 0, 100, 35},
-    {"Swing", 0, 100, 0},     {"Hats", 0, 100, 50},
+    {"Swing", 0, 100, 0},     {"Hats", 0, 100, 50},     {"Freedom", 0, 100, 100},
 };
 const en_param_t *en_param_info(int i) { return (i >= 0 && i < P_NPARAMS) ? &PARAMS[i] : &PARAMS[0]; }
 
@@ -39,37 +39,79 @@ const en_param_t *en_param_info(int i) { return (i >= 0 && i < P_NPARAMS) ? &PAR
  *                     Pad Bel Bas Pul  Den Evo Dri Hit  Ech ET Rev Siz  Bri Swe Ton Mot  Tun MI Tem Rt Md Oc  PT  BO Gli Fif  Swi Hat
  * (Md: 0 Ionian 1 Dorian 2 Phrygian 3 Lydian 4 Mixolydian 5 Aeolian 6 pent. major 7 pent. minor; PT: the pad's colour,
  * 0 Rhodes, 1 Voices; Oc: the bells' octave; BO: the bass's octave) */
+/* Each act may have a progression: "degree:bars ..." in the act's scale, 1 its first (the root's) chord, as
+ * "1:2 4:2 7:2 3:2" (two bars each); 0 or "" none (free). Freedom (the last column) blends it: 0 as written,
+ * more and more reharmonised (a chord a third away, a chord held) toward 100, where it is ignored. */
+#define PROG_MAX 8
 static const struct {
     const char *name;
     const char *act[EN_NACT];
     int8_t v[EN_NACT][P_NPARAMS];
+    const char *prog[EN_NACT];
 } STORIES[EN_NSTORY] = {
     {"Pre-show", {"Doors", "Warm Up", "Lounge", "Lights Down"}, {
-        {50, 40, 40, 30, 30, 30, 30, 30, 40, 2, 50, 65, 45, 45, 55, 40, 0, 1, 84, 2, 1, 0, 0, 0, 15, 30, 70, 55},
-        {55, 55, 55, 55, 45, 40, 25, 55, 40, 2, 45, 60, 55, 40, 60, 50, 0, 1, 84, 2, 1, 0, 0, 0, 10, 40, 70, 65},
-        {55, 70, 50, 50, 55, 50, 25, 50, 50, 1, 50, 65, 60, 45, 70, 55, 0, 1, 84, 2, 4, 0, 0, 0, 15, 40, 65, 70},
-        {50, 35, 40, 25, 25, 30, 35, 25, 50, 3, 60, 75, 35, 55, 45, 40, 0, 1, 80, 2, 1, 0, 0, 0, 20, 30, 70, 45}}},
+        {50, 40, 40, 30, 30, 30, 30, 30, 40, 2, 50, 65, 45, 45, 55, 40, 0, 1, 84, 2, 1, 0, 0, 0, 15, 30, 70, 55, 30},
+        {55, 55, 55, 55, 45, 40, 25, 55, 40, 2, 45, 60, 55, 40, 60, 50, 0, 1, 84, 2, 1, 0, 0, 0, 10, 40, 70, 65, 15},
+        {55, 70, 50, 50, 55, 50, 25, 50, 50, 1, 50, 65, 60, 45, 70, 55, 0, 1, 84, 2, 4, 0, 0, 0, 15, 40, 65, 70, 40},
+        {50, 35, 40, 25, 25, 30, 35, 25, 50, 3, 60, 75, 35, 55, 45, 40, 0, 1, 80, 2, 1, 0, 0, 0, 20, 30, 70, 45, 100}},
+        {"1:2 4:2", "1:2 4:2 7:2 3:2", "1:2 7:2 4:2 1:2", 0}},
     {"Sleep", {"Dusk", "Drifting", "Deep", "Stillness"}, {
-        {60, 45, 30, 0, 30, 30, 55, 0, 40, 4, 75, 90, 35, 70, 30, 45, 0, 1, 56, 2, 6, 0, 0, 0, 40, 25, 0, 40},
-        {65, 35, 25, 0, 25, 25, 65, 0, 35, 5, 80, 92, 28, 75, 20, 50, 0, 1, 52, 2, 6, -1, 1, -1, 45, 20, 0, 40},
-        {70, 20, 20, 0, 18, 20, 75, 0, 25, 5, 85, 95, 20, 80, 10, 45, 0, 1, 50, 2, 6, -1, 1, -1, 50, 15, 0, 40},
-        {60, 10, 10, 0, 12, 15, 85, 0, 20, 5, 88, 97, 15, 85, 5, 35, 0, 1, 48, 2, 6, -1, 1, -1, 50, 10, 0, 40}}},
+        {60, 45, 30, 0, 30, 30, 55, 0, 40, 4, 75, 90, 35, 70, 30, 45, 0, 1, 56, 2, 6, 0, 0, 0, 40, 25, 0, 40, 100},
+        {65, 35, 25, 0, 25, 25, 65, 0, 35, 5, 80, 92, 28, 75, 20, 50, 0, 1, 52, 2, 6, -1, 1, -1, 45, 20, 0, 40, 100},
+        {70, 20, 20, 0, 18, 20, 75, 0, 25, 5, 85, 95, 20, 80, 10, 45, 0, 1, 50, 2, 6, -1, 1, -1, 50, 15, 0, 40, 100},
+        {60, 10, 10, 0, 12, 15, 85, 0, 20, 5, 88, 97, 15, 85, 5, 35, 0, 1, 48, 2, 6, -1, 1, -1, 50, 10, 0, 40, 100}}, {0}},
     {"Lighthouse", {"Fog", "Signal", "Storm", "Dawn"}, {
-        {55, 30, 35, 0, 25, 30, 45, 0, 55, 4, 75, 90, 25, 70, 20, 60, 0, 1, 66, 2, 5, -1, 1, 0, 35, 25, 0, 40},
-        {45, 70, 40, 20, 40, 40, 35, 25, 50, 3, 65, 85, 40, 55, 80, 55, 0, 1, 66, 2, 5, 1, 1, 0, 25, 30, 0, 60},
-        {55, 65, 60, 60, 60, 70, 15, 70, 60, 1, 60, 80, 50, 35, 70, 90, 0, 1, 76, 2, 2, 0, 0, 0, 15, 45, 20, 80},
-        {50, 60, 35, 15, 40, 35, 40, 15, 40, 3, 70, 85, 65, 60, 40, 50, 0, 1, 66, 2, 3, 0, 1, 0, 30, 30, 0, 40}}},
+        {55, 30, 35, 0, 25, 30, 45, 0, 55, 4, 75, 90, 25, 70, 20, 60, 0, 1, 66, 2, 5, -1, 1, 0, 35, 25, 0, 40, 100},
+        {45, 70, 40, 20, 40, 40, 35, 25, 50, 3, 65, 85, 40, 55, 80, 55, 0, 1, 66, 2, 5, 1, 1, 0, 25, 30, 0, 60, 100},
+        {55, 65, 60, 60, 60, 70, 15, 70, 60, 1, 60, 80, 50, 35, 70, 90, 0, 1, 76, 2, 2, 0, 0, 0, 15, 45, 20, 80, 100},
+        {50, 60, 35, 15, 40, 35, 40, 15, 40, 3, 70, 85, 65, 60, 40, 50, 0, 1, 66, 2, 3, 0, 1, 0, 30, 30, 0, 40, 100}}, {0}},
     {"Market Day", {"Morning", "Crowds", "Siesta", "Lanterns"}, {
-        {50, 55, 35, 25, 40, 35, 30, 25, 35, 2, 50, 65, 55, 45, 60, 45, 0, 1, 92, 2, 0, 0, 0, 0, 15, 35, 40, 60},
-        {45, 75, 55, 60, 65, 60, 20, 70, 40, 1, 45, 60, 65, 35, 70, 65, 0, 1, 96, 2, 4, 0, 0, 0, 10, 45, 55, 75},
-        {55, 40, 30, 15, 25, 25, 45, 15, 50, 3, 60, 75, 40, 65, 40, 40, 0, 1, 84, 2, 6, -1, 1, 0, 30, 25, 30, 40},
-        {55, 60, 50, 40, 45, 45, 30, 45, 55, 2, 60, 75, 45, 50, 55, 55, 0, 1, 88, 2, 4, 0, 0, 0, 20, 40, 50, 55}}},
+        {50, 55, 35, 25, 40, 35, 30, 25, 35, 2, 50, 65, 55, 45, 60, 45, 0, 1, 92, 2, 0, 0, 0, 0, 15, 35, 40, 60, 100},
+        {45, 75, 55, 60, 65, 60, 20, 70, 40, 1, 45, 60, 65, 35, 70, 65, 0, 1, 96, 2, 4, 0, 0, 0, 10, 45, 55, 75, 100},
+        {55, 40, 30, 15, 25, 25, 45, 15, 50, 3, 60, 75, 40, 65, 40, 40, 0, 1, 84, 2, 6, -1, 1, 0, 30, 25, 30, 40, 100},
+        {55, 60, 50, 40, 45, 45, 30, 45, 55, 2, 60, 75, 45, 50, 55, 55, 0, 1, 88, 2, 4, 0, 0, 0, 20, 40, 50, 55, 100}}, {0}},
     {"Deep Forest", {"Path", "Hollow", "Spirits", "Clearing"}, {
-        {50, 50, 35, 25, 35, 40, 35, 30, 45, 3, 65, 80, 40, 55, 50, 50, 0, 1, 70, 2, 1, 0, 0, 0, 25, 30, 15, 45},
-        {60, 35, 45, 20, 30, 45, 40, 20, 50, 2, 75, 90, 25, 65, 30, 65, 0, 1, 64, 2, 2, -1, 1, -1, 30, 35, 10, 35},
-        {55, 70, 25, 10, 50, 60, 30, 10, 80, 4, 80, 95, 45, 60, 85, 80, 0, 1, 70, 2, 7, 1, 1, 0, 40, 20, 0, 30},
-        {50, 65, 40, 30, 45, 40, 30, 35, 45, 3, 65, 80, 65, 50, 55, 50, 0, 1, 72, 2, 6, 0, 0, 0, 20, 35, 15, 50}}},
+        {50, 50, 35, 25, 35, 40, 35, 30, 45, 3, 65, 80, 40, 55, 50, 50, 0, 1, 70, 2, 1, 0, 0, 0, 25, 30, 15, 45, 100},
+        {60, 35, 45, 20, 30, 45, 40, 20, 50, 2, 75, 90, 25, 65, 30, 65, 0, 1, 64, 2, 2, -1, 1, -1, 30, 35, 10, 35, 100},
+        {55, 70, 25, 10, 50, 60, 30, 10, 80, 4, 80, 95, 45, 60, 85, 80, 0, 1, 70, 2, 7, 1, 1, 0, 40, 20, 0, 30, 100},
+        {50, 65, 40, 30, 45, 40, 30, 35, 45, 3, 65, 80, 65, 50, 55, 50, 0, 1, 72, 2, 6, 0, 0, 0, 20, 35, 15, 50, 100}}, {0}},
 };
+
+static int8_t prog_deg[EN_NPIECES][PROG_MAX];
+static uint8_t prog_bars[EN_NPIECES][PROG_MAX], prog_n[EN_NPIECES], prog_parsed;
+static void prog_parse(void)                    /* the stories' progressions, once */
+{
+    int i;
+    for (i = 0; i < EN_NPIECES; i++) {
+        const char *t = STORIES[i / EN_NACT].prog[i % EN_NACT];
+        int n = 0;
+        while (t && *t && n < PROG_MAX) {
+            int d = 0, b = 0;
+            while (*t == ' ')
+                t++;
+            while (*t >= '0' && *t <= '9')
+                d = d * 10 + (*t++ - '0');
+            if (*t == ':')
+                for (t++; *t >= '0' && *t <= '9';)
+                    b = b * 10 + (*t++ - '0');
+            if (d < 1)
+                break;
+            prog_deg[i][n] = (int8_t)(d - 1);
+            prog_bars[i][n] = (uint8_t)(b < 1 ? 1 : b > 16 ? 16 : b);
+            n++;
+            while (*t && *t != ' ')
+                t++;
+        }
+        prog_n[i] = (uint8_t)n;
+    }
+    prog_parsed = 1;
+}
+int en_prog_len(int piece)
+{
+    if (!prog_parsed)
+        prog_parse();
+    return (unsigned)piece < EN_NPIECES ? prog_n[piece] : 0;
+}
 
 const char *en_story_name(int s) { return STORIES[(unsigned)s < EN_NSTORY ? s : 0].name; }
 const char *en_act_name(int i)
@@ -299,7 +341,7 @@ const char *en_chord_name(const int *pcs, int n, char *buf)
 }
 
 /* ------------------------------------------------------------ commands --- */
-enum { C_SET, C_POOL, C_PLAY, C_NEXT, C_FREEZE, C_SEED, C_PANIC, C_CLOCK, C_REGROW };
+enum { C_SET, C_POOL, C_PLAY, C_NEXT, C_FREEZE, C_SEED, C_PANIC, C_CLOCK, C_REGROW, C_PROG };
 #define QN 64u
 static uint32_t q[QN];
 static volatile uint32_t q_w, q_r;
@@ -321,6 +363,12 @@ void en_seed(uint32_t s) { post(C_SEED, 0, (int)(s & 0xFFFFu)); }
 void en_panic(void) { post(C_PANIC, 0, 0); }
 void en_clock(int msg) { post(C_CLOCK, msg, 0); }
 void en_regrow(void) { post(C_REGROW, 0, 0); }
+void en_prog(int piece)
+{
+    if (!prog_parsed)
+        prog_parse();
+    post(C_PROG, 0, piece);
+}
 
 /* -------------------------------------------------------------- state --- */
 volatile uint8_t en_playing, en_frozen, en_ext;
@@ -643,11 +691,46 @@ static void drift_reset(void)
     fifth_done = 0;
 }
 
+/* StoryBox: the progression the act follows (prog_cur, -1 none), its step, and the bars left on it */
+static int prog_cur = -1, prog_i, prog_left;
+static float freedom = 1.0f;                    /* Freedom, 0..1 */
+volatile int8_t en_prog_step = -1;
+static void chord_to(int i);
+static int prog_on(void) { return prog_cur >= 0 && prog_n[prog_cur] && freedom < 0.995f; }
+
+static void prog_advance(void)                  /* the next step, on a bar: as written, or (with Freedom) a variation */
+{
+    int d, b;
+    prog_i = prog_i + 1 >= prog_n[prog_cur] || prog_i < 0 ? 0 : prog_i + 1;
+    d = prog_deg[prog_cur][prog_i];
+    b = prog_bars[prog_cur][prog_i];
+    en_prog_step = (int8_t)prog_i;
+    if (frand() < freedom * 0.55f) {            /* a variation: a chord a third away, or the last one held */
+        float r = frand();
+        if (r < 0.45f)
+            d += nsteps == 7 ? 5 : nsteps - 2;  /* a third below: the relative */
+        else if (r < 0.8f)
+            d += 2;                             /* a third above */
+        else
+            d = deg;                            /* held */
+    }
+    if (frand() < freedom * 0.25f)              /* and now and then a bar longer or shorter */
+        b += b > 1 && frand() < 0.5f ? -1 : 1;
+    prog_left = b;
+    d = ((d % nsteps) + nsteps) % nsteps;
+    if (d != deg)
+        chord_to(d);
+}
+
 static void chord_change(void)                  /* to another degree: the near, strong moves first */
 {
     static const float W7[7] = {4.0f, 2.0f, 1.0f, 3.0f, 3.0f, 3.0f, 0.4f};
     float w[12], sum = 0.0f, r;
     int i;
+    if (prog_on()) {                            /* following a progression: its next step */
+        prog_advance();
+        return;
+    }
     for (i = 0; i < nsteps; i++) {
         w[i] = i == deg ? 0.0f : nsteps == 7 ? W7[i] : i == 0 ? 3.0f : 1.5f;
         sum += w[i];
@@ -660,6 +743,11 @@ static void chord_change(void)                  /* to another degree: the near, 
     }
     if (i >= nsteps)
         i = deg == 0 ? (nsteps > 1 ? 1 : 0) : 0;
+    chord_to(i);
+}
+
+static void chord_to(int i)
+{
     deg = i;
     pad_retarget();
     pad_leave();
@@ -941,6 +1029,8 @@ static void tick(void)
     if ((sixteenth & 15u) == 0u && change_pending && !en_frozen) {   /* chords move on the bar */
         change_pending = 0;
         chord_change();
+    } else if ((sixteenth & 15u) == 0u && prog_on() && !en_frozen && --prog_left <= 0) {
+        prog_advance();                          /* a progression: its chords on their bars */
     }
     sixteenth++;
     en_bars = sixteenth;
@@ -1200,6 +1290,7 @@ static void apply(int p, int v)
         break;
     case P_GLIDE: glide_k = 1.0f / ((0.02f + 0.012f * (float)v) * EN_SR); break;   /* 20 ms .. 1.2 s */
     case P_SWING: swing = (float)v * 0.005f; break;      /* the off sixteenths up to half a step late */
+    case P_FREEDOM: freedom = (float)v * 0.01f; break;
     case P_HATS:
         hat_f = 0.55f + 0.0070f * (float)v;               /* the high-pass: ~4 kHz dark .. ~10 kHz bright */
         hat_open = 0.6f - 0.0035f * (float)v;             /* the open hat: long and soft .. short and crisp */
@@ -1429,6 +1520,12 @@ static void drain(void)
                 chord_change();
             break;
         case C_FREEZE: en_frozen = (uint8_t)(a != 0); break;
+        case C_PROG:                             /* from the progression's start, on the next bar */
+            prog_cur = (unsigned)b < EN_NPIECES && prog_n[b] ? b : -1;
+            prog_i = -1;
+            prog_left = 1;
+            en_prog_step = -1;
+            break;
         case C_SEED:
             rng ^= (uint32_t)(b & 0xFFFF) * 2654435761u;
             if (!rng)
@@ -1757,7 +1854,7 @@ static void control(uint32_t n)                 /* once a chunk: the slow things
     pl_decay += ((en_frozen ? 0.9995f : pl_decay_t) - pl_decay) * 0.002f;
     pl_dd2 = fm_clampf(pl_decay + 0.15f, 0.25f, 0.5f);
     rev_in_gain += ((en_frozen ? 0.0f : 1.0f) - rev_in_gain) * 0.01f;
-    if (en_playing && !en_frozen && !change_pending) {
+    if (en_playing && !en_frozen && !change_pending && !prog_on()) {
         drift_left -= (float)n;
         if (!fifth_done && drift_left < 0.5f * drift_total) {
             fifth_done = 1;                      /* halfway: the bass may lean on the fifth */

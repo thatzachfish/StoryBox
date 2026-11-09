@@ -21,7 +21,7 @@ static const uint8_t VIEW_BTN[NVIEWS] = {B_SEL, B_HOME, B_ENV, B_ARP, B_LFO, B_S
 /* the four knobs of each page: a parameter, or one of these; and what the knob is called there */
 enum { K_LEDS = 100, K_CPU, K_NONE, K_PLAYMODE, K_WANDER, K_FADE, K_ACT };
 static const uint8_t VIEW_KNOB[NVIEWS][4] = {
-    {K_ACT, K_PLAYMODE, K_WANDER, K_FADE},
+    {K_ACT, P_FREEDOM, K_WANDER, K_FADE},
     {P_TEMPO, P_EVOLVE, P_MOTION, P_DRIFT},
     {P_PAD, P_SWELL, P_BRIGHT, P_PADTONE},
     {P_BELLS, P_DENSITY, P_BTONE, P_BOCT},
@@ -31,7 +31,7 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_ROOT, P_TUNE, P_MIDI, K_LEDS},
 };
 static const char *const KNOB_LABEL[NVIEWS][4] = {
-    {"Act", "Mode", "Wander", "Fade"},
+    {"Act", "Freedom", "Wander", "Fade"},
     {"Tempo", "Evolve", "Motion", "Drift"},
     {"Level", "Swell", "Bright", "Colour"},
     {"Level", "Density", "Tone", "Octave"},
@@ -190,7 +190,7 @@ static uint32_t fade_ms(void)                  /* Fade 0..100: 5 s .. 2 min, as 
     float f = (float)proj.fade / 100.0f;
     return 5000u + (uint32_t)(115000.0f * f * f);
 }
-static uint32_t wander_phrases(void) { return 2u + (uint32_t)(100 - proj.wander) * 14u / 100u; }   /* 16 .. 2 */
+static uint32_t wander_phrases(void) { return 2u + (uint32_t)(100 - proj.wander) * 14u / 99u; }   /* 16 .. 2 */
 static uint32_t phrase_ms(void) { return PHRASE * 60000u / ((uint32_t)proj.par[P_TEMPO] * 4u); }
 static int tr_shown_act(void)                  /* the act the screen shows: where it is going, else where it is */
 {
@@ -246,7 +246,7 @@ static void tr_tick(void)
             int i = tr.pending;
             tr.pending = -1;
             tr_start(i, phrase_ms());
-        } else if (proj.vibe && !tr.on && en_playing && ++tr.phrases >= wander_phrases()) {
+        } else if (proj.wander && !tr.on && en_playing && ++tr.phrases >= wander_phrases()) {
             int a = proj.piece % EN_NACT, b;
             tr.rng = tr.rng * 1664525u + 1013904223u + now;
             b = (a + 1 + (int)(tr.rng >> 16) % (EN_NACT - 1)) % EN_NACT;
@@ -276,10 +276,11 @@ static void tr_tick(void)
             }
         }
     }
-    if (!tr.mid && tr.t >= 0.5f) {             /* halfway: the new act's scale */
+    if (!tr.mid && tr.t >= 0.5f) {             /* halfway: the new act's scale, and its progression from the top */
         tr.mid = 1;
         proj.pool = tr.to_pool;
         en_pool(proj.pool);
+        en_prog(tr.piece);
     }
     if (tr.t >= 1.0f) {
         int story = proj.piece / EN_NACT;
@@ -366,6 +367,10 @@ static void knob_text(int k, char *b)
             j++;
         }
         b[j] = 0;
+    } else if (k == K_WANDER && !v) {             /* 0: Perform, the acts wait for you */
+        const char *n = "Perform";
+        while ((*b++ = *n++))
+            ;
     } else if (k == K_WANDER) {                   /* Vibe: moves on every N phrases */
         itoa_u((uint32_t)wander_phrases(), b);
         while (*b)
@@ -416,7 +421,10 @@ static void knob_set(int k, int v)
         tr.phrases = 0;
         say("MODE", v ? "VIBE" : "PERFORM");
     } else if (k == K_WANDER) {
+        if (!proj.wander != !v)
+            say("MODE", v ? "VIBE" : "PERFORM");
         proj.wander = (uint8_t)v;
+        tr.phrases = 0;
     } else if (k == K_FADE) {
         proj.fade = (uint8_t)v;
     } else if (k == K_ACT) {
