@@ -163,3 +163,11 @@ From Zach, playing 0.4 (2026-11-09):
       (scan, pick, forget). Test on hardware. Bluetooth MIDI: later (the same stack)
 - [x] A track silent after a mute and unmute (0.4, until a restart): the engine's command queue (64) could drop a word
       when a story change posted many at once: 256 now, and the mutes said again every second
+
+Future (Zach, 2026-11-09):
+
+- [ ] Bluetooth audio (its own build, next)
+- [ ] Tap tempo: tap the beat to sync with live musicians
+- [ ] A chord mode: play chords live, change a story's progressions on the fly (a live-music tool)
+- [ ] Call and response (NACHFAHRT's idea)
+- [ ] Bluetooth MIDI (later)
