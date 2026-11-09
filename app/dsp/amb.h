@@ -64,6 +64,8 @@ enum {
                                                        * higher fuller, busier and brighter (the ALGORITHM knob) */
     P_LSOUND, P_LLEVEL, P_LTONE, P_LGLIDE, P_LOCT,    /* StoryBox's lead: its sound (EN_LEAD_NAME), level, tone (dark ..
                                                        * bright), glide (legato sounds) and octave */
+    P_GROOVE,                                         /* the pulse: 0 loose (polyrhythms that drift and turn), 100 steady
+                                                       * (every pattern a bar or two long, staying put) */
     P_NPARAMS
 };
 typedef struct {

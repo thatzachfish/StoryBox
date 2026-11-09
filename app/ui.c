@@ -27,7 +27,7 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_PAD, P_SWELL, P_BRIGHT, P_PADTONE},
     {P_BELLS, P_DENSITY, P_BTONE, P_BOCT},
     {P_BASS, P_BASSOCT, P_GLIDE, P_FIFTH},
-    {P_PULSE, P_HITS, P_SWING, P_HATS},
+    {P_PULSE, P_HITS, P_SWING, P_GROOVE},
     {P_ECHO, P_ETIME, P_REVERB, P_SIZE},
     {P_ROOT, K_FADE, P_TUNE, K_LEDS},
     {P_PAD, P_BELLS, P_BASS, P_PULSE},
@@ -39,7 +39,7 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
     {"Level", "Swell", "Bright", "Colour"},
     {"Level", "Density", "Tone", "Octave"},
     {"Level", "Octave", "Glide", "Fifth"},
-    {"Level", "Hits", "Swing", "Hats"},
+    {"Level", "Hits", "Swing", "Groove"},
     {"Echo", "Echo time", "Reverb", "Size"},
     {"Root", "Fade", "Tune", "Lights"},
     {"Pad", "Bells", "Bass", "Drums"},
@@ -1217,7 +1217,7 @@ static int help_lines(int b, const char *l[HELP_LINES])
     case B_ENV: L("THE PAD"); L("LEVEL, SWELL, BRIGHT,"); L("COLOUR"); break;
     case B_ARP: L("THE BELLS"); L("LEVEL, DENSITY, TONE,"); L("OCTAVE"); break;
     case B_LFO: L("THE BASS"); L("LEVEL, OCTAVE, GLIDE, FIFTH"); break;
-    case B_SEQ: L("THE PULSE"); L("LEVEL, HITS, SWING, HATS"); break;
+    case B_SEQ: L("THE PULSE"); L("LEVEL, HITS, SWING, GROOVE"); break;
     case B_FX: L("THE SPACE"); L("ECHO, ECHO TIME, REVERB,"); L("SIZE"); break;
     case B_GLO: L("SETUP"); L("ROOT, FADE, TUNE, LIGHTS"); break;
     case B_EDIT: L("LEAD: THE KEYS PLAY A LEAD"); L("IN THE SCALE. OCT: ITS OCTAVE"); L("HOLD: THE NEXT CHORD"); break;
