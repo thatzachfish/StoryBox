@@ -107,7 +107,7 @@ extern volatile float en_fade;                 /* StoryBox: the whole sound's le
 extern volatile uint8_t en_fx_on;              /* (UI) the effects heard now */
 /* the lead: the keys in Lead mode (and MIDI in), snapped to the scale, three notes at a time. Struck sounds ring
  * on; bowed ones (violin, cello) last while held; the flute and the slide are one voice, gliding from note to note */
-enum { LEAD_KALIMBA, LEAD_BELL, LEAD_FLUTE, LEAD_GUITAR, LEAD_RHODES, LEAD_VIOLIN, LEAD_CELLO, LEAD_SLIDE, LEAD_BANJO, EN_NLEAD };
+enum { LEAD_KALIMBA, LEAD_BELL, LEAD_FLUTE, LEAD_GUITAR, LEAD_RHODES, LEAD_VIOLIN, LEAD_CELLO, LEAD_SLIDE, EN_NLEAD };
 extern const char *const EN_LEAD_NAME[EN_NLEAD];
 enum { MEL_BELLS, MEL_KALIMBA, MEL_MARIMBA, MEL_VIBES, MEL_SLIDE, MEL_GLASS, MEL_MUSICBOX, MEL_BANJO, EN_NMEL };
 extern const char *const EN_MEL_NAME[EN_NMEL];

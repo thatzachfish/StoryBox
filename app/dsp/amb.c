@@ -128,22 +128,24 @@ static const struct {
         {55, 45, 45, 40, 30, 30, 35, 40, 50, 2, 50, 65, 45, 50, 50, 40, 0, 1, 88, 0, 1, 0, 0, 0, 15, 40, 35, 50, 10, 0, 0, 50, 4, 55, 45, 15, 0, 85, 1}},
         {"Cm7:2 Fm7:2", "Cm7:2 Fm7:2 Abmaj7:2 G7:2", "Fm7:2 Bb7:2 Ebmaj7:2 Abmaj7:1 G7:1", "Abmaj7:2 G7:2"},
         0, {"C6 G5", "C3 C3 Eb4 G4 Bb4"}, {"Chime", "Curtain"}},
-    /* Post Show: Intermission's family, triumphant: F major, 92 bpm, swung; an organ and strings, bells, the
-     * boom-bap locked in. Bows, Encore, Stage Door (the fullest), Walk Home */
+    /* Post Show: Intermission's family, jazzy and bright (0.5: major sevenths, nothing scary): F major, swung; a Rhodes,
+     * an organ, strings. Each act its own drums: Bows brushed, Encore the backbeat, Stage Door the busiest (looser,
+     * more hats), Walk Home soft */
     {"Post Show", {"Bows", "Encore", "Stage Door", "Walk Home"}, {
-        {50, 45, 60, 60, 40, 30, 25, 60, 35, 1, 40, 55, 60, 35, 60, 40, 0, 1, 92, 5, 0, 0, 3, 0, 10, 50, 35, 60, 10, 0, 0, 55, 4, 60, 50, 15, 0, 85, 1},
-        {55, 55, 65, 66, 50, 40, 20, 70, 40, 1, 40, 55, 65, 35, 65, 50, 0, 1, 92, 5, 0, 0, 2, 0, 10, 55, 35, 65, 10, 0, 0, 60, 4, 60, 50, 15, 0, 85, 1},
-        {55, 55, 68, 70, 55, 45, 20, 75, 45, 1, 40, 55, 65, 30, 70, 55, 0, 1, 94, 5, 0, 0, 3, 0, 10, 60, 40, 70, 15, 5, 0, 65, 4, 65, 55, 15, 0, 75, 1},
-        {55, 45, 50, 45, 35, 30, 30, 45, 50, 2, 50, 65, 50, 45, 55, 40, 0, 1, 90, 5, 0, 0, 0, 0, 15, 40, 30, 50, 10, 0, 0, 50, 4, 55, 45, 15, 0, 85, 1}},
-        {"F:2 Bb:2 Dm7:2 C:2", "F:2 Am7:2 Bb:2 C:2", "Bb:2 C:2 Am7:2 Dm7:2 Gm7:2 C:2", "F:2 C/E:2 Dm7:2 Bbmaj7:1 C:1"},
+        {50, 45, 55, 55, 40, 30, 25, 45, 35, 1, 40, 55, 60, 35, 60, 40, 0, 1, 90, 5, 0, 0, 0, 0, 10, 45, 30, 50, 10, 0, 0, 55, 4, 60, 50, 15, 0, 85, 2},
+        {55, 55, 65, 66, 50, 40, 20, 65, 40, 1, 40, 55, 65, 35, 65, 50, 0, 1, 92, 5, 0, 0, 2, 0, 10, 55, 40, 60, 10, 0, 0, 60, 4, 60, 50, 15, 0, 85, 1},
+        {55, 55, 68, 70, 55, 45, 20, 82, 45, 1, 40, 55, 65, 30, 70, 55, 0, 1, 96, 5, 0, 0, 3, 0, 10, 60, 25, 80, 15, 0, 0, 65, 4, 65, 55, 15, 0, 60, 1},
+        {55, 45, 50, 40, 35, 30, 30, 35, 50, 2, 50, 65, 50, 45, 55, 40, 0, 1, 88, 5, 0, 0, 0, 0, 15, 40, 45, 40, 10, 0, 0, 50, 4, 55, 45, 15, 0, 90, 0}},
+        {"Fmaj7:2 Bbmaj7:2 Fmaj7:2 C7:2", "Fmaj7:2 Am7:2 Bbmaj7:2 C7:2", "Bbmaj7:2 Ebmaj7:2 Fmaj7:2 Dbmaj7:1 C7:1",
+         "Fmaj7:2 Bbmaj7:2 Gm7:2 C7:2"},
         5, {"F5 A5 C6", "F3 C4 F4 A4 C5"}, {"Fanfare", "Bow"}},
     /* Riebeck: an original campfire-and-stars piece in the spirit of a game Zach loves (none of its music): a banjo
      * picking by the fire in D, the launch, drifting among the stars (no drums, a far wind), the last supernova */
     {"Riebeck", {"Campfire", "Liftoff", "Drifting", "Supernova"}, {
-        {45, 60, 40, 20, 45, 30, 35, 25, 40, 2, 60, 75, 50, 45, 50, 40, 0, 1, 84, 2, 0, 0, 0, 0, 15, 35, 15, 40, 15, 0, 0, 50, 8, 60, 55, 10, 0, 70, 2},
-        {55, 60, 50, 45, 50, 40, 25, 45, 45, 2, 62, 80, 60, 40, 55, 50, 0, 1, 88, 2, 0, 0, 2, 0, 15, 40, 15, 55, 15, 5, 0, 55, 8, 60, 55, 10, 0, 75, 2},
-        {65, 40, 40, 0, 25, 35, 55, 0, 55, 4, 72, 92, 35, 75, 40, 50, 0, 1, 70, 2, 0, 1, 2, -1, 30, 25, 0, 0, 30, 10, 0, 50, 8, 60, 55, 10, 0, 50, 0},
-        {65, 55, 60, 55, 50, 55, 25, 60, 50, 2, 70, 90, 60, 40, 60, 75, 0, 1, 88, 2, 0, 0, 3, 0, 15, 45, 15, 65, 15, 30, 0, 60, 8, 65, 60, 10, 0, 70, 1,
+        {45, 60, 40, 20, 45, 30, 35, 25, 40, 2, 60, 75, 50, 45, 50, 40, 0, 1, 84, 2, 0, 0, 0, 0, 15, 35, 15, 40, 15, 0, 0, 50, 2, 60, 55, 10, 0, 70, 2},
+        {55, 60, 50, 45, 50, 40, 25, 45, 45, 2, 62, 80, 60, 40, 55, 50, 0, 1, 88, 2, 0, 0, 2, 0, 15, 40, 15, 55, 15, 5, 0, 55, 2, 60, 55, 10, 0, 75, 2},
+        {65, 40, 40, 0, 25, 35, 55, 0, 55, 4, 72, 92, 35, 75, 40, 50, 0, 1, 70, 2, 0, 1, 2, -1, 30, 25, 0, 0, 30, 10, 0, 50, 2, 60, 55, 10, 0, 50, 0},
+        {65, 55, 60, 55, 50, 55, 25, 60, 50, 2, 70, 90, 60, 40, 60, 75, 0, 1, 88, 2, 0, 0, 3, 0, 15, 45, 15, 65, 15, 30, 0, 60, 2, 65, 60, 10, 0, 70, 1,
          0, 0, 0, 0, 0, 0, 0, 0, 0}},
         {"D:2 G:2 Bm:2 A:2", "G:2 D:2 Em:2 A:2", "Bm:4 G:4 D:4 A:4", "G:2 A:2 F#m:2 Bm:2 G:2 A:2 D:4"},
         2, {"D5 F#5 A5", "D3 A3 D4 F#4 A4"}, {"Spark", "The loop"}},
@@ -543,7 +545,7 @@ const char *en_chord_name(const int *pcs, int n, char *buf)
 /* ------------------------------------------------------------ commands --- */
 enum { C_SET, C_POOL, C_PLAY, C_NEXT, C_FREEZE, C_SEED, C_PANIC, C_CLOCK, C_REGROW, C_PROG, C_STING, C_MUTE, C_BREAK,
        C_LON, C_LOFF, C_FX };
-#define QN 64u
+#define QN 256u                                   /* (0.5: from 64: a story's change posts some 50 values at once) */
 static uint32_t q[QN];
 static volatile uint32_t q_w, q_r;
 static void post(uint32_t c, int a, int b)
@@ -569,7 +571,7 @@ void en_fx(uint32_t mask) { post(C_FX, 0, (int)(mask & 15u)); }
 void en_lead_on(int note, int vel) { post(C_LON, note & 127, vel & 127); }
 void en_lead_off(int note) { post(C_LOFF, note & 127, 0); }
 const char *const EN_MEL_NAME[EN_NMEL] = {"Bells", "Kalimba", "Marimba", "Vibes", "Slide", "Glass", "Music box", "Banjo"};
-const char *const EN_LEAD_NAME[EN_NLEAD] = {"Kalimba", "Bell", "Flute", "Guitar", "Rhodes", "Violin", "Cello", "Slide", "Banjo"};
+const char *const EN_LEAD_NAME[EN_NLEAD] = {"Kalimba", "Bell", "Flute", "Guitar", "Rhodes", "Violin", "Cello", "Slide"};
 void en_breakdown(int on) { post(C_BREAK, on ? 1 : 0, 0); }
 void en_sting(int piece, int k)
 {
@@ -864,8 +866,9 @@ static const struct {
     {1.0f, 1.5f, 0.45f, 0.9f, 0.0f, 0, 0},       /* slide: a guitar's, each note sliding from the one before */
     {1.0f, 0.25f, 0.6f, 1.4f, 0.0003f, 0, 0},    /* glass: pure, swelling in */
     {3.5f, 2.2f, 0.6f, 0.55f, 0.0f, 12, 0},      /* music box: high and small */
-    {2.0f, 2.4f, 0.1f, 0.32f, 0.0f, 0, 0},       /* banjo: a bright, nasal twang, quickly gone */
+    {3.0f, 1.0f, 0.035f, 0.2f, 0.0f, 0, 0},      /* banjo: a plunk (the head's quick ring), a short nasal core */
 };
+static const float MEL_GAIN[EN_NMEL] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.7f};   /* (the banjo softer) */
 static float mel_trem, mel_vib, mel_last[EN_NLOOP + 1];   /* (the slide: each loop's last note's pitch) */
 static int bell_sting_now;                       /* (sting_fire: its notes are always bells) */
 static float bell_vol, btone;
@@ -988,7 +991,7 @@ static void drift_reset(void)
 }
 
 /* StoryBox: the progression the act follows (prog_cur, -1 none), its step, and the bars left on it */
-static int prog_cur = -1, prog_i, prog_left;
+static int prog_cur = -1, prog_i, prog_left, prog_total = 1;   /* (prog_total: the step's bars, for its progress) */
 static float freedom = 1.0f;                    /* Freedom, 0..1 */
 volatile int8_t en_prog_step = -1;
 static void chord_to(int i);
@@ -1021,6 +1024,7 @@ static void prog_advance(void)                  /* the next step, on a bar: as w
     en_prog_step = (int8_t)prog_i;
     if (d < 0) {                                /* a named chord: as written, or (with Freedom) the last one held */
         prog_left = b + (frand() < freedom_eff() * 0.25f ? (b > 1 && frand() < 0.5f ? -1 : 1) : 0);
+        prog_total = prog_left;
         if (!(frand() < freedom_eff() * 0.3f))
             chord_named(prog_off[prog_cur][prog_i], prog_q[prog_cur][prog_i], prog_bass[prog_cur][prog_i]);
         return;
@@ -1037,6 +1041,7 @@ static void prog_advance(void)                  /* the next step, on a bar: as w
     if (frand() < freedom_eff() * 0.25f)              /* and now and then a bar longer or shorter */
         b += b > 1 && frand() < 0.5f ? -1 : 1;
     prog_left = b;
+    prog_total = b;
     d = ((d % nsteps) + nsteps) % nsteps;
     if (d != deg || chord_x) {
         chord_x = 0;
@@ -1553,6 +1558,7 @@ typedef struct {
     int n, i;
 } dl_t;
 static dl_t dl[L_N];
+static float pl_dk = 0.45f;                       /* (the tank's damping: less while frozen) */
 static float pl_bw, pl_damp_l, pl_damp_r, pl_decay = 0.5f, pl_decay_t = 0.5f, pl_dd2 = 0.5f, lfo_s, lfo_c = 1.0f;
 
 static inline float tap(const dl_t *d, int k)
@@ -1598,13 +1604,13 @@ static inline void reverb(float in, float *ol, float *or_)
     a = allpass_mod(&dl[L_APL], (float)DS(672) + (float)EXC * lfo_s, x + pl_decay * fb_l, -0.7f);
     push(&dl[L_D1L], a);
     b = tap(&dl[L_D1L], DS(4453));
-    pl_damp_l += 0.45f * (b - pl_damp_l);
+    pl_damp_l += pl_dk * (b - pl_damp_l);
     b = allpass(&dl[L_AP2L], DS(1800), pl_damp_l * pl_decay, pl_dd2);
     push(&dl[L_D2L], b);
     a = allpass_mod(&dl[L_APR], (float)DS(908) + (float)EXC * lfo_c, x + pl_decay * fb_r, -0.7f);
     push(&dl[L_D1R], a);
     b = tap(&dl[L_D1R], DS(4217));
-    pl_damp_r += 0.45f * (b - pl_damp_r);
+    pl_damp_r += pl_dk * (b - pl_damp_r);
     b = allpass(&dl[L_AP2R], DS(2656), pl_damp_r * pl_decay, pl_dd2);
     push(&dl[L_D2R], b);
     *ol = 0.6f * (tap(&dl[L_D1R], DS(266)) + tap(&dl[L_D1R], DS(2974)) - tap(&dl[L_AP2R], DS(1913)) +
@@ -2255,7 +2261,7 @@ static void render_bells(uint32_t n)
 {
     int i;
     /* (StoryBox 0.3: the melody a quarter quieter) */
-    const float gb = bell_vol * 0.34f * mg[1], gs = 0.3f, arate = 0.0004f + 0.0056f * fm_minf(btone * 2.0f, 1.0f);
+    const float gb = bell_vol * 0.34f * mg[1], gs = 0.15f, arate = 0.0004f + 0.0056f * fm_minf(btone * 2.0f, 1.0f);
     float trem;
     mel_trem += (float)n * (4.2f / EN_SR);       /* the vibes' motor */
     mel_vib += (float)n * (5.0f / EN_SR);        /* the slide's vibrato */
@@ -2272,6 +2278,8 @@ static void render_bells(uint32_t n)
               mecho = v->sting ? 0.85f : (float)par[P_MECHO] * 0.017f;   /* (Echo 50: as before) */
         if (MEL[v->mel].trem)
             g *= 1.0f - 0.5f * trem;
+        if (!v->sting)
+            g *= MEL_GAIN[v->mel];
         if (!v->on)
             continue;
         if (v->wait > 0) {
@@ -2471,7 +2479,7 @@ static void render_drums(uint32_t n)
  *           an octave and more lower)
  * ring: how long a struck note rings (s; 0 held: it lasts while the key is down, then fades over rel) */
 enum { LK_FM, LK_FLUTE, LK_STRING, LK_PIANO, LK_BOWED };
-static float lead_vib, lead_trem;
+static float lead_vib, lead_trem, lead_last;   /* (lead_last: the last note's pitch, for Glide) */
 static float body_s[2][3][2];                    /* the bowed body's three resonators a side: band, low */
 static int16_t ks[NLEAD][KS_N] EN_POOL;          /* the strings, as 16-bit samples (x 16384) */
 static const struct {
@@ -2488,8 +2496,6 @@ static const struct {
     {LK_BOWED, 0, 1, 0, 1.0f, 1.9f, 60.0f, 0.0f, 0.16f, 1.2f, 0.0065f, 0.03f, 0.0018f, 1.25f},  /* violin (a slower release) */
     {LK_BOWED, 0, 2, -1, 1.0f, 1.8f, 60.0f, 0.0f, 0.24f, 1.2f, 0.0055f, 0.025f, 0.0015f, 1.35f}, /* cello */
     {LK_STRING, 1, 0, 0, 1.0f, 0.0f, 0.0f, 10.0f, 0.001f, 0.25f, 0.0075f, 0.0f, 0.0f, 1.0f},  /* slide guitar: long (quieter) */
-    {LK_STRING, 0, 0, 0, 1.0f, 0.0f, 0.0f, 1.4f, 0.001f, 0.12f, 0.0f, 0.3f, 0.0f, 0.95f},   /* banjo: bright (breath: the
-                                                                                              * loop's brightness), short */
 };
 /* the bodies' resonances: Hz, Q, gain; and how much of the string goes straight through */
 static const float BODY[2][3][3] = {
@@ -2530,7 +2536,8 @@ static void ks_pluck(lead_t *v, int i, float f, float vel)   /* the string's fir
 
 static void lead_note_on(int key, int vel)
 {
-    int sd = par[P_LSOUND], n = en_lead_snap(key) + 12 * (par[P_LOCT] + LEADS[sd].oct), i, best = 0, kind = LEADS[sd].kind;
+    int sd = par[P_LSOUND], n = key + 12 * (par[P_LOCT] + LEADS[sd].oct), i, best = 0, kind = LEADS[sd].kind;   /* (0.5:
+                                                                                     * every key its own note) */
     float lo = 9.0f, fv = (float)vel / 127.0f, from = 0.0f;
     lead_t *v;
     while (n > 100)
@@ -2543,6 +2550,7 @@ static void lead_note_on(int key, int vel)
             lead[i].on = 0;
         if (v->on && v->held) {
             v->inc_t = mtof((float)n) * (1.0f / EN_SR);
+            lead_last = v->inc_t;
             midi(0x84, v->note, 0);
             v->key = (uint8_t)key;
             v->note = (uint8_t)n;
@@ -2574,6 +2582,9 @@ static void lead_note_on(int key, int vel)
     v->inc = v->inc_t = mtof((float)n) * (1.0f / EN_SR);
     if (LEADS[sd].legato && kind == LK_STRING)   /* the slide: from the last note, or up into this one */
         v->inc = from > 0.0f ? from : v->inc_t * 0.9439f;
+    else if (lead_glide_t > 0.0f && lead_last > 0.0f)   /* Glide (0.5: every sound): from the note before */
+        v->inc = lead_last;
+    lead_last = v->inc_t;
     v->amp = 0.35f + 0.65f * fv;
     v->amp2 = 0.5f * fv + 0.15f;
     v->att = 0.0f;
@@ -2912,28 +2923,41 @@ static void fx_sample(float *l, float *r)        /* one frame of the whole sound
     } else {
         fl_s[0][0] = fl_s[0][1] = fl_s[1][0] = fl_s[1][1] = 0.0f;
     }
-    if (fxw[FX_SCATTER] > 0.0005f) {             /* StoryBox 0.4's Scatter: the last moment in slices (Size: 60 .. 260
-                                                  * ms), each from somewhere in the ring, forward, backward or an
-                                                  * octave up, a short fade at its edges */
-        static float sc_pos, sc_step;
-        static int32_t sc_left, sc_len;
-        float wet, e, w;
-        int32_t t;
-        if (sc_left <= 0) {
-            float r = frand(), back;
-            sc_len = (int32_t)((0.06f + 0.002f * (float)par[P_SCSIZE]) * EN_SR);
-            sc_left = sc_len;
-            sc_step = r < 0.25f ? -0.5f : r < 0.4f ? 1.0f : 0.5f;
-            back = (float)sc_len * (0.6f + 1.4f * frand()) + 64.0f;
-            sc_pos = (float)rb_w - back;
+    if (fxw[FX_SCATTER] > 0.0005f) {             /* StoryBox 0.5's Scatter, a sparkle: three grains of the last moment,
+                                                  * an octave up (now and then two), short (Size: 25 .. 125 ms), each
+                                                  * somewhere in the stereo field, high-passed, over the sound */
+        static float g_pos[3], g_step[3], g_pan[3], g_hp[3];
+        static int32_t g_left[3], g_len[3], g_wait[3];
+        float wl = 0.0f, wr = 0.0f, w;
+        int g;
+        for (g = 0; g < 3; g++) {
+            float e, t, v;
+            if (g_wait[g] > 0) {
+                g_wait[g]--;
+                continue;
+            }
+            if (g_left[g] <= 0) {                /* a new grain, after a little gap */
+                g_len[g] = (int32_t)((0.025f + 0.001f * (float)par[P_SCSIZE]) * EN_SR);
+                g_left[g] = g_len[g];
+                g_step[g] = frand() < 0.75f ? 1.0f : 2.0f;   /* (the ring is at half rate: 1 an octave up) */
+                g_pos[g] = (float)rb_w - (float)g_len[g] * g_step[g] - 200.0f - frand() * 6000.0f;
+                g_pan[g] = frand();
+                g_wait[g] = (int32_t)(frand() * 0.04f * EN_SR);
+                continue;
+            }
+            t = (float)(g_len[g] - g_left[g]) / (float)g_len[g];
+            e = 0.5f - 0.5f * fm_cosf(FM_TWO_PI * t);    /* a soft window */
+            v = rb_read(g_pos[g]);
+            g_hp[g] += (v - g_hp[g]) * 0.08f;    /* (the low end out: a sparkle) */
+            v = (v - g_hp[g]) * e;
+            wl += v * (1.0f - g_pan[g]);
+            wr += v * g_pan[g];
+            g_pos[g] += g_step[g];
+            g_left[g]--;
         }
-        t = sc_len - sc_left--;
-        e = fm_minf(fm_minf((float)t, (float)(sc_len - t)) * (1.0f / 220.0f), 1.0f);
-        wet = rb_read(sc_pos) * e;
-        sc_pos += sc_step;
-        w = fxw[FX_SCATTER] * 0.01f * (float)par[P_SCMIX];
-        x = x * (1.0f - w) + wet * w;
-        y = y * (1.0f - w) + wet * w;
+        w = fxw[FX_SCATTER] * 0.012f * (float)par[P_SCMIX];
+        x += wl * w;
+        y += wr * w;
     }
     *l = x;
     *r = y;
@@ -2959,7 +2983,7 @@ static void render_buzz(uint32_t n)
         return;
     t = buzz_t / T;
     env = fm_sinf(FM_TWO_PI * 0.5f * fm_clampf(t, 0.0f, 1.0f));
-    env *= env * 0.32f;
+    env *= env * 0.22f;
     w = 0.03f * fm_sinf(FM_TWO_PI * 1.3f * buzz_t) + 0.02f * fm_sinf(FM_TWO_PI * 0.7f * buzz_t + 1.0f);   /* wandering */
     pan = fm_clampf(t, 0.0f, 1.0f);
     for (j = 0; j < n; j++) {
@@ -3142,9 +3166,12 @@ static void control(uint32_t n)                 /* once a chunk: the slow things
         arc += (fm_clampf(arc_tgt, -1.0f, 1.0f) - arc) * (float)n * (1.0f / (35.0f * EN_SR));
     arcm = fm_clampf(arc * motion + 0.45f * energy, -1.0f, 1.0f);   /* Energy leans the arc toward sparse or full */
     en_arc = arcm;
-    pl_decay += ((en_frozen ? 0.9995f : pl_decay_t) - pl_decay) * 0.002f;
+    /* Freeze (StoryBox 0.5): the tail held long (not forever), darkening less; a third of what plays still reaches the
+     * reverb (it was shut: the notes over it went dry, the held tail dull: muffled) */
+    pl_decay += ((en_frozen ? 0.995f : pl_decay_t) - pl_decay) * 0.002f;
     pl_dd2 = fm_clampf(pl_decay + 0.15f, 0.25f, 0.5f);
-    rev_in_gain += ((en_frozen ? 0.0f : 1.0f) - rev_in_gain) * 0.01f;
+    rev_in_gain += ((en_frozen ? 0.35f : 1.0f) - rev_in_gain) * 0.01f;
+    pl_dk += ((en_frozen ? 0.8f : 0.45f) - pl_dk) * 0.01f;
     if (en_playing && !en_frozen && !change_pending && !prog_on()) {
         drift_left -= (float)n;
         if (!fifth_done && drift_left < 0.5f * drift_total) {
@@ -3156,6 +3183,9 @@ static void control(uint32_t n)                 /* once a chunk: the slow things
             change_pending = 1;
     }
     en_drift = drift_total > 0.0f ? 1.0f - fm_clampf(drift_left / drift_total, 0.0f, 1.0f) : 0.0f;
+    if (prog_on() && prog_total > 0)             /* a progression: how far through this step's bars */
+        en_drift = fm_clampf(((float)(prog_total - prog_left) + (float)bar_pos / (float)en_bar_len) / (float)prog_total,
+                             0.0f, 1.0f);
     for (i = 0; i < EN_NLOOP; i++)
         en_loop_glow[i] *= 0.985f;
     for (i = 0; i < EN_NDRUM; i++)

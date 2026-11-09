@@ -3,14 +3,14 @@
 wait 200
 listen
 wait 100
-said Mixer page: Pad 50, Melody 40, Bass 50, Drums 45. Piece Pre-show, D minor
+said Story page: Act Doors, Structure 70, Tension 0, Wander Perform. Piece Pre-show, D minor
 # (the rings follow, queued: the chord, how far to the next, the scale from the root up)
 listen
 where
 said Scale D, E, F, G, A, B, C
 # a page settles before it is said
 tap GLO
-turn SELECT -4
+turn SELECT -5
 wait 300
 said Pad page: Level 50, Swell 45, Sound Rhodes, Bright 45
 tap GLO
@@ -35,20 +35,17 @@ wait 300
 said Lights Keys
 spin K2 -1
 wait 300
-# FX: the effects
-tap FX
+# SEL: the effects
+tap SEL
 wait 300
 said Effects page: Reverb 50, Echo 40, Echo time 1/2., Surf 0
 spin K3 -1
 wait 300
 said Echo time 1/2
-# SEL: the acts
-tap SEL
-wait 300
-said ACTS ON THE KEYS
+# HOME: the story, the acts on the keys
 tap HOME
 wait 300
-said HOME
+said ACTS ON THE KEYS
 # HOME + SELECT: the tempo
 press HOME
 turn SELECT 2 200
@@ -117,4 +114,4 @@ wait 1000
 said Tempo 88
 # WHERE: everything again
 where
-said Mixer page: Pad 50, Melody 40, Bass 50, Drums 45. Piece Pre-show
+said Story page: Act Doors, Structure 70, Tension 0, Wander Perform. Piece Pre-show

@@ -1,10 +1,10 @@
-# StoryBox's stories and acts: ACTS (SEL) puts the acts on the white keys F G A B and the stories from C up;
+# StoryBox's stories and acts: ACTS (HOME) puts the acts on the white keys F G A B and the stories from middle C up;
 # a tap moves on the next phrase, a hold fades over Fade; each act keeps its own settings; SAVE held resets one
 wait 500
 expect piece 0
 expect view 0
-tap SEL
-expect view 2
+tap HOME
+expect view 0
 # a tap on G3 (act 2, Warm Up): it waits for the next phrase, then glides over one
 tapkey 2
 wait 100
@@ -15,8 +15,8 @@ expect par3 62
 shot warmup.png
 # the bells' level on this act (the Bells page), kept with it
 tap GLO
-turn SELECT -3
-expect view 7
+turn SELECT -4
+expect view 6
 spin K1 -5
 expect par1 50
 # a hold on B3 (act 4, Lights Down): it fades over Fade, starting now
@@ -38,8 +38,8 @@ press SAVE
 wait 1700
 release SAVE
 expect par1 55
-# the stories: the white key F4 is the third story (Lighthouse), from its first act
-tapkey 12
+# the stories: the white key E4 is the third story (Lighthouse), from its first act
+tapkey 11
 wait 15000
 expect piece 8
 expect par18 66
@@ -50,7 +50,7 @@ wait 15000
 expect piece 12
 # EDIT: LEAD, its page; again: back to the acts, and Home
 tap EDIT
-expect view 3
+expect view 9
 tap EDIT
 expect view 0
 expect piece 12
