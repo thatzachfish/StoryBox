@@ -25,6 +25,8 @@ int app_expect(const char *what, int *got)
         g = en_fx_on;
     else if (!strcmp(what, "bd"))                 /* StoryBox: the breakdown (0 off, 1 down, 2 coming back) */
         g = en_bd;
+    else if (!strcmp(what, "dark"))               /* StoryBox: the screen dark (the sleep timer's) */
+        g = ui.dark;
     else if (!strcmp(what, "mutes"))              /* the layers muted, then soloed << 4 */
         g = ui.mutes | ui.solos << 4;
     else if (!strcmp(what, "battery"))

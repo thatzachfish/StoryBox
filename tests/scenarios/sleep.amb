@@ -13,6 +13,12 @@ wavstop
 expect playing 0
 # PLAY again: heard again
 wait 3000
+# (the screen went dark 30 s after the last touch: the first press only wakes it)
+expect dark 1
+tap PLAY
+wait 200
+expect dark 0
+expect playing 0
 tap PLAY
 peakreset
 wait 4000

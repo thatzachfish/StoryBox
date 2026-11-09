@@ -95,6 +95,8 @@ static struct {
     uint8_t mutes, solos;              /* the layers muted, soloed (bit 0 pad .. 3 drums): the player's, not saved */
     uint8_t bd_asked;                  /* the breakdown asked for (or on) */
     uint8_t timer;                     /* the sleep timer: 0 off, 1..4 a quarter hour each */
+    uint8_t dark;                      /* the screen dark: the timer on and nothing touched for 30 s */
+    uint32_t input_t;                  /* the last touch */
     uint32_t timer_end;
     uint8_t fx_held, fx_latch;         /* the punch-ins held, latched (bit FX_*) */
     uint8_t fx_back;                   /* the page to go back to when the last punch-in is let go (+1; 0 none) */
@@ -729,10 +731,42 @@ static void help_tick(uint32_t btn, uint32_t keys)
         }
 }
 
+static int32_t enc_in(int n)                    /* an encoder's turn (any: input, for the dark screen) */
+{
+    int32_t e = plat_enc(n);
+    if (e)
+        ui.input_t = plat_ms();
+    return e;
+}
+
+static void wake(void)                           /* the screen back on: every band drawn again */
+{
+    int k;
+    ui.dark = 0;
+    for (k = 0; k < 4; k++)
+        ui.sig[k] = 0;
+}
+
 static void input(void)
 {
     uint32_t btn = plat_buttons(), keys = plat_keys(), ch, i;
     int32_t e;
+    if (btn != ui.btn || keys != ui.keys)
+        ui.input_t = plat_ms();
+    if (ui.dark) {                               /* dark (the sleep timer's): the first touch only wakes it */
+        int n;
+        for (n = 0; n < NE; n++)
+            if (plat_enc(n))
+                ui.input_t = plat_ms();
+        if (plat_ms() - ui.input_t < 100u) {
+            wake();
+            ui.btn_used |= btn;                  /* (what is down now does nothing when let go) */
+            ui.key_held |= keys;
+        }
+        ui.btn = btn;
+        ui.keys = keys;
+        return;
+    }
     ch = btn ^ ui.btn;
     ui.btn = btn;
     for (i = 0; i < EN_NFX; i++) {             /* the punch-ins: on while held; a quick second press latches */
@@ -849,7 +883,7 @@ static void input(void)
     if (btn || keys || ch)
         ui.act_t = plat_ms();
     midi_in();
-    if ((e = plat_enc(EN_SELECT)) != 0) {        /* SELECT: the pages; with HOME held, the tempo */
+    if ((e = enc_in(EN_SELECT)) != 0) {        /* SELECT: the pages; with HOME held, the tempo */
         if (btn >> B_HOME & 1u) {
             turn(EN_SELECT, P_TEMPO, e);
             ui.btn_used |= 1u << B_HOME;
@@ -868,14 +902,14 @@ static void input(void)
         }
         ui.turn_t = plat_ms();
     }
-    if ((e = plat_enc(EN_ALGO)) != 0) {         /* ALGORITHM: Energy, from any page */
+    if ((e = enc_in(EN_ALGO)) != 0) {         /* ALGORITHM: Energy, from any page */
         char t[8];
         turn(EN_ALGO, P_ENERGY, e);
         itoa_u((uint32_t)proj.par[P_ENERGY], t);
         say("ENERGY", t);
         ui.turn_t = plat_ms();
     }
-    if ((e = plat_enc(EN_PRESET)) != 0) {       /* PRESETS: the next / previous story, from its first act */
+    if ((e = enc_in(EN_PRESET)) != 0) {       /* PRESETS: the next / previous story, from its first act */
         int st = (tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : proj.piece) / EN_NACT;
         st = ((st + (e > 0 ? 1 : -1)) % EN_NSTORY + EN_NSTORY) % EN_NSTORY;
         tr_queue(st * EN_NACT, 0);
@@ -902,7 +936,7 @@ static void input(void)
         mark_dirty();
     }
     for (i = 0; i < 4; i++)
-        if ((e = plat_enc(EN_K1 + (int)i)) != 0) {
+        if ((e = enc_in(EN_K1 + (int)i)) != 0) {
             turn(EN_K1 + (int)i, VIEW_KNOB[ui.view][i], e);
             ui.touched = (int8_t)i;
             ui.touch_until = plat_ms() + 1200u;
@@ -1247,6 +1281,8 @@ static uint32_t drum_steps(void)                 /* the hits in the bar: the thu
 
 /* the rings, one of them in focus (an instrument's page: the others dimmed; -1 none) */
 static uint16_t focus_c(int focus, int ring, uint16_t c) { return focus < 0 || focus == ring ? c : mix(K_BG, c, 5); }
+static float ring_sc = 1.0f;                     /* (the rings' size: smaller behind Lead's notes) */
+static int ring_chord = 1;                       /* (the chord's name in the middle) */
 static void draw_rings(int focus)
 {
     int i, l, n = en_bar_len, pos = en_drum_pos[0];
@@ -1254,7 +1290,7 @@ static void draw_rings(int focus)
     for (i = 0; i < n; i++) {                    /* the drums */
         int32_t x, y;
         int cur = en_playing && i == pos, hit = (int)(p >> i & 1u) && proj.par[P_PULSE] > 0;
-        polar(CX, CY, 66.0f, i, n, &x, &y);
+        polar(CX, CY, 66.0f * ring_sc, i, n, &x, &y);
         const int b = focus == 3;                /* (in focus: larger) */
         if (cur)
             cv_disc(x, y, (hit ? 4 : 2) + b * 2, focus_c(focus, 3, K_ACC));
@@ -1263,7 +1299,7 @@ static void draw_rings(int focus)
         else
             cv_disc(x, y, 1 + b, focus_c(focus, 3, K_LINE));
     }
-    ring_arc(55.0f, en_bass_level * (float)proj.par[P_BASS] * 0.012f, focus_c(focus, 2, K_LINE), focus_c(focus, 2, K_BASS), focus == 2);
+    ring_arc(55.0f * ring_sc, en_bass_level * (float)proj.par[P_BASS] * 0.012f, focus_c(focus, 2, K_LINE), focus_c(focus, 2, K_BASS), focus == 2);
     for (l = 0; l < EN_NLOOP; l++) {             /* the bells: each loop's last few notes, fading */
         int len = en_loop_len[l], k;
         if (!en_playing || len <= 0 || !proj.par[P_BELLS])
@@ -1273,12 +1309,12 @@ static void draw_rings(int focus)
             int32_t x, y;
             if (en_loop_note[l][s] < 0)
                 continue;
-            polar(CX, CY, 44.0f - (float)l * 3.0f, s, len, &x, &y);
+            polar(CX, CY, (44.0f - (float)l * 3.0f) * ring_sc, s, len, &x, &y);
             cv_disc(x, y, (k ? 2 : 3) + (focus == 1) * 2, focus_c(focus, 1, mix(K_BG, K_BELL, k ? 12 - k * 2 : 16)));
         }
     }
-    ring_arc(30.0f, en_pad_level * (float)proj.par[P_PAD] * 0.012f, focus_c(focus, 0, K_LINE), focus_c(focus, 0, K_PAD), focus == 0);
-    {   /* the chord's name, in the middle; "held" under it while frozen */
+    ring_arc(30.0f * ring_sc, en_pad_level * (float)proj.par[P_PAD] * 0.012f, focus_c(focus, 0, K_LINE), focus_c(focus, 0, K_PAD), focus == 0);
+    if (ring_chord) {   /* the chord's name, in the middle; "held" under it while frozen */
         char nm[16];
         chord_now(nm);
         text_c(CX, CY - 9, text_w(&FONT_B, nm) <= 44 ? &FONT_B : &FONT_XS, nm,
@@ -1291,15 +1327,17 @@ static void draw_rings(int focus)
 /* Feel: the music's character, not its instruments. Energy (ALGORITHM) and Tension as meters; the tide (the arc,
  * minutes long, sparse to full: Motion) as a line of the last four minutes; how near the next chord is */
 #define TIDE_N 120
-static int8_t tide[TIDE_N];                      /* the arc every 2 s, -100..100, the newest last */
+static int8_t tide_buf[TIDE_N];                  /* the arc every 2 s, -100..100: a ring, tide_head the oldest */
+static int tide_head;
 static uint32_t tide_t;
+#define TIDE(k) tide_buf[(tide_head + (k)) % TIDE_N]   /* k: 0 the oldest .. TIDE_N - 1 the newest */
 static void tide_tick(void)
 {
     if (plat_ms() - tide_t < 2000u)
         return;
     tide_t = plat_ms();
-    memmove(tide, tide + 1, TIDE_N - 1);
-    tide[TIDE_N - 1] = (int8_t)fm_clampf(en_arc * 100.0f, -100.0f, 100.0f);
+    tide_buf[tide_head] = (int8_t)fm_clampf(en_arc * 100.0f, -100.0f, 100.0f);
+    tide_head = (tide_head + 1) % TIDE_N;
 }
 static void meter(int32_t y, int32_t h, int v, uint16_t lo, uint16_t hi)   /* 20 segments, v of 100 lit */
 {
@@ -1327,7 +1365,7 @@ static void draw_feel(void)
     cv_text(230 - text_w(&FONT_XS, "full"), 64, &FONT_XS, "full", K_LINE);
     cv_rect(10, 100, 220, 1, K_PANEL);            /* the middle: the act as it is */
     for (k = 0; k < TIDE_N; k++) {               /* sparse below, full above */
-        int32_t x = 10 + k * 220 / TIDE_N, y = 100 - tide[k] * 18 / 100;
+        int32_t x = 10 + k * 220 / TIDE_N, y = 100 - TIDE(k) * 18 / 100;
         if (k)
             cv_line(px, py, x, y, k == TIDE_N - 1 ? K_ACC : K_PAD);
         px = x, py = y;
@@ -1485,171 +1523,211 @@ static void draw_map(void)
 }
 
 /* EDIT, the lead: its sound, its octave, the key it plays in */
-static void draw_lead(void)                      /* EDIT: the lead's sound, large; the keys, the scale's lit, the ones
-                                                  * down yellow, the root marked */
+/* EDIT, the lead: the rings, smaller and dimmed, its sound's name in the middle; around them a ring of the twelve
+ * notes (the root at the top): the scale's notes marked, the root larger; a note played blooms yellow and fades */
+static float lead_glow[12];
+static void draw_lead(void)
 {
-    char t[24], o[12];
-    int r = proj.par[P_ROOT], k, n = 0, wi = 0;
+    char t[24];
+    int r = proj.par[P_ROOT], k;
     uint32_t ap = pool_abs();
-    const char *s;
-    static const uint8_t BLACK[12] = {0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0};   /* from F */
+    ring_sc = 0.62f;
+    ring_chord = 0;
+    draw_rings(9);
+    ring_sc = 1.0f;
+    ring_chord = 1;
     caps(t, EN_LEAD_NAME[proj.par[P_LSOUND]], sizeof t);
-    text_c(120, 4, &FONT_M, t, K_PAD);
-    en_param_text(P_LOCT, proj.par[P_LOCT], o);
-    for (s = EN_NOTE_NAME[r]; *s;)
-        t[n++] = *s++;
-    for (s = mode_name()[1] == 'i' ? " minor   octave " : " major   octave "; *s;)
-        t[n++] = *s++;
-    for (s = o; *s && n < 22;)
-        t[n++] = *s++;
-    t[n] = 0;
-    text_c(120, 32, &FONT_XS, t, K_DIM);
-    for (k = 0; k < NKEYS; k++) {                /* the white keys */
-        int pc = (53 + k) % 12, down = (int)(ui.keys >> k & 1u) && ui.lead, in = (int)(ap >> pc & 1u);
-        int32_t x;
-        if (BLACK[k % 12])
-            continue;
-        x = 8 + wi * 14;
-        cv_rect(x, 58, 13, 62, down ? K_ACC : in ? K_TEXT : K_DIM);
-        if (pc == r)
-            cv_disc(x + 6, 112, 2, down ? K_BG : K_PAD);
-        wi++;
+    text_c(CX, CY - 7, &FONT_XS, t, K_PAD);
+    for (k = 0; k < 12; k++) {                   /* the notes: k semitones above the root, clockwise */
+        int pc = (r + k) % 12;
+        int32_t x, y;
+        float g = lead_glow[pc];
+        polar(CX, CY, 62.0f, k, 12, &x, &y);
+        if (g > 0.05f)
+            cv_disc(x, y, 4 + (int32_t)(4.0f * g), mix(K_PAD, K_ACC, (uint32_t)(g * 16.0f)));
+        else if (ap >> pc & 1u)
+            cv_disc(x, y, k ? 3 : 5, k ? mix(K_BG, K_PAD, 10) : K_PAD);
+        else
+            cv_disc(x, y, 1, K_LINE);
+        if (!k || g > 0.05f)                     /* the root's name, and a note's as it blooms */
+            text_c(x, y + (y < CY ? 8 : -21), &FONT_XS, EN_NOTE_NAME[pc], g > 0.05f ? K_ACC : K_PAD);   /* (inward) */
     }
-    for (k = 0, wi = 0; k < NKEYS; k++) {        /* the black keys over them */
-        int pc = (53 + k) % 12, down = (int)(ui.keys >> k & 1u) && ui.lead, in = (int)(ap >> pc & 1u);
-        if (!BLACK[k % 12]) {
-            wi++;
-            continue;
-        }
-        cv_rect(8 + wi * 14 - 4, 58, 9, 36, down ? K_ACC : in ? K_LINE : K_BG);
-        if (pc == r)
-            cv_disc(8 + wi * 14, 86, 1, K_PAD);
-    }
-    text_c(120, 126, &FONT_XS, ui.lead ? "OCT- / OCT+: octave" : "EDIT: the keys play the lead", K_DIM);
+}
+static void lead_glow_tick(void)                 /* the notes held glow full; let go, they fade in about a second */
+{
+    int k;
+    for (k = 0; k < 12; k++)
+        lead_glow[k] *= 0.93f;
+    if (!ui.lead)
+        return;
+    for (k = 0; k < NKEYS; k++)
+        if (ui.keys >> k & 1u)
+            lead_glow[en_lead_snap(53 + k) % 12] = 1.0f;
 }
 
-/* Setup: the sleep timer, when it runs: the minutes left, large, a bar draining; else the key and the tempo, large */
+/* Setup: the rings dimmed behind; the sleep timer, when it runs, as a ring of frost draining around the minutes left;
+ * else the key and the tempo in the middle */
 static void draw_setup(void)
 {
     char t[24];
     int n = 0;
     const char *s;
+    ring_chord = 0;
+    draw_rings(9);
+    ring_chord = 1;
+    cv_disc(CX, CY, 26, K_BG);                   /* (a clearing in the middle) */
     if (ui.timer) {
         uint32_t left = ui.timer_end - plat_ms(), total = (uint32_t)ui.timer * 15u * 60000u;
+        ring_arc(68.0f, fm_clampf((float)left / (float)total, 0.0f, 1.0f), K_PANEL, K_FROST, 1);
         itoa_u((left + 59999u) / 60000u, t);
-        for (n = 0; t[n]; n++)
-            ;
-        for (s = " MIN"; *s;)
-            t[n++] = *s++;
-        t[n] = 0;
-        text_c(120, 14, &FONT_XS, "SLEEP IN", K_DIM);
-        text_c(120, 32, &FONT_M, t, K_FROST);
-        cv_round(20, 70, 200, 8, 4, K_PANEL);
-        cv_round(20, 70, (int32_t)(200.0f * fm_clampf((float)left / (float)total, 0.0f, 1.0f)) + 1, 8, 4, K_FROST);
-        text_c(120, 86, &FONT_XS, left < 180000u ? "fading out" : "the last three minutes fade out", K_DIM);
+        text_c(CX, CY - 14, &FONT_M, t, K_FROST);
+        text_c(CX, CY + 9, &FONT_XS, left < 180000u ? "fading" : "min", K_FROST);
     } else {
         for (s = EN_NOTE_NAME[proj.par[P_ROOT]]; *s;)
             t[n++] = *s++;
-        for (s = mode_name()[1] == 'i' ? " MINOR" : " MAJOR"; *s;)
-            t[n++] = *s++;
+        if (mode_name()[1] == 'i')
+            t[n++] = 'm';
         t[n] = 0;
-        text_c(120, 12, &FONT_M, t, K_TEXT);
+        text_c(CX, CY - 16, &FONT_B, t, K_TEXT);
         itoa_u((uint32_t)proj.par[P_TEMPO], t);
-        for (n = 0; t[n]; n++)
-            ;
-        for (s = " BPM"; *s;)
-            t[n++] = *s++;
-        t[n] = 0;
-        text_c(120, 48, &FONT_M, t, K_TEXT);
-        text_c(120, 90, &FONT_XS, "Sleep timer: knob 3", K_DIM);
+        text_c(CX, CY - 1, &FONT_B, t, K_TEXT);
+        text_c(CX, CY + 13, &FONT_XS, "bpm", K_DIM);
     }
-    text_c(120, 120, &FONT_XS, "HOME + SELECT: tempo, from any page", K_LINE);
 }
 
-/* System: the firmware, the battery, the lights and MIDI, in words */
+/* System: a little StoryBox, blinking now and then, in front of the dimmed rings; under it, in words, how it is */
 static void draw_system(void)
 {
     char t[16];
-    int b = batt();
-    text_c(120, 6, &FONT_M, "STORYBOX", K_TEXT);
-    text_c(120, 34, &FONT_XS, EN_VERSION, K_DIM);
-    cv_text(20, 62, &FONT_XS, "Power", K_DIM);
-    cv_text(100, 62, &FONT_XS, b >= 0 ? batt_words(b) : "-", K_TEXT);
-    cv_text(20, 80, &FONT_XS, "Lights", K_DIM);
-    knob_text(K_LEDS, t);
-    cv_text(100, 80, &FONT_XS, t, K_TEXT);
-    cv_text(20, 98, &FONT_XS, "MIDI out", K_DIM);
-    cv_text(100, 98, &FONT_XS, proj.par[P_MIDI] ? "On" : "Off", K_TEXT);
-    cv_text(20, 116, &FONT_XS, "Load", K_DIM);
-    knob_text(K_CPU, t);
-    cv_text(100, 116, &FONT_XS, t, K_TEXT);
+    int b = batt(), blink = (plat_ms() % 4200u) < 160u;
+    ring_chord = 0;
+    draw_rings(9);
+    ring_chord = 1;
+    cv_round(CX - 34, 16, 68, 50, 10, K_PANEL);  /* the box */
+    cv_round(CX - 30, 20, 60, 30, 7, K_BG);      /* its screen, a face on it */
+    if (blink) {
+        cv_rect(CX - 14, 34, 8, 2, K_ACC);
+        cv_rect(CX + 6, 34, 8, 2, K_ACC);
+    } else {
+        cv_disc(CX - 10, 33, 3, K_ACC);
+        cv_disc(CX + 10, 33, 3, K_ACC);
+    }
+    cv_rect(CX - 5, 42, 10, 2, K_ALERT);         /* a smile */
+    cv_rect(CX - 7, 40, 2, 2, K_ALERT);
+    cv_rect(CX + 5, 40, 2, 2, K_ALERT);
+    {
+        int k;                                   /* its keys */
+        for (k = 0; k < 6; k++)
+            cv_rect(CX - 26 + k * 9, 55, 7, 6, k == (int)(plat_ms() / 700u % 6u) ? K_PAD : K_LINE);
+    }
+    text_c(CX, 70, &FONT_B, "StoryBox", K_TEXT);
+    text_c(CX, 86, &FONT_XS, EN_VERSION, K_DIM);
+    {   /* how it is: four pills */
+        static const char *const L[4] = {"Power", "Lights", "MIDI", "Load"};
+        int k;
+        for (k = 0; k < 4; k++) {
+            int32_t x = 12 + (k % 2) * 112, yy = 104 + (k / 2) * 19;
+            uint16_t c = k == 0 ? (b == 0 ? K_ALERT : K_PAD) : k == 1 ? (proj.leds ? K_ACC : K_LINE) :
+                         k == 2 ? (proj.par[P_MIDI] ? K_BELL : K_LINE) : K_PULSE;
+            cv_round(x, yy, 104, 16, 8, K_PANEL);
+            cv_disc(x + 9, yy + 8, 3, c);
+            cv_text(x + 17, yy + 1, &FONT_XS, L[k], K_DIM);
+            if (k == 0)
+            {
+                const char *w = b == 4 ? "USB" : b == 3 ? "Full" : b == 2 ? "2/3" : b == 1 ? "1/3" : b == 0 ? "Low" : "-";
+                int q = 0;
+                while ((t[q] = w[q]) != 0)
+                    q++;
+            }
+            else
+                knob_text(k == 1 ? K_LEDS : k == 2 ? P_MIDI : K_CPU, t);
+            cv_text(x + 98 - text_w(&FONT_XS, t), yy + 1, &FONT_XS, t, K_TEXT);
+        }
+    }
 }
 
-/* FX, the effects: the four punch-ins, their buttons and states (held or latched: fuchsia) */
+/* a picture of what an effect does, in the box (x, y, w, h): Reverse a sound swelling backwards; Stutter one moment
+ * again and again; Filter a low-pass curve (its corner at Cutoff, a bump of Resonance); Phaser a wave, its notches
+ * sweeping */
+static void fx_picture(int i, int32_t x0, int32_t y0, int32_t w, int32_t h, uint16_t c)
+{
+    int k;
+    int32_t my = y0 + h / 2;
+    switch (i) {
+    case 0: {
+        int nb = w / 7;
+        for (k = 0; k < nb; k++) {
+            int32_t bh = 2 + k * (h - 10) / nb;
+            cv_rect(x0 + k * 7, my - bh / 2 - 3, 4, bh, c);
+        }
+        cv_rect(x0, y0 + h - 3, nb * 7, 2, c);   /* an arrow, back */
+        cv_rect(x0, y0 + h - 6, 2, 8, c);
+        cv_rect(x0 + 2, y0 + h - 5, 2, 6, c);
+        break;
+    }
+    case 1: {
+        int32_t bw = w / 4;
+        for (k = 0; k < 4; k++) {
+            int j;
+            for (j = 0; j < 5 && j * 6 < bw - 6; j++) {
+                int32_t bh = (h - 6) - j * (h - 6) / 6;
+                cv_rect(x0 + k * bw + j * 6, my - bh / 2, 4, bh, c);
+            }
+        }
+        break;
+    }
+    case 2: {
+        int32_t px = x0, py = y0 + 6, fc = x0 + 10 + proj.par[P_FLCUT] * (w - 30) / 100, q = proj.par[P_FLRES] * (h / 3) / 100;
+        for (k = x0; k <= x0 + w; k += 3) {
+            int32_t y = k < fc - 10 ? y0 + 6 + q : k < fc ? y0 + 6 + q - q * (k - (fc - 10)) / 10 : y0 + 6 + (k - fc) * 2;
+            if (y > y0 + h - 2)
+                y = y0 + h - 2;
+            cv_line(px, py, k, y, c);
+            px = k, py = y;
+        }
+        break;
+    }
+    default: {
+        int32_t px = x0, py = my;
+        float sh = (float)(plat_ms() % 4000u) * (1.0f / 4000.0f);
+        for (k = x0; k <= x0 + w; k += 2) {
+            float u = (float)(k - x0) / (float)w, a = 1.0f - 0.85f * fm_fabsf(fm_sinf(FM_TWO_PI * (u * 1.5f + sh)));
+            int32_t y = my - (int32_t)((float)(h / 2 - 2) * a * fm_sinf(FM_TWO_PI * u * 6.0f));
+            cv_line(px, py, k, y, c);
+            px = k, py = y;
+        }
+        break;
+    }
+    }
+}
+
+/* FX, the effects: the four punch-ins as their buttons sit on the FM-1 (ENV LFO above ARP SEQ), each its picture, its
+ * name, its button and state (held or latched: fuchsia) */
 static void draw_fx_list(void)
 {
     int i;
     for (i = 0; i < EN_NFX; i++) {
         int on = ((ui.fx_held | ui.fx_latch) >> i) & 1u, lat = ui.fx_latch >> i & 1u;
-        int32_t y = 6 + i * 36;
+        int32_t x = 6 + (i % 2) * 116, y = 4 + (i / 2) * 70;
         const char *st = lat ? "LATCHED" : on ? "ON" : "hold";
-        cv_round(10, y, 220, 30, 5, on ? K_ALERT : K_PANEL);
-        cv_text(18, y + 8, &FONT_XS, BTN_LABEL[FX_BTN[i]], on ? K_BG : K_ACC);
-        cv_text(54, y + 7, &FONT_B, VIEW_NAME[V_REV + i], on ? K_BG : K_TEXT);
-        cv_text(222 - text_w(&FONT_XS, st), y + 8, &FONT_XS, st, on ? K_BG : K_DIM);
+        cv_round(x, y, 112, 66, 8, on ? mix(K_BG, K_ALERT, 5) : K_PANEL);
+        if (on)
+            cv_round(x, y, 112, 2, 1, K_ALERT);
+        fx_picture(i, x + 10, y + 6, 92, 26, on ? K_ALERT : K_DIM);
+        cv_text(x + 8, y + 34, &FONT_B, VIEW_NAME[V_REV + i], on ? K_ALERT : K_TEXT);
+        cv_text(x + 8, y + 50, &FONT_XS, BTN_LABEL[FX_BTN[i]], K_ACC);
+        cv_text(x + 104 - text_w(&FONT_XS, st), y + 50, &FONT_XS, st, on ? K_ALERT : K_DIM);
     }
 }
 
-static void draw_fx_page(void)                   /* one effect: a picture of what it does, its name, its state */
+static void draw_fx_page(void)                   /* one effect: its picture, large; its name, its state */
 {
-    int i = ui.view - V_REV, on = ((ui.fx_held | ui.fx_latch) >> i) & 1u, lat = ui.fx_latch >> i & 1u, k;
-    uint16_t c = on ? K_ALERT : K_DIM;
+    int i = ui.view - V_REV, on = ((ui.fx_held | ui.fx_latch) >> i) & 1u, lat = ui.fx_latch >> i & 1u;
     char t[24] = "hold ";
-    switch (i) {
-    case 0:                                      /* Reverse: a sound swelling backwards, an arrow left */
-        for (k = 0; k < 24; k++) {
-            int32_t h = 4 + k * 46 / 24;
-            cv_rect(36 + k * 7, 60 - h / 2, 4, h, c);
-        }
-        cv_rect(36, 70, 168, 2, c);
-        cv_rect(36, 66, 2, 10, c);
-        cv_rect(38, 67, 2, 8, c);
-        break;
-    case 1:                                      /* Stutter: one moment, again and again */
-        for (k = 0; k < 4; k++) {
-            int j;
-            for (j = 0; j < 6; j++) {
-                int32_t h = 36 - j * 5;
-                cv_rect(30 + k * 46 + j * 6, 60 - h / 2, 4, h, c);
-            }
-        }
-        break;
-    case 2: {                                    /* Filter: a low-pass curve, its corner at Cutoff, a bump of Resonance */
-        int32_t px = 30, py = 40, fc = 40 + proj.par[P_FLCUT] * 150 / 100, q = proj.par[P_FLRES] * 18 / 100;
-        for (k = 30; k <= 210; k += 3) {
-            int32_t y = k < fc - 12 ? 40 : k < fc ? 40 - q * (k - (fc - 12)) / 12 : 40 - q + (k - fc) * 2 + q * 0;
-            if (y > 82)
-                y = 82;
-            cv_line(px, py, k, y, c);
-            px = k, py = y;
-        }
-        break;
-    }
-    default: {                                   /* Phaser: a wave, its notches sweeping */
-        int32_t px = 30, py = 60;
-        float sh = (float)(plat_ms() % 4000u) * (1.0f / 4000.0f);
-        for (k = 30; k <= 210; k += 2) {
-            float u = (float)(k - 30) * (1.0f / 180.0f), a = 1.0f - 0.85f * fm_fabsf(fm_sinf(FM_TWO_PI * (u * 1.5f + sh)));
-            int32_t y = 60 - (int32_t)(20.0f * a * fm_sinf(FM_TWO_PI * u * 6.0f));
-            cv_line(px, py, k, y, c);
-            px = k, py = y;
-        }
-        break;
-    }
-    }
-    text_c(120, 92, &FONT_B, VIEW_NAME[ui.view], on ? K_ALERT : K_TEXT);
+    fx_picture(i, 30, 14, 180, 64, on ? K_ALERT : K_DIM);
+    text_c(120, 90, &FONT_B, VIEW_NAME[ui.view], on ? K_ALERT : K_TEXT);
     caps(t + 5, BTN_LABEL[FX_BTN[i]], sizeof t - 5);
-    text_c(120, 112, &FONT_XS, lat ? "LATCHED" : on ? "ON" : t, lat || on ? K_ALERT : K_DIM);
+    text_c(120, 110, &FONT_XS, lat ? "LATCHED" : on ? "ON" : t, lat || on ? K_ALERT : K_DIM);
     if (lat)
         text_c(120, 126, &FONT_XS, "double-tap its button: off", K_DIM);
 }
@@ -1664,6 +1742,7 @@ static void draw_main(void)
     int what = ui.help ? 1 : ui.view == V_STORY ? 2 : ui.view == V_LEAD ? 3 : ui.view == V_SPACE ? 4 : ui.view >= V_REV ? 5 :
                ui.view == V_GARDEN ? 6 : ui.view == V_SETUP ? 7 : ui.view == V_SYSTEM ? 8 : 0;
     tide_tick();
+    lead_glow_tick();
     if (ui.frame % 3u)                           /* 20 frames a second is plenty */
         return;
     h = hash(hash(2166136261u, (uint32_t)what | (uint32_t)ui.view << 4 | (uint32_t)ui.help << 8), proj.piece);
@@ -1678,24 +1757,29 @@ static void draw_main(void)
     case 3:
         h = hash(hash(h, (uint32_t)proj.par[P_LSOUND] | (uint32_t)proj.par[P_LOCT] << 8 | (uint32_t)proj.par[P_ROOT] << 16 | pool_abs() << 20),
                  ui.keys | (uint32_t)ui.lead << 31);
+        for (i = 0; i < 12; i++)
+            h = hash(h, (uint32_t)(lead_glow[i] * 16.0f));
+        goto rings_too;                          /* (the rings behind move too) */
         break;
     case 4:
     case 5:
         h = hash(hash(h, (uint32_t)ui.fx_held | (uint32_t)ui.fx_latch << 8),
-                 (uint32_t)proj.par[P_FLCUT] | (uint32_t)proj.par[P_FLRES] << 8 | (ui.view == V_PHAS ? plat_ms() / 100u : 0u) << 16);
+                 (uint32_t)proj.par[P_FLCUT] | (uint32_t)proj.par[P_FLRES] << 8 | (ui.view != V_REV && ui.view != V_STUT && ui.view != V_FILT ? plat_ms() / 100u : 0u) << 16);
         break;
     case 7:
         h = hash(hash(h, (uint32_t)ui.timer | (uint32_t)proj.par[P_ROOT] << 4 | (uint32_t)proj.par[P_TEMPO] << 8 | pool_abs() << 16),
                  ui.timer ? (ui.timer_end - plat_ms()) / 2000u : 0u);
-        break;
+        goto rings_too;
     case 8:
-        h = hash(h, (uint32_t)(batt() + 1) | (uint32_t)proj.leds << 4 | (uint32_t)proj.par[P_MIDI] << 8 | (plat_ms() / 1000u) << 12);
-        break;
+        h = hash(hash(h, (uint32_t)(batt() + 1) | (uint32_t)proj.leds << 4 | (uint32_t)proj.par[P_MIDI] << 8),
+                 (plat_ms() % 4200u < 160u) | (plat_ms() / 700u % 6u) << 1 | (plat_ms() / 1000u) << 4);
+        goto rings_too;
     case 6:
         h = hash(hash(h, (uint32_t)proj.par[P_ENERGY] | (uint32_t)proj.par[P_TENSION] << 8 | (uint32_t)(en_drift * 40.0f) << 16),
                  tide_t);
         break;
     default:
+    rings_too:
         for (i = 0; i < EN_NPAD; i++)
             h = hash(h, en_chord[i]);
         for (i = 0; i < EN_NLOOP; i++)
@@ -2319,11 +2403,24 @@ void ui_init(void)
     sp_tp.play_t = plat_ms();
 }
 
+#define DARK_AFTER 30000u
 void ui_frame(void)
 {
     input();
     tr_tick();
     autosave();
+    if (!ui.dark && ui.timer && plat_ms() - ui.input_t > DARK_AFTER) {   /* the sleep timer on, untouched: dark */
+        ui.dark = 1;
+        cv_begin(240, 144, 0);
+        cv_blit(0, 0);
+        cv_begin(240, 96, 0);
+        cv_blit(0, 144);
+        plat_lights(0, 0, 0, 0, 0);
+    }
+    if (ui.dark) {
+        ui.frame++;
+        return;
+    }
     draw_head();
     draw_bar();
     draw_main();
