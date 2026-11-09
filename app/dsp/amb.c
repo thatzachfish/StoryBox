@@ -35,7 +35,7 @@ static const en_param_t PARAMS[P_NPARAMS] = {
     {"Bright", 0, 100, 40},   {"Swell", 0, 100, 60},    {"Bell tone", 0, 100, 50}, {"Motion", 0, 100, 50},
     {"Tune", -50, 50, 0},     {"MIDI out", 0, 1, 1},    {"Tempo", 30, 120, 72},   {"Root", 0, 11, 2},
     {"Mode", 0, EN_NMODES - 1, 1}, {"Bell oct", -2, 2, 0}, {"Pad tone", 0, 3, 0},
-    {"Bass oct", -1, 1, 0},   {"Glide", 0, 100, 20},    {"Fifth", 0, 100, 35},
+    {"Bass sound", 0, 3, 0},   {"Glide", 0, 100, 20},    {"Fifth", 0, 100, 35},
     {"Swing", 0, 100, 0},     {"Hats", 0, 100, 50},     {"Freedom", 0, 100, 100},
     {"Tension", 0, 100, 0},   {"Meter", 0, 1, 0},       {"Energy", 0, 100, 50},
     {"Lead", 0, EN_NLEAD - 1, 0}, {"Lead level", 0, 100, 65}, {"Lead tone", 0, 100, 50}, {"Glide", 0, 100, 20},
@@ -304,6 +304,10 @@ void en_piece(int i, int16_t *par, uint16_t *pool)
     for (p = 0; p < P_NPARAMS; p++)
         par[p] = STORIES[i / EN_NACT].v[i % EN_NACT][p];
     par[P_MSOUND] = STORY_MEL[i / EN_NACT][i % EN_NACT];
+    {   /* each story's bass sound (0.5: the bass octave's place): Round, Upright, Synth, Sub */
+        static const uint8_t SBASS[EN_NSTORY] = {1, 3, 0, 1, 0, 0, 1, 1, 1, 0};
+        par[P_BSOUND] = SBASS[i / EN_NACT];
+    }
     if (i / EN_NACT == 2) {                      /* Lighthouse: the sea, under every act (the storm's the loudest) */
         static const int8_t SEA[EN_NACT] = {45, 30, 55, 25};
         par[P_SURF] = SEA[i % EN_NACT];
@@ -398,7 +402,14 @@ void en_param_text(int i, int v, char *b)
         *b = 0;
         return;
     }
-    if ((i == P_TUNE || i == P_BOCT || i == P_BASSOCT) && v > 0)
+    if (i == P_BSOUND) {
+        static const char *const BS[4] = {"Round", "Upright", "Synth", "Sub"};
+        const char *q = BS[(unsigned)v < 4 ? v : 0];
+        while ((*b++ = *q++))
+            ;
+        return;
+    }
+    if ((i == P_TUNE || i == P_BOCT) && v > 0)
         *b++ = '+';
     itoa_s(v, b);
 }
@@ -838,6 +849,7 @@ static inline float blep_saw(float t, float dt)
 /* ------------------------------------------------------------------ bass --- */
 static struct {
     float ph, inc, note, target, amp;
+    float pluck, lp;                             /* StoryBox: the upright's pluck (1, fading), the synth's filter */
     uint8_t midi_note, rest;                    /* rest: sitting this chord out */
 } bass;
 static float bass_vol, glide_k = 1.0f / (0.25f * EN_SR);      /* glide_k: 1 / the glide's time in samples */
@@ -971,7 +983,9 @@ static int bass_pc(void)                        /* the chord's bass: a slash cho
 
 static void bass_to(int pc)
 {
-    int n = 36 + pc % 12 + 12 * par[P_BASSOCT];     /* C2..B2, an octave down or up */
+    int n = 36 + pc % 12;                        /* C2..B2 (the Sub an octave down, in render_bass) */
+    if (n != bass.midi_note)
+        bass.pluck = 1.0f;                       /* (the upright: plucked anew) */
     bass.target = (float)n;
     if (en_playing && bass.midi_note != n) {
         midi(0x82, bass.midi_note, 0);
@@ -1795,10 +1809,7 @@ static void apply(int p, int v)
         drums_pattern();
         break;
     case P_HITS: drums_pattern(); break;
-    case P_BASSOCT:
-        if (nsteps)
-            bass_to(bass.midi_note % 12);
-        break;
+    case P_BSOUND: break;
     case P_GLIDE: glide_k = 1.0f / ((0.02f + 0.012f * (float)v) * EN_SR); break;   /* 20 ms .. 1.2 s */
     case P_SWING: swing = (float)v * 0.005f; break;      /* the off sixteenths up to half a step late */
     case P_FREEDOM: freedom = (float)v * 0.01f; break;
@@ -2241,16 +2252,42 @@ static void render_bass(uint32_t n)
     }
     bass.note += (bass.target - bass.note) * fm_minf((float)n * glide_k, 1.0f);   /* Glide */
     inc = mtof(bass.note) * (1.0f / EN_SR);
-    for (j = 0; j < n; j++) {
-        float x = sine(ph) * 0.75f + sine(ph * 0.5f + 0.25f) * 0.45f + sine(ph * 2.0f) * 0.12f;
-        ph += inc;
+    {   /* StoryBox 0.5: its sound. Round: the fundamental, its sub-octave, a touch of the octave; Upright: plucked
+         * (each new note), woody, settling to a quarter; Synth: a soft saw (FM), filtered; Sub: a pure sine an octave
+         * below */
+        const int bs = par[P_BSOUND];
+        const float pdec = fm_expf(-(float)n / (0.7f * EN_SR));
+        float pl = bass.pluck;
+        bass.pluck *= pdec;
+        for (j = 0; j < n; j++) {
+            float x;
+            switch (bs) {
+            case 1:
+                x = (sine(ph) * 0.8f + sine(ph * 2.0f) * 0.3f * pl + sine(ph * 3.0f) * 0.08f * pl) * (0.35f + 1.1f * pl);
+                break;
+            case 2: {
+                float m = sine(ph) * 0.3f;       /* (an index of ~1.9 rad: near a saw) */
+                x = sine(ph + m + 4.0f) * 0.7f + sine(ph * 0.5f + 0.25f) * 0.35f;
+                bass.lp += (x - bass.lp) * 0.3f;
+                x = bass.lp * 1.15f;
+                break;
+            }
+            case 3:
+                x = sine(ph * 0.5f + 0.25f) * 1.05f;
+                break;
+            default:
+                x = sine(ph) * 0.75f + sine(ph * 0.5f + 0.25f) * 0.45f + sine(ph * 2.0f) * 0.12f;
+                break;
+            }
+            ph += inc;
         if (ph >= 2.0f)                          /* two turns: the sub-octave's period */
             ph -= 2.0f;
         amp += (tgt - amp) * rate;
-        x *= amp * g;
-        mixl[j] += x;
-        mixr[j] += x;
-        rsend[j] += x * 0.08f;
+            x *= amp * g;
+            mixl[j] += x;
+            mixr[j] += x;
+            rsend[j] += x * 0.08f;
+        }
     }
     bass.ph = ph;
     bass.amp = amp;

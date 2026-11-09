@@ -36,7 +36,7 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_REVERB, P_ECHO, P_ETIME, P_SURF},
     {P_PAD, P_SWELL, P_PADTONE, P_BRIGHT},
     {P_BELLS, P_DENSITY, P_MSOUND, P_BOCT},
-    {P_BASS, P_FIFTH, P_GLIDE, P_BASSOCT},
+    {P_BASS, P_FIFTH, P_BSOUND, P_GLIDE},
     {P_PULSE, P_HITS, P_KIT, P_SWING},
     {P_LLEVEL, P_LGLIDE, P_LSOUND, P_LTONE},
     {P_ROOT, P_TEMPO, K_TIMER, K_FADE},
@@ -54,7 +54,7 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
     {"Reverb", "Echo", "Echo time", "Surf"},
     {"Level", "Swell", "Sound", "Bright"},
     {"Level", "Density", "Sound", "Octave"},
-    {"Level", "Fifth", "Glide", "Octave"},
+    {"Level", "Fifth", "Sound", "Glide"},
     {"Level", "Hits", "Kit", "Swing"},
     {"Level", "Glide", "Sound", "Tone"},
     {"Root", "Tempo", "Sleep", "Fade"},
@@ -230,7 +230,7 @@ static int global_p(int p)                     /* the player's: Root and the lea
 }
 static int switch_p(int p)
 {
-    return p == P_MODE || p == P_PADTONE || p == P_ETIME || p == P_BOCT || p == P_BASSOCT || p == P_ROOT || p == P_METER ||
+    return p == P_MODE || p == P_PADTONE || p == P_ETIME || p == P_BOCT || p == P_BSOUND || p == P_ROOT || p == P_METER ||
            p == P_LSOUND || p == P_LOCT;
 }
 static uint32_t fade_ms(void)                  /* Fade 0..100: 5 s .. 2 min, as a curve */
