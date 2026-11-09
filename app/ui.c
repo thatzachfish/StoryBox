@@ -2170,11 +2170,11 @@ static void fx_picture(int i, int32_t x0, int32_t y0, int32_t w, int32_t h, uint
         static const int8_t SL[6] = {2, -4, 1, 5, -2, 3};   /* (which slice; negative: backwards) */
         int32_t sw = w / 6;
         for (k = 0; k < 6; k++) {
-            int q = SL[k] < 0 ? -SL[k] : SL[k], j, nb = sw / 4 - 1;
+            int st = sw >= 18 ? 4 : 2, q = SL[k] < 0 ? -SL[k] : SL[k], j, nb = sw / st - 1;
             for (j = 0; j < nb; j++) {
                 int jj = SL[k] < 0 ? nb - 1 - j : j;   /* each slice a swell: rising, or falling (backwards) */
                 int32_t bh = 3 + (jj * (h - 6) / nb) * (2 + q % 3) / 4;
-                cv_rect(x0 + k * sw + j * 4, my - bh / 2, 2, bh, c);
+                cv_rect(x0 + k * sw + j * st, my - bh / 2, st / 2, bh, c);
             }
         }
         break;
@@ -2213,6 +2213,242 @@ static void draw_fx_page(void)                   /* one effect: its picture, lar
         text_c(120, 126, &FONT_XS, "double-tap its button: off", K_DIM);
 }
 
+/* ---- design options (0.7 mockups; the host's "style V F" picks them; the device draws style 0 until one is chosen) */
+static uint8_t viz_style, fx_style;
+#define HIST_N 44
+static float hist[4][HIST_N];                    /* each instrument's loudness, a column every 90 ms (Skyline) */
+static int hist_w;
+static uint32_t hist_t;
+static float stepv[2][16];                       /* the pad's and the bass's level on each sixteenth of the bar (Steps) */
+static void viz_tick(void)
+{
+    static int last_pos = -1;
+    int i, pos = en_drum_pos[0] % (en_bar_len ? en_bar_len : 16);
+    if (plat_ms() - hist_t >= 90u) {
+        hist_t = plat_ms();
+        for (i = 0; i < 4; i++)
+            hist[i][hist_w] = mix_meter[i];
+        hist_w = (hist_w + 1) % HIST_N;
+    }
+    if (en_playing && pos != last_pos && pos < 16) {
+        stepv[0][pos] = en_pad_level * (float)proj.par[P_PAD] * 0.012f;
+        stepv[1][pos] = en_bass_level * (float)proj.par[P_BASS] * 0.012f;
+        last_pos = pos;
+    }
+}
+static void vmeter(int32_t x, int32_t top, int32_t w, int32_t bot, int nseg, float v, uint16_t c, int cur)   /* the Mixer's
+                                                                                                   * segmented meter */
+{
+    int s, lit = (int)(fm_clampf(v, 0.0f, 1.0f) * (float)nseg + 0.5f);
+    int32_t h = bot - top;
+    for (s = 0; s < nseg; s++) {
+        int32_t y = bot - (s + 1) * h / nseg;
+        cv_round(x, y + 1, w, h / nseg - 2, 1, s < lit ? (cur ? K_ACC : mix(K_BG, c, (uint32_t)(6 + s * 10 / (nseg - 1)))) : K_PANEL);
+    }
+}
+static void inst_head(int f, const char *what)   /* the instrument's name and what it plays now */
+{
+    static const char *const TN[4] = {"PAD", "MELODY", "BASS", "DRUMS"};
+    static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
+    (void)TN, (void)TC;
+    if (what)
+        cv_text(232 - text_w(&FONT_B, what), -2, &FONT_B, what, en_frozen ? K_FROST : K_TEXT);
+}
+static void draw_inst_steps(int f)               /* B, Steps: the bar as columns, the step now yellow */
+{
+    static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
+    char nm[16];
+    int n = en_bar_len ? en_bar_len : 16, pos = en_drum_pos[0] % n, i, d, l;
+    int32_t cw = 224 / n, x0 = 8 + (224 - cw * n) / 2;
+    inst_head(f, chord_now(nm));
+    if (f == 3) {                                /* the drums: a column a step, the kick below, the hats above */
+        static const int32_t Y0[3] = {78, 52, 26}, YH[3] = {42, 22, 22};
+        static const char *const DN[3] = {"kick", "hat", "open"};
+        for (i = 0; i < n; i++)
+            for (d = 0; d < 3; d++) {
+                int dn = en_drum_n[d] ? en_drum_n[d] : n, hit = (int)(en_drum_pat[d] >> (i % dn) & 1u) && proj.par[P_PULSE] > 0;
+                int cur = en_playing && i == pos;
+                cv_round(x0 + i * cw + 1, Y0[d], cw - 2, YH[d], 2,
+                         hit ? (cur ? K_ACC : en_pulse_rest ? K_LINE : mix(K_BG, K_PULSE, (uint32_t)(16 - d * 4))) :
+                               cur ? mix(K_BG, K_ACC, 4) : K_PANEL);
+            }
+        for (d = 0; d < 3; d++)
+            cv_text(x0, Y0[d] + YH[d] + 1, &FONT_XS, "", K_LINE), (void)DN[d];
+        cv_text(8, 126, &FONT_XS, "kick, hat, open hat: a column a sixteenth", K_LINE);
+        return;
+    }
+    if (f == 1) {                                /* the melody: its loops, a lane each, a note a column, as high as it sits */
+        for (l = 0; l < EN_NLOOP; l++) {
+            int len = en_loop_len[l], k;
+            int32_t y = 22 + l * 27, lw;
+            if (len <= 0)
+                continue;
+            lw = 224 / len;
+            for (k = 0; k < len; k++) {
+                int nv = en_loop_note[l][k], cur = en_playing && k == en_loop_pos[l];
+                int32_t hgt = nv < 0 ? 3 : 6 + (nv % 8) * 2;
+                cv_round(8 + k * lw + 1, y + 22 - hgt, lw - 2 > 1 ? lw - 2 : 1, hgt, 1,
+                         nv < 0 ? (cur ? mix(K_BG, K_ACC, 5) : K_PANEL) : cur ? K_ACC : mix(K_BG, K_BELL, (uint32_t)(9 + 7 * (proj.par[P_BELLS] > 0))));
+            }
+        }
+        cv_text(8, 130, &FONT_XS, "four loops, each its own length", K_LINE);
+        return;
+    }
+    for (i = 0; i < n && i < 16; i++) {          /* the pad, the bass: how loud on each step of the bar */
+        int cur = en_playing && i == pos;
+        vmeter(x0 + i * cw + 1, 22, cw - 2, 122, 12, stepv[f == 2][i], TC[f], cur);
+    }
+}
+static void draw_inst_meters(int f)              /* C, Meters: its parts as the Mixer's strips */
+{
+    static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
+    char nm[16], t[8];
+    int i, n = f == 0 ? EN_NPAD : f == 1 ? EN_NLOOP : f == 2 ? 1 : EN_NDRUM;
+    int32_t w = f == 2 ? 60 : 224 / n - 14;
+    inst_head(f, chord_now(nm));
+    for (i = 0; i < n; i++) {
+        int32_t x = f == 2 ? 30 : 8 + i * (224 / n) + 7;
+        float v;
+        const char *lab;
+        if (f == 0) {
+            v = en_pad_amp[i] * (float)proj.par[P_PAD] * 0.02f;
+            lab = EN_NOTE_NAME[en_pad_note[i] % 12];
+        } else if (f == 1) {
+            v = en_loop_glow[i] * (float)proj.par[P_BELLS] * 0.012f;
+            itoa_u((uint32_t)en_loop_len[i], t);
+            lab = t;
+        } else if (f == 2) {
+            v = en_bass_level * (float)proj.par[P_BASS] * 0.012f;
+            lab = EN_NOTE_NAME[en_chord_root % 12];
+        } else {
+            static const char *const DN[3] = {"Kick", "Hat", "Open"};
+            v = en_drum_glow[i] * (float)proj.par[P_PULSE] * 0.012f;
+            lab = DN[i];
+        }
+        vmeter(x, 22, w, 118, 14, en_playing ? v : 0.0f, TC[f], 0);
+        text_c(x + w / 2, 124, &FONT_XS, lab, f == 1 ? K_DIM : K_TEXT);
+    }
+    if (f == 2) {                                /* the bass: its note, large, beside its strip */
+        text_c(160, 44, &FONT_M, EN_NOTE_NAME[en_chord_root % 12], K_BASS);
+        text_c(160, 84, &FONT_XS, "the root of the chord", K_DIM);
+    }
+    if (f == 1)
+        cv_text(8, 132, &FONT_XS, "", K_LINE);
+}
+static void draw_inst_sky(int f)                 /* D, Skyline: how loud, over the last 4 s, newest on the right */
+{
+    static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
+    char nm[16];
+    int k;
+    inst_head(f, chord_now(nm));
+    for (k = 0; k < HIST_N; k++) {
+        int idx = (hist_w + k) % HIST_N, s, lit = (int)(hist[f][idx] * 12.0f + 0.5f);
+        int32_t x = 8 + k * 5;
+        uint32_t age = (uint32_t)(HIST_N - 1 - k);
+        for (s = 0; s < 12; s++) {
+            int32_t y = 122 - (s + 1) * 8;
+            cv_rect(x, y + 1, 4, 6, s < lit ? mix(K_BG, k == HIST_N - 1 ? K_ACC : TC[f], (uint32_t)(16 - age * 10 / HIST_N)) :
+                                    (s & 1 ? K_BG : K_PANEL));
+        }
+    }
+    cv_text(8, 128, &FONT_XS, "4 seconds ago", K_LINE);
+    cv_text(232 - text_w(&FONT_XS, "now"), 128, &FONT_XS, "now", K_DIM);
+}
+
+/* the effects (the Effects page, the punch-ins' pages): B and C */
+static void fx_card(int i, int32_t x, int32_t y, int32_t w, int32_t h)   /* a punch-in's card, the Colours' way */
+{
+    int on = ((ui.fx_held | ui.fx_latch) >> i) & 1u, lat = ui.fx_latch >> i & 1u;
+    int32_t cx = x + w / 2;
+    cv_round(x, y, w, h, 8, on ? mix(K_BG, K_ALERT, 4) : K_PANEL);
+    fx_picture(i, x + 6, y + 10, w - 12, 34, on ? K_ALERT : mix(K_PANEL, K_ALERT, 9));
+    text_c(cx, y + 54, &FONT_S, VIEW_NAME[V_REV + i], on ? K_TEXT : K_DIM);
+    cv_round(cx - 16, y + 74, 32, 15, 4, on ? K_ALERT : K_BG);
+    text_c(cx, y + 74, &FONT_XS, BTN_LABEL[FX_BTN[i]], on ? K_BG : K_ACC);
+    text_c(cx, y + 96, &FONT_XS, lat ? "latched" : on ? "on" : "hold", on ? K_ALERT : K_LINE);
+}
+static void draw_fx_list_b(void)                 /* B: four cards across, as Colours */
+{
+    int i;
+    for (i = 0; i < EN_NFX; i++)
+        fx_card(i, 4 + i * 59, 4, 53, 118);
+    cv_text(8, 128, &FONT_XS, "hold a button, or double-tap to latch", K_LINE);
+}
+static void draw_fx_list_c(void)                 /* C: the space above (Reverb, Echo, Surf as columns), the punch-ins below */
+{
+    static const char *const SN[3] = {"Reverb", "Echo", "Surf"};
+    static const uint8_t SP[3] = {P_REVERB, P_ECHO, P_SURF};
+    static const uint16_t SC[3] = {K_FROST, K_BELL, K_PAD};
+    int i, k;
+    for (i = 0; i < 3; i++) {                    /* each a row of columns: its amount, and a picture of its shape */
+        int32_t x = 6 + i * 77, v = proj.par[SP[i]];
+        cv_round(x, 2, 73, 62, 6, K_PANEL);
+        cv_text(x + 6, 3, &FONT_XS, SN[i], v ? K_TEXT : K_DIM);
+        for (k = 0; k < 10; k++) {
+            int32_t hgt = i == 0 ? 34 - k * 3 : i == 1 ? (k % 3 == 0 ? 34 - k * 3 : 3) :
+                          8 + (int32_t)(12.0f * (1.0f + fm_sinf((float)k * 0.7f + (float)(plat_ms() % 6000u) * 0.001f)));
+            hgt = hgt * (10 + v) / 110;
+            cv_round(x + 6 + k * 6, 58 - hgt, 4, hgt > 2 ? hgt : 2, 1, v ? mix(K_PANEL, SC[i], (uint32_t)(16 - k)) : K_LINE);
+        }
+    }
+    for (i = 0; i < EN_NFX; i++) {               /* the punch-ins, as their buttons: chips */
+        int on = ((ui.fx_held | ui.fx_latch) >> i) & 1u, lat = ui.fx_latch >> i & 1u;
+        int32_t x = 6 + (i % 2) * 116, y = 70 + (i / 2) * 34;
+        cv_round(x, y, 112, 30, 6, on ? mix(K_BG, K_ALERT, 5) : K_PANEL);
+        fx_picture(i, x + 6, y + 5, 30, 20, on ? K_ALERT : K_DIM);
+        cv_text(x + 42, y + 1, &FONT_S, VIEW_NAME[V_REV + i], on ? K_TEXT : K_DIM);
+        cv_text(x + 42, y + 15, &FONT_XS, lat ? "latched" : on ? "on" : BTN_LABEL[FX_BTN[i]], on ? K_ALERT : K_ACC);
+    }
+}
+static void draw_fx_page_b(void)                 /* B: the punch-in's card, large, with its two settings as columns */
+{
+    static const uint8_t PP[4][2] = {{P_RVLEN, P_RVMIX}, {P_STRATE, P_STMIX}, {P_FLCUT, P_FLRES}, {P_SCSIZE, P_SCMIX}};
+    int i = ui.view - V_REV, on = ((ui.fx_held | ui.fx_latch) >> i) & 1u, lat = ui.fx_latch >> i & 1u, k;
+    cv_round(4, 4, 160, 126, 10, on ? mix(K_BG, K_ALERT, 4) : K_PANEL);
+    fx_picture(i, 16, 14, 136, 52, on ? K_ALERT : mix(K_PANEL, K_ALERT, 9));
+    text_c(84, 72, &FONT_B, VIEW_NAME[ui.view], on ? K_TEXT : K_DIM);
+    cv_round(84 - 40, 96, 36, 17, 4, on ? K_ALERT : K_BG);
+    text_c(84 - 22, 97, &FONT_XS, BTN_LABEL[FX_BTN[i]], on ? K_BG : K_ACC);
+    text_c(84 + 22, 97, &FONT_XS, lat ? "latched" : on ? "on" : "hold", on ? K_ALERT : K_LINE);
+    for (k = 0; k < 2; k++) {                    /* its two settings: the knobs, as the Mixer's strips */
+        int lo, hi, v = proj.par[PP[i][k]];
+        int32_t x = 176 + k * 30;
+        knob_range(PP[i][k], &lo, &hi);
+        vmeter(x, 8, 22, 112, 12, hi > lo ? (float)(v - lo) / (float)(hi - lo) : 0.0f, on ? K_ALERT : K_LINE, 0);
+        {
+            static const char *const SH[4][2] = {{"Len", "Mix"}, {"Rate", "Mix"}, {"Cut", "Res"}, {"Size", "Mix"}};
+            text_c(x + 11, 116, &FONT_XS, SH[i][k], K_DIM);
+        }
+    }
+}
+static void draw_fx_page_c(void)                 /* C: the effect as columns across, moving while on */
+{
+    int i = ui.view - V_REV, on = ((ui.fx_held | ui.fx_latch) >> i) & 1u, lat = ui.fx_latch >> i & 1u, k, s;
+    uint32_t t = on ? plat_ms() / 60u : 0u;
+    for (k = 0; k < 28; k++) {
+        float v;
+        int lit;
+        switch (i) {
+        case 0: v = (float)((k + (int)t) % 28) / 27.0f; break;                          /* Reverse: swelling, again */
+        case 1: v = (k % (4 + proj.par[P_STRATE] * 2)) == 0 || ((k + (int)t) % 7) < 3 ? 0.9f - 0.1f * (float)(k % 7) : 0.15f; break;
+        case 2: v = k * 100 < proj.par[P_FLCUT] * 28 ? 0.6f + (float)proj.par[P_FLRES] * 0.004f *
+                    (k * 100 > proj.par[P_FLCUT] * 28 - 300) : fm_maxf(0.05f, 0.6f - 0.1f * (float)(k - proj.par[P_FLCUT] * 28 / 100)); break;
+        default: v = 0.2f + 0.7f * (float)(((k * 7 + (int)t / 2) * 13) % 11) / 10.0f; break;   /* Sparkle: scattered */
+        }
+        lit = (int)(fm_clampf(v, 0.0f, 1.0f) * 12.0f + 0.5f);
+        for (s = 0; s < 12; s++)
+            cv_round(8 + k * 8, 86 - (s + 1) * 7 + 1, 6, 5, 1, s < lit ? (on ? mix(K_BG, K_ALERT, (uint32_t)(6 + s * 10 / 11)) :
+                                                                         mix(K_BG, K_DIM, (uint32_t)(3 + s / 2))) : K_PANEL);
+    }
+    text_c(120, 92, &FONT_B, VIEW_NAME[ui.view], on ? K_ALERT : K_TEXT);
+    cv_round(120 - 52, 112, 104, 18, 9, on ? K_ALERT : K_PANEL);
+    {
+        char t2[24] = "hold ";
+        caps(t2 + 5, BTN_LABEL[FX_BTN[i]], sizeof t2 - 5);
+        text_c(120, 113, &FONT_XS, lat ? "LATCHED" : on ? "ON" : t2, on ? K_BG : K_DIM);
+    }
+}
+
 static int ring_focus(void)                      /* an instrument's page: its ring */
 {
     return ui.view == V_PAD ? 0 : ui.view == V_BELLS ? 1 : ui.view == V_BASS ? 2 : ui.view == V_PULSE ? 3 : -1;
@@ -2225,6 +2461,7 @@ static void draw_main(void)
                ui.view == V_COLR ? 10 : ui.view == V_BT ? 11 : 0;
     lead_trace_tick();
     mix_meter_tick();
+    viz_tick();
     if (ui.frame % 3u)                           /* 20 frames a second is plenty */
         return;
     h = hash(hash(2166136261u, (uint32_t)what | (uint32_t)ui.view << 4 | (uint32_t)ui.help << 8), proj.piece);
@@ -2285,6 +2522,8 @@ static void draw_main(void)
             h = hash(h, (uint32_t)proj.par[i]);
         break;
     }
+    if (viz_style || fx_style)                   /* (the mockups: redrawn each time) */
+        h = hash(h, plat_ms());
     if (h == ui.sig[1])
         return;
     ui.sig[1] = h;
@@ -2293,15 +2532,21 @@ static void draw_main(void)
     case 1: draw_help(); break;
     case 2: draw_map(); break;
     case 3: draw_lead(); break;
-    case 4: draw_fx_list(); break;
-    case 5: draw_fx_page(); break;
+    case 4: fx_style == 1 ? draw_fx_list_b() : fx_style == 2 ? draw_fx_list_c() : draw_fx_list(); break;
+    case 5: fx_style == 1 ? draw_fx_page_b() : fx_style == 2 ? draw_fx_page_c() : draw_fx_page(); break;
     case 6: draw_feel(); break;
     case 7: draw_setup(); break;
     case 8: draw_system(); break;
     case 9: draw_mixer(); break;
     case 10: draw_colours(); break;
     case 11: draw_bt(); break;
-    default: draw_rings(ring_focus()); break;
+    default:
+        if (viz_style && ring_focus() >= 0)
+            viz_style == 1 ? draw_inst_steps(ring_focus()) : viz_style == 2 ? draw_inst_meters(ring_focus()) :
+                             draw_inst_sky(ring_focus());
+        else
+            draw_rings(ring_focus());
+        break;
     }
     cv_blit(0, MAIN_Y);
 }
@@ -2898,6 +3143,9 @@ void ui_splash(void)
     }
 }
 
+#ifdef PLAT_HOST
+void ui_style(int v, int f) { viz_style = (uint8_t)v, fx_style = (uint8_t)f; }
+#endif
 void ui_init(void)
 {
     memset(&ui, 0, sizeof ui);
