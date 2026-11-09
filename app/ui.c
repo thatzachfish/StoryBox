@@ -994,8 +994,8 @@ static void draw_header(void)
             }
         } else if (w + 6 + text_w(&FONT_XS, EN_NOTE_NAME[proj.par[P_ROOT]]) + 4 <= x) {
             w = cv_text(w + 6, 8, &FONT_XS, EN_NOTE_NAME[proj.par[P_ROOT]], K_TEXT);
-            if (w + 3 + text_w(&FONT_XS, mode_name()) + 4 <= x)
-                cv_text(w + 3, 8, &FONT_XS, mode_name(), K_DIM);
+            if (w + 5 + text_w(&FONT_XS, mode_name()) + 4 <= x)
+                cv_text(w + 5, 8, &FONT_XS, mode_name(), K_DIM);
         }
     }
     cv_blit(0, 0);
@@ -1257,7 +1257,7 @@ static void draw_main(void)
  * square root and an arctangent per pixel). */
 static void draw_knobs(void)
 {
-    uint32_t h = hash(2166136261u, ui.view | (uint32_t)ui.touched << 8 | (uint32_t)proj.piece << 16), i;
+    uint32_t h = hash(hash(2166136261u, ui.view | (uint32_t)ui.touched << 8), proj.piece), i;
     int now_touch = plat_ms() < ui.touch_until;
     for (i = 0; i < 4; i++)
         h = hash(h, (uint32_t)knob_get(VIEW_KNOB[ui.view][i]));

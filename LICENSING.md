@@ -22,6 +22,7 @@ earlier stay under the GPL.
 | What | Licence | Where |
 | --- | --- | --- |
 | Fonts: Barlow Semi Condensed (The Barlow Project Authors), Terminus (Dimitar Toshkov Zhekov) | SIL OFL 1.1 | `base/assets/fonts/` |
+| Font: Kumbh Sans (The Kumbh Sans Project Authors), StoryBox's typeface | SIL OFL 1.1 | `app/fonts/` |
 | JieLi AC79 SDK: `uboot.boot`, `cfg_tool.bin`, `eq_cfg_hw.bin` are read from your SDK checkout at build time and placed in the package; no SDK files are in this tree | Apache-2.0 | <https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK> |
 
 ## Trademarks

@@ -11,6 +11,14 @@ cd "$(dirname "$0")"
 export JIELI_TOOLCHAIN="${JIELI_TOOLCHAIN:-$HOME/.jieli/toolchain}"
 export AC79_SDK="${AC79_SDK:-$HOME/fw-AC79_AIoT_SDK}"
 PY="${PYTHON:-python3}"
+# StoryBox's typeface: Kumbh Sans (SIL OFL 1.1; static Medium, SemiBold and Bold cut from the variable font, in
+# app/fonts). fm1-base's font sets name their files, so Kumbh Sans takes the places of its "chakra" set (11 / 14 px:
+# XS SemiBold, S Medium, B Bold), linked under those names in app/build/fonts
+if [ -z "$X0X_FONT_DIRS" ]; then
+    mkdir -p app/build/fonts
+    for w in Medium SemiBold Bold; do ln -sf "../../fonts/KumbhSans-$w.ttf" "app/build/fonts/ChakraPetch-$w.ttf"; done
+    export X0X_FONTSET=chakra X0X_FONT_DIRS="$(pwd)/app/build/fonts"
+fi
 [ -f base/tools/build.py ] || { echo "build.sh: no fm1-base in base/ (git submodule update --init --recursive)"; exit 1; }
 "$PY" -c 'import PIL' 2>/dev/null || { echo "build.sh: $PY has no Pillow (pip3 install Pillow)"; exit 1; }
 exec "$PY" base/tools/build.py app "$@"
