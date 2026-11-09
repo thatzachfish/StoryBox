@@ -132,6 +132,116 @@
 <script type="module">
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2026 Charles Vestal
+// Copyright (C) 2026 Chris Farrell (the FM-1's usual port names, and other ports asked only once allowed: from
+//   fm-static, github.com/seajaysec/fm-static, by his permission under MPL-2.0: seajaysec/fm-static#1)
+//
+// Finding FM-1s on Web MIDI, one copy for every page: fm1-base's installer (through fm1ota.js) and backup page, and
+// the FM-1 Screen Reader's page (fm1-reader web/reader.js). fm1-reader keeps a copy of this file, made and checked by
+// its tools/sync_announce.sh: change it here.
+//
+// A port is asked who it is in one of two ways:
+//  - The screen reader's HELLO (fm1-reader PROTOCOL.md): F0 7D 53 52 01 01 F7. 7D is the ID for non-commercial use,
+//    which other gear ignores, so a HELLO goes to every port, ASK_TRIES times while the port stays plugged in. Every
+//    firmware on fm1-base answers it (device/announce.c) with its name and the link to its words file, whatever its
+//    port is called. M-VAVE's firmware and the update loader don't.
+//  - The update protocol's identity query (fm1ota.js handshake): M-VAVE's own SysEx, which the stock firmware and the
+//    loader answer too. It goes only to an askable port: one with a usual name (PORT_NAMES), one the user picked, or
+//    one that answered a HELLO.
+// A HELLO answer is told from the HELLO itself by the name in it: a loopback (macOS's IAC bus, a DAW's MIDI through)
+// sends the HELLO back as it went out, with no name.
+
+// port names asked without being picked (any case, part of the name). "FM1": the Open firmware's "FM1 Community"
+// The FM-1 firmwares of the family name their own port after themselves (an FM-1 running one shows as that name alone):
+// "optimist", "sloop", "melodee", "loom-8" / "loom8", as tools/fm1ports.py asks them too.
+const PORT_NAMES = ["fm-1", "fm1", "felucca", "ota", "composite", "sinco", "usb-midi", "optimist", "sloop", "melodee", "loom-8", "loom8"];
+function usualName(name, names = PORT_NAMES) {
+  const n = (name || "").toLowerCase();
+  return names.some((p) => n.includes(p));
+}
+
+const livePorts = (map) => [...map.values()].filter((p) => p.state !== "disconnected");
+
+// an input's output: the one with its name; else the only one with its name but for a number at the end (Windows
+// numbers each port); else the only output there is. null: none
+function outputFor(access, input) {
+  const outs = livePorts(access.outputs);
+  const bare = (s) => (s || "").replace(/\s+\d+$/, "");
+  const same = outs.filter((o) => bare(o.name) === bare(input.name));
+  return outs.find((o) => o.name === input.name) || (same.length === 1 ? same[0] : null) ||
+    (outs.length === 1 ? outs[0] : null);
+}
+
+// every plugged-in input that has an output: [{ name, input, output }]
+function pairs(access) {
+  return livePorts(access.inputs).map((input) => ({ name: input.name || "", input, output: outputFor(access, input) }))
+    .filter((p) => p.output);
+}
+
+// ---------------------------------------------------------------- the screen reader's HELLO (fm1-reader PROTOCOL.md)
+const SR = [0x7D, 0x53, 0x52];
+const SR_HELLO = 1, SR_BYE = 2, SR_WHERE = 3, SR_SAY = 16, SR_VER = 1;
+const ASK_TRIES = 3;
+const srFrame = (cmd, ...args) => [0xF0, ...SR, cmd, ...args, 0xF7];
+const isSr = (d) => !!d && d[0] === 0xF0 && d[1] === SR[0] && d[2] === SR[1] && d[3] === SR[2];
+
+// a HELLO answer -> { name, words } (words: the https link to its words file, or ""), or null when it is none: a
+// HELLO sent back by a loopback has no name
+function srHello(d) {
+  if (!isSr(d) || d[4] !== SR_HELLO || d[d.length - 1] !== 0xF7) return null;
+  const [name = "", words = ""] = String.fromCharCode(...Array.from(d.slice(6, d.length - 1)).filter((b) => b < 128))
+    .split("\0");
+  if (!name) return null;
+  return { name, words: /^https:\/\/[^\s"']+\.json$/.test(words) ? words : "" };
+}
+
+// which outputs a HELLO goes to now: every output ASK_TRIES times after it appears, then only the ones that answered
+// (a reader keeps those listening). Other gear on the computer gets three short SysEx it ignores, not one every two
+// seconds. forget(id) when a port is unplugged or lost: it is asked again
+class Asking {
+  constructor(tries = ASK_TRIES) { this.tries = tries; this.n = new Map(); }
+  due(output, answered = false) {
+    const k = this.n.get(output.id) || 0;
+    if (!answered && k >= this.tries) return false;
+    this.n.set(output.id, k + 1);
+    return true;
+  }
+  forget(id) { this.n.delete(id); }
+  clear() { this.n.clear(); }
+}
+
+// one search: the port pairs that answer a HELLO -> [{ name, firmware, words, input, output }] (firmware: the name
+// and version it gives, e.g. "X0X 1.1"). Asks up to `tries` times, `ms` apart, stopping when every port has answered;
+// skip(name): ports not to ask. No BYE after it: a device stops by itself 5 s after the last HELLO, and a BYE would
+// also stop a reader page that is listening to it
+async function askAll(access, { ms = 500, tries = ASK_TRIES, skip = () => false } = {}) {
+  const ps = pairs(access).filter((p) => !skip(p.name));
+  const got = new Map();
+  const ears = ps.map((p) => [p, (e) => {
+    const h = srHello(e.data);
+    if (h && !got.has(p.input)) got.set(p.input, { name: p.name, firmware: h.name, words: h.words, input: p.input, output: p.output });
+  }]);
+  for (const [p, f] of ears) {
+    try { await p.input.open(); } catch (_) { /* taken: it answers nothing */ }
+    p.input.addEventListener("midimessage", f);
+  }
+  try {
+    for (let t = 0; t < tries && got.size < ps.length; t++) {
+      const sent = new Set();
+      for (const p of ps) {
+        if (got.has(p.input) || sent.has(p.output)) continue;
+        sent.add(p.output);
+        try { p.output.send(srFrame(SR_HELLO, SR_VER)); } catch (_) { /* unplugged */ }
+      }
+      await new Promise((r) => setTimeout(r, ms));
+    }
+  } finally {
+    for (const [p, f] of ears) p.input.removeEventListener("midimessage", f);
+  }
+  return [...got.values()];
+}
+
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2026 Charles Vestal
 // Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
 // Copyright (C) 2026 Chris Farrell (checkUfw: from fm-static, github.com/seajaysec/fm-static, MPL-2.0 by his permission, seajaysec/fm-static#1)
 //
@@ -867,12 +977,12 @@ const TEXT = {
     tryport: "試す", pickwait: "問い合わせ中…", pickempty: "ほかの MIDI ポートはありません。",
     picknone: "{port} からは FM-1 の応答がありません。",
     pickok: "{port} で {id} が見つかりました。このブラウザが覚えておきます。もう一度押してください。",
-    res: "{{RES_JA}}を書き込み中", resdone: "完了しました（{{RES_JA}}も書き込みました）",
-    resfail: "StoryBox はインストールされ、動きます。ただし{{RES_JA}}は、もう一度インストールするまでありません。書き込めなかった理由: ",
+    res: "StoryBox のデータを書き込み中", resdone: "完了しました（StoryBox のデータも書き込みました）",
+    resfail: "StoryBox はインストールされ、動きます。ただしStoryBox のデータは、もう一度インストールするまでありません。書き込めなかった理由: ",
     res2: "転送が途中で止まりました。", res7: "FM-1 がメモリを消去できませんでした。", res8: "FM-1 がメモリに書き込めませんでした。",
-    res10: "FM-1 が再生中です。止めてから、もう一度インストールしてください。", res20: "この{{RES_JA}}は StoryBox の別のビルドのものです。",
+    res10: "FM-1 が再生中です。止めてから、もう一度インストールしてください。", res20: "このStoryBox のデータは StoryBox の別のビルドのものです。",
     res21: "FM-1 が保存したものを移動中です。電源を入れ直してから、もう一度インストールしてください。",
-    res22: "書き込んだ内容の確認に失敗しました。", resload: "{{RES_JA}}のファイルを読み込めませんでした。ページを再読み込みしてください。",
+    res22: "書き込んだ内容の確認に失敗しました。", resload: "StoryBox のデータのファイルを読み込めませんでした。ページを再読み込みしてください。",
     resnoreturn: "インストール後、FM-1 が応答しませんでした。", reslost: "USB の接続が切れました。",
     resother: "エラーコード ",
   },
@@ -934,12 +1044,12 @@ const TEXT = {
     tryport: "Try", pickwait: "Asking…", pickempty: "No other MIDI ports.",
     picknone: "No FM-1 answered on {port}.",
     pickok: "Found {id} on {port}. This browser remembers it. Press the button again.",
-    res: "Writing {{RES}}", resdone: "Done, with {{RES}} written too.",
-    resfail: "StoryBox is installed and works, but without {{RES}} until you install it again. Not written: ",
+    res: "Writing StoryBox's data", resdone: "Done, with StoryBox's data written too.",
+    resfail: "StoryBox is installed and works, but without StoryBox's data until you install it again. Not written: ",
     res2: "the transfer stopped.", res7: "the FM-1 could not erase its memory.", res8: "the FM-1 could not write its memory.",
-    res10: "the FM-1 is playing. Stop it, then install again.", res20: "the file of {{RES}} is for another build of StoryBox.",
+    res10: "the FM-1 is playing. Stop it, then install again.", res20: "the file of StoryBox's data is for another build of StoryBox.",
     res21: "the FM-1 is still moving what it has saved. Switch it off and on, then install again.",
-    res22: "what was written did not check.", resload: "the file of {{RES}} did not load. Reload the page.",
+    res22: "what was written did not check.", resload: "the file of StoryBox's data did not load. Reload the page.",
     resnoreturn: "the FM-1 did not answer after the update.", reslost: "the USB connection was lost.",
     resother: "error code ",
   },
@@ -984,7 +1094,7 @@ const log = (t) => {
   if (atEnd) el.scrollTop = el.scrollHeight;
 };
 let image = null, boot = null, res = null;
-const meta = {"version": "0.1", "product": "FM-1_51700", "pkg": "../firmware/storybox.fwsc", "backup": false, "boot": {"pkg": "../firmware/m-bootloader-1.2.fwsc", "version": "1.2", "sha256": "0e89141f52d1f2d62198d4f69147a2c15c8360806e64d48002990a6fdab6d6dd"}};
+const meta = {"version": "0.2", "product": "FM-1_51700", "pkg": "../firmware/storybox.fwsc", "backup": false, "res": null, "boot": {"pkg": "../firmware/m-bootloader-1.2.fwsc", "version": "1.2", "sha256": "0e89141f52d1f2d62198d4f69147a2c15c8360806e64d48002990a6fdab6d6dd"}};
 /* the firmware's own steps around an install (its site's install_app script, or none): before(midi, ui) runs before
    anything is written, may ask (ui.ask) and returns its state, or false to stop there; after(midi, ui, state) once
    the new firmware has started (it waits for it itself). A failure in after is said, the install stays done */
