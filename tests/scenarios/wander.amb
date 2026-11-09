@@ -16,5 +16,5 @@ wait 80000
 expect piece 2
 wait 80000
 expect piece 3
-wait 80000
+wait 90000
 expect piece 0

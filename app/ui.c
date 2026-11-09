@@ -240,10 +240,11 @@ static uint32_t fade_ms(void)                  /* Fade 0..100: 5 s .. 2 min, as 
     float f = (float)proj.fade / 100.0f;
     return 5000u + (uint32_t)(115000.0f * f * f);
 }
-static uint32_t wander_phrases(void)           /* in order (1..50): 32 .. 6 phrases; roaming (51..100): 6 .. 2 */
+static uint32_t wander_phrases(void)           /* in order (1..50): 32 .. 8 phrases; roaming (51..100): 8 .. 2 (at 86 bpm:
+                                                  * 3 min .. 45 s, then 45 s .. 11 s) */
 {
     uint32_t w = proj.wander;
-    return w <= 50u ? 32u - (w - 1u) * 26u / 49u : 6u - (w - 51u) * 4u / 49u;
+    return w <= 50u ? 32u - (w - 1u) * 24u / 49u : 8u - (w - 51u) * 6u / 49u;
 }
 static uint32_t phrase_ms(void) { return PHRASE_BARS * en_bar_len * 60000u / ((uint32_t)proj.par[P_TEMPO] * 4u); }
 static int tr_goal(void) { return tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : proj.piece; }   /* where it's going */
