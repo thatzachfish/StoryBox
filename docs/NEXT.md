@@ -114,3 +114,6 @@ Sound notes (2026-11-09):
 - [ ] Mockups sent (2026-11-09): Mixer channel strips, Colours, Lead's melody trace, Feel without the tide
 - [ ] Feel: "Right now" is called Energy: one Energy meter (ALGORITHM's setting lit; a marker riding on it where the
       swell has the music now)
+- [ ] Rings redrawn, option B (rings-options mockup): every ring in short segments like the meters: drums one
+      segment a step (hits thick, now yellow), bass and pad segmented arcs (lit as loud as they are), the melody's
+      notes as segments at their places, fading
