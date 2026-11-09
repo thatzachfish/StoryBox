@@ -108,3 +108,7 @@ Sound notes (2026-11-09):
 - [ ] Fly: more waltz (oom-pah-pah: the brushes' rim on 2 and 3), more Structure; Entry not scary yet; Approach's
       melody instrument wrong: a slide guitar running there (a Melody sound "Slide": each note sliding into the
       next, its vibrato); Tension building across the acts (Devour higher); Good-bye liked as it is
+- [ ] Knob layout B approved: Level, how busy, Sound, range everywhere; a Colours page (Shimmer, Echo, Drive, Crush)
+- [ ] Colours more saturated (mockups-0.4: yellow 255,212,58; fuchsia 255,62,178; pad 104,232,84; melody 64,214,240;
+      bass 255,140,52; drums 194,142,255; frost 120,170,255)
+- [ ] Mockups sent (2026-11-09): Mixer channel strips, Colours, Lead's melody trace, Feel without the tide
