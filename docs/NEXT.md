@@ -153,3 +153,7 @@ From Zach, playing 0.4 (2026-11-09):
 - [ ] Pages, left to right: Story (acts), Feel, Mixer, Colours, Effects (?), Pad, Melody, Bass, Drums, Lead, Setup,
       System (replaces "Colours next to Mixer"). Buttons: HOME the acts (ACTS mode and the Story page), SEL Effects,
       FX Colours, EDIT Lead, GLO Setup
+- [x] SEL: Effects (right after Colours in the pages)
+- [ ] Freeze sounds muffled: it shuts the reverb's input (new notes go dry) and holds its tail forever (the plate's
+      damping darkening it). Keep some reverb for what plays (~35%), hold the tail long but not forever, less damping
+      while frozen
