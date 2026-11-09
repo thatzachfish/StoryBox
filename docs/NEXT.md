@@ -147,3 +147,6 @@ From Zach, playing 0.4 (2026-11-09):
       guitar (a banjo's plunk: its head's quick ring)
 - [ ] Lead Glide does nothing for most sounds (only Flute and Slide, legato): make it work for every lead sound (each
       note gliding from the last)
+- [ ] Lead: every key plays its own note (no snapping to the scale); only the key's notes lit (the rest dark). Check
+      the lit keys match the scale (Zach: some sounded wrong: the snapping moved out-of-key keys to a neighbour)
+- [ ] Colours page next to Mixer (Mixer, Colours, Feel, Story, ...)
