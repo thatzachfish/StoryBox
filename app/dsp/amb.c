@@ -1428,7 +1428,7 @@ static void plate_init(void)
  * (the repeats fall in changing patterns, left and right), and now and then the second head slides to
  * another part of the loop, as a head moved by hand (the repeats bend a little in pitch on the way).
  * The Echoplex has a second tap, for the right. */
-#define TAPE_N 62000                             /* 5.6 s at 11.025 kHz */
+#define TAPE_N 44000                             /* 4 s at 11.025 kHz (StoryBox: from 5.6 s, room for the punch-ins) */
 #define TAPE_SR 11025.0f
 static int16_t tape[TAPE_N] EN_POOL;
 static int tape_w, tape_ph;
@@ -2143,7 +2143,7 @@ static void render_drums(uint32_t n)
  * ring: how long a struck note rings (s; 0 held: it lasts while the key is down, then fades over rel) */
 enum { LK_FM, LK_FLUTE, LK_STRING, LK_PIANO, LK_BOWED };
 static float lead_vib;
-static float ks[NLEAD][KS_N] EN_POOL;
+static int16_t ks[NLEAD][KS_N] EN_POOL;          /* the strings, as 16-bit samples (x 16384) */
 static const struct {
     uint8_t kind;
     float ratio, idx, idx_t, ring, atk, rel, vib, breath, detune;
@@ -2175,13 +2175,13 @@ static void ks_pluck(lead_t *v, int i, float f, float vel)   /* the string's fir
     for (j = 0; j < n; j++) {                    /* noise, low-passed: a softer pick is darker */
         noise = noise * 1664525u + 1013904223u;
         lp += ((float)(int32_t)noise * (1.0f / 2147483648.0f) - lp) * k;
-        ks[i][j] = lp * 3.0f;
+        ks[i][j] = (int16_t)(fm_clampf(lp * 3.0f, -1.99f, 1.99f) * 16384.0f);
     }
     pick = (int)(len * 0.13f);                   /* plucked near the bridge: the comb that leaves out some overtones */
     for (j = n - 1; j >= pick && pick > 0; j--)
-        ks[i][j] -= 0.6f * ks[i][j - pick];
+        ks[i][j] = (int16_t)((float)ks[i][j] - 0.6f * (float)ks[i][j - pick]);
     for (j = n; j < KS_N; j++)
-        ks[i][j] = 0.0f;
+        ks[i][j] = 0;
     v->ksl = len;
     v->ksw = n;
     v->kslp = 0.0f;
@@ -2303,11 +2303,11 @@ static void render_lead(uint32_t n)
                     rp += (float)KS_N;
                 r0 = (int)rp;
                 fr = rp - (float)r0;
-                a = ks[i][r0 & (KS_N - 1)];
-                b2 = ks[i][(r0 + 1) & (KS_N - 1)];
+                a = (float)ks[i][r0 & (KS_N - 1)] * (1.0f / 16384.0f);
+                b2 = (float)ks[i][(r0 + 1) & (KS_N - 1)] * (1.0f / 16384.0f);
                 x = a + (b2 - a) * fr;           /* the string, a period ago (between two samples) */
                 v->kslp += (x - v->kslp) * (0.6f + 0.35f * lead_tone);   /* a gentle low-pass in the loop */
-                ks[i][v->ksw & (KS_N - 1)] = (v->kslp + x) * ksg;
+                ks[i][v->ksw & (KS_N - 1)] = (int16_t)(fm_clampf((v->kslp + x) * ksg, -1.99f, 1.99f) * 16384.0f);
                 v->ksw = (v->ksw + 1) & (KS_N - 1);
                 x *= 3.9f;
                 break;
@@ -2372,8 +2372,8 @@ static void render_lead(uint32_t n)
         v->cph = cph, v->cph2 = cph2, v->mph = mph, v->mph2 = mph2, v->amp = amp, v->amp2 = amp2, v->att = att;
         v->idx = idx, v->idx2 = idx2, v->rel = rel, v->inc = inc, v->blp = blp, v->bhp = bhp, v->chiff = chiff;
         if (kind == LK_STRING) {                 /* the string: done once it has died away */
-            float e = fm_fabsf(ks[i][(v->ksw - 1) & (KS_N - 1)]) + fm_fabsf(ks[i][(v->ksw - 7) & (KS_N - 1)]);
-            if (v->vt > 0.2f && e < 0.0004f)
+            int e = ks[i][(v->ksw - 1) & (KS_N - 1)], e2 = ks[i][(v->ksw - 7) & (KS_N - 1)];
+            if (v->vt > 0.2f && (e < 0 ? -e : e) + (e2 < 0 ? -e2 : e2) < 7)
                 amp = 0.0f;
         }
         if (amp * rel < 0.0005f) {
@@ -2385,10 +2385,10 @@ static void render_lead(uint32_t n)
 }
 
 /* ------------------------------------------------------------- punch-in --- */
-/* The whole sound, before MASTER. A ring of the last moment (mono, 22 kHz, 0.93 s) for Reverse and Stutter: it stops
+/* The whole sound, before MASTER. A ring of the last moment (mono, 22 kHz, 0.74 s) for Reverse and Stutter: it stops
  * recording while either plays, so what they play stays put. Filter: a resonant low-pass (Zavalishin's TPT SVF) swept
  * from wide open down to its cutoff. Phaser: four all-passes a side, swept by a slow LFO */
-#define RB_N 20480
+#define RB_N 16384
 static int16_t rb[RB_N] EN_POOL;
 static int rb_w, rb_held;
 static float rb_acc, rb_pos, rb_start, rb_len, fxw[EN_NFX];
