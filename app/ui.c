@@ -2355,6 +2355,112 @@ static void draw_inst_sky(int f)                 /* D, Skyline: how loud, over t
     cv_text(232 - text_w(&FONT_XS, "now"), 128, &FONT_XS, "now", K_DIM);
 }
 
+static float part_level(int f, int i)            /* an instrument's part i, how loud now (0..1) */
+{
+    if (!en_playing)
+        return 0.0f;
+    if (f == 0)
+        return en_pad_amp[i] * (float)proj.par[P_PAD] * 0.02f;
+    if (f == 1)
+        return en_loop_glow[i] * (float)proj.par[P_BELLS] * 0.012f;
+    if (f == 2)
+        return en_bass_level * (float)proj.par[P_BASS] * 0.012f;
+    return en_drum_glow[i] * (float)proj.par[P_PULSE] * 0.012f;
+}
+static const char *part_label(int f, int i, char *t)
+{
+    static const char *const DN[3] = {"K", "H", "O"};
+    if (f == 0)
+        return EN_NOTE_NAME[en_pad_note[i] % 12];
+    if (f == 1) {
+        itoa_u((uint32_t)en_loop_len[i], t);
+        return t;
+    }
+    if (f == 2)
+        return EN_NOTE_NAME[en_chord_root % 12];
+    return DN[i];
+}
+static void draw_inst_strips(int focus, int wide)   /* E / F: every instrument a strip of its parts, the Mixer's way;
+                                                    * the page's own bright (F: wider), the others dimmed */
+{
+    static const char *const TN[4] = {"Pad", "Melody", "Bass", "Drums"};
+    static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
+    static const int NP[4] = {EN_NPAD, EN_NLOOP, 1, EN_NDRUM};
+    char nm[16], t[8];
+    int f, i;
+    int32_t x = 4;
+    for (f = 0; f < 4; f++) {
+        int me = f == focus, solo = ui.solos >> f & 1u, heard = ui.solos ? solo : !(ui.mutes >> f & 1u);
+        int32_t w = wide ? (me ? 92 : 44) : 56, pw, px;
+        uint16_t c = heard ? TC[f] : K_LINE;
+        if (me)
+            cv_round(x - 2, 0, w + 2, 132, 6, K_PANEL);
+        text_c(x + w / 2, 2, &FONT_XS, TN[f], me ? c : mix(K_BG, c, 8));
+        pw = (w - 6) / NP[f];
+        for (i = 0; i < NP[f]; i++) {
+            px = x + 3 + i * pw;
+            if (me)
+                vmeter(px + 1, 20, pw - 3, 112, 14, part_level(f, i), c, 0);
+            else {                                   /* (dimmed: the same strips, quieter) */
+                int s, lit = (int)(fm_clampf(part_level(f, i), 0.0f, 1.0f) * 14.0f + 0.5f);
+                for (s = 0; s < 14; s++) {
+                    int32_t y = 112 - (s + 1) * 92 / 14;
+                    cv_round(px + 1, y + 1, pw - 3, 92 / 14 - 2, 1, s < lit ? mix(K_BG, c, 6) : mix(K_BG, K_PANEL, 10));
+                }
+            }
+            if (me || NP[f] < 4)
+                text_c(px + pw / 2, 116, &FONT_XS, part_label(f, i, t), me ? K_TEXT : K_LINE);
+        }
+        x += w + (wide ? 4 : 2);
+    }
+    (void)nm;
+}
+static void draw_inst_steps_all(int focus)       /* G: Steps for all four, a lane each; the page's own bright */
+{
+    static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
+    static const char *const TN[4] = {"Pad", "Mel", "Bass", "Drm"};
+    int n = en_bar_len ? en_bar_len : 16, pos = en_drum_pos[0] % n, f, i, d;
+    int32_t cw = 200 / n, x0 = 36;
+    for (f = 0; f < 4; f++) {
+        int me = f == focus;
+        int32_t y = 2 + f * 33, h = 29;
+        uint16_t c = TC[f];
+        if (me)
+            cv_round(0, y - 2, 240, h + 4, 5, K_PANEL);
+        cv_text(4, y + 7, &FONT_XS, TN[f], me ? c : mix(K_BG, c, 8));
+        for (i = 0; i < n; i++) {
+            int cur = en_playing && i == pos;
+            int32_t x = x0 + i * cw + 1, ww = cw - 2;
+            if (f == 3) {                            /* the drums: kick below, the hats above, in the lane */
+                for (d = 0; d < 3; d++) {
+                    int dn = en_drum_n[d] ? en_drum_n[d] : n, hit = (int)(en_drum_pat[d] >> (i % dn) & 1u) && proj.par[P_PULSE] > 0;
+                    int32_t yy = d == 0 ? y + 15 : d == 1 ? y + 7 : y, hh = d == 0 ? 14 : 6;
+                    uint16_t on = cur ? K_ACC : mix(K_BG, c, (uint32_t)(me ? 16 - d * 4 : 6));
+                    cv_round(x, yy, ww, hh, 1, hit ? on : me ? mix(K_BG, K_PANEL, 14) : mix(K_BG, K_PANEL, 8));
+                }
+            } else if (f == 1) {                     /* the melody: a note on this step in any loop, as high as it sits */
+                int l, best = -1;
+                for (l = 0; l < EN_NLOOP; l++) {
+                    int len = en_loop_len[l];
+                    if (len > 0) {
+                        int k = ((int)en_loop_pos[l] + i - pos + len * 4) % len;
+                        if (en_loop_note[l][k] >= 0 && en_loop_note[l][k] > best)
+                            best = en_loop_note[l][k];
+                    }
+                }
+                {
+                    int32_t hh = best < 0 ? 3 : 8 + (best % 8) * 3;
+                    cv_round(x, y + h - hh, ww, hh, 1, best < 0 ? (me ? mix(K_BG, K_PANEL, 14) : mix(K_BG, K_PANEL, 8)) :
+                             cur ? K_ACC : mix(K_BG, c, me ? 16 : 6));
+                }
+            } else {                                 /* the pad, the bass: how loud on each step */
+                float v = i < 16 ? stepv[f == 2][i] : 0.0f;
+                int32_t hh = 3 + (int32_t)(fm_clampf(v, 0.0f, 1.0f) * (float)(h - 3));
+                cv_round(x, y + h - hh, ww, hh, 1, cur ? K_ACC : mix(K_BG, c, me ? 16 : 6));
+            }
+        }
+    }
+}
 /* the effects (the Effects page, the punch-ins' pages): B and C */
 static void fx_card(int i, int32_t x, int32_t y, int32_t w, int32_t h)   /* a punch-in's card, the Colours' way */
 {
@@ -2543,7 +2649,8 @@ static void draw_main(void)
     default:
         if (viz_style && ring_focus() >= 0)
             viz_style == 1 ? draw_inst_steps(ring_focus()) : viz_style == 2 ? draw_inst_meters(ring_focus()) :
-                             draw_inst_sky(ring_focus());
+            viz_style == 3 ? draw_inst_sky(ring_focus()) : viz_style == 4 ? draw_inst_strips(ring_focus(), 0) :
+            viz_style == 5 ? draw_inst_strips(ring_focus(), 1) : draw_inst_steps_all(ring_focus());
         else
             draw_rings(ring_focus());
         break;
