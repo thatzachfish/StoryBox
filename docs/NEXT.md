@@ -175,3 +175,15 @@ Future (Zach, 2026-11-09):
 - [ ] Bluetooth MIDI (later)
 - [ ] The instrument pages' pictures as columns (like the Mixer's), not rings: the look the rest has now
 - [ ] The punch-in effects' pages as nice as the Colours page
+
+## Fast and Slow (Zach's, in progress)
+
+Two brothers who try to walk across the world; they lose each other and find each other again. Happy and sad.
+- On E4 (Riebeck's key now); Riebeck moves to A4; Deep Forest goes.
+- A waltz in 3/4, in G, about 90 bpm, brushes, warmer than Fly.
+- Acts: 1 Together (G Em D Em Em D D G, two bars each; the story also ends here), 2 Dream (D6, Cmaj7, four bars each),
+  3 Flower (Fmaj7, Cmaj7), 4 The Dark (Em, Cmaj7, four bars each).
+- Two melodies, one a brother, in counterpoint: one-shots on the sting keys, starting on the next downbeat, in time.
+  Sweet, legato instruments that harmonize with each other (two that blend, not two that clash). The melodies should
+  also shape the melody / improvisation (the generated melody drawing on their notes and rhythms).
+- Waiting for: the melodies (the recorder: thatzachfish.github.io/StoryBox/record/).
