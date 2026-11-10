@@ -11,6 +11,16 @@ bta add Headphones
 wait 1500
 expect bta 2
 shot bt-found.png
+# Range (0.7.1-bt): the radio's strength while a speaker plays, Medium at first
+spin K1 -1
+wait 100
+said RANGE NEAR: THE SPEAKER CLOSE
+spin K1 2
+wait 100
+said RANGE FAR: MORE POWER
+spin K1 -1
+wait 100
+said RANGE MEDIUM
 spin K2 1
 wait 100
 said PICK Headphones

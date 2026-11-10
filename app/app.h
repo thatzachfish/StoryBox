@@ -14,7 +14,7 @@ void ui_splash(void);
 #ifdef APP_VERSION                       /* a release build passes its own (tools/build.py --release) */
 #define EN_VERSION APP_VERSION
 #else
-#define EN_VERSION "0.7"               /* StoryBox's version, shown on the System page (the install page's too) */
+#define EN_VERSION "0.7.1-bt"               /* StoryBox's version, shown on the System page (the install page's too) */
 #endif
 
 /* the store: the project at 0xFC000 and the panel calibration at 0xDC000, where AMB-1 0.9 kept them (an update keeps
@@ -47,7 +47,9 @@ typedef struct {
     uint8_t answer;                      /* 0.6: the lead's answer, 0 off .. 100 free (an older save: off) */
     uint8_t recipes;                     /* 0.7: the recipes' changes brought into saved acts (0: none yet) */
     slot_t slot[NPIECES];                /* every piece as it was left (Tune and MIDI out are global) */
-    uint8_t rsv[16];                     /* room to grow */
+    uint8_t bt_range;                    /* 0.7.1: the radio's strength while a speaker plays: 1 Near, 2 Medium, 3 Far
+                                          * (0, an older save: Medium) */
+    uint8_t rsv[15];                     /* room to grow */
 } project_t;
 
 extern project_t proj;

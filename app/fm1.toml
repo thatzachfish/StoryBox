@@ -9,6 +9,8 @@ bt_audio = true                # the sound to headphones and speakers (A2DP, SBC
 bt_audio_sim = true            # (the simulator's stand-in, for the tests)
 usb_audio_in = true            # the music recordable over USB
 usb_audio_out = false
+crash_history = true          # 0.7.1-bt: crashes kept in flash, a power-off loses none (the Bluetooth hunt)
+debug_stats = true            # and a snapshot of the sound's load every 5 minutes, one at each crash
 words = "words.tsv"
 ram_layout = "packed"         # StoryBox: the RAM code, .data/.bss and the pool in one budget (464 KB): the pool was
                                # full while .bss had 45 KB spare

@@ -15,6 +15,7 @@ void app_init(void)
     en_init();
     project_load();                      /* defaults when nothing (or another format) is saved */
     project_apply();
+    plat_stats_enable(1);                /* (0.7.1-bt: the debug stats on, for the Bluetooth hunt) */
 }
 void app_render(int32_t *lr, uint32_t n, uint32_t gain_q12) { en_render(lr, n, gain_q12); }
 void app_panic(void)

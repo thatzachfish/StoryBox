@@ -27,7 +27,7 @@ static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, NOBTN, NOBTN, B_FX, B_SEL, NOBT
 /* the punch-ins: ENV Harmony (0.7, Reverse's place), LFO Stutter, ARP Filter, SEQ Sparkle (held; a double tap latches one on) */
 static const uint8_t FX_BTN[EN_NFX] = {B_ENV, B_LFO, B_ARP, B_SEQ};
 /* the four knobs of each page: a parameter, or one of these; and what the knob is called there */
-enum { K_LEDS = 100, K_CPU, K_NONE, K_PLAYMODE, K_WANDER, K_FADE, K_ACT, K_TIMER, K_ANSWER, K_BTDEV, K_BTOUT, K_BTON };
+enum { K_LEDS = 100, K_CPU, K_NONE, K_PLAYMODE, K_WANDER, K_FADE, K_ACT, K_TIMER, K_ANSWER, K_BTDEV, K_BTOUT, K_BTON, K_BTRANGE };
 static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {K_ACT, P_GROOVE, P_TENSION, K_WANDER},
     {P_EVOLVE, P_FREEDOM, P_DRIFT, P_MOTION},
@@ -41,7 +41,7 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_LLEVEL, P_LGLIDE, P_LSOUND, K_ANSWER},   /* (0.7: Answer in Tone's place) */
     {P_ROOT, P_TEMPO, K_TIMER, K_FADE},
     {P_TUNE, K_LEDS, P_MIDI, K_CPU},
-    {K_NONE, K_BTDEV, K_BTOUT, K_BTON},   /* (0.7: to the right, knob 1 free) */
+    {K_BTRANGE, K_BTDEV, K_BTOUT, K_BTON},   /* (0.7.1: Range on knob 1) */
     {P_RVLEN, P_RVMIX, K_NONE, K_NONE},
     {P_STRATE, P_STMIX, K_NONE, K_NONE},
     {P_FLCUT, P_FLRES, K_NONE, K_NONE},
@@ -60,7 +60,7 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
     {"Level", "Glide", "Sound", "Answer"},
     {"Root", "Tempo", "Sleep", "Fade"},
     {"Tune", "Lights", "MIDI out", "CPU"},
-    {"", "Pick", "Play on", "Bluetooth"},
+    {"Range", "Pick", "Play on", "Bluetooth"},
     {"Interval", "Mix", "", ""},
     {"Rate", "Mix", "", ""},
     {"Cutoff", "Resonance", "", ""},
@@ -511,8 +511,43 @@ static void bt_list(void)                       /* the known, then the found not
     bt.sel = i < n ? i : 0;
 }
 
+/* (0.7.1-bt) Range: the radio's strength while a speaker is linked. Its sending draws current in bursts, and the
+ * FM-1's supply dips with them (the screen's backlight flickered with a speaker on): fm1-base notes that the flash
+ * reads come back wrong when the supply sags under the radio (radio.c, its start), and the crashes with a speaker were
+ * in the sound's code read from the flash. Less strength, less current: Near (level 4 of fm1-base's 0..11), Medium (7),
+ * Far (11, fm1-base's and the stock firmware's). Set in the radio's own table, on every frame it has set up */
+static int bt_range(void) { return proj.bt_range >= 1 && proj.bt_range <= 3 ? proj.bt_range - 1 : 1; }
+#if FM1B_BT_AUDIO && !defined(PLAT_HOST)
+#include "fm1_bredr.h"
+static void bt_power(void)                      /* the main loop, while a speaker is linked: every frame's strength */
+{
+    static const uint8_t LVL[3] = {4, 7, 11};
+    uint32_t base = FM1_BR_TBASE, n, want = 16u + LVL[bt_range()];
+    if (!(FM1_BR_BTEN & (1u << 10)) || base < 0x01C00000u || base >= 0x01C80000u)
+        return;                                  /* (the block off, or a table not in RAM: nothing) */
+    for (n = 0; n < (FM1_BR_OFF_ESCO - FM1_BR_OFF_FRAME) / 180u; n++) {
+        volatile struct fm1_br_frame *f = (volatile struct fm1_br_frame *)(uintptr_t)(base + FM1_BR_OFF_FRAME + 180u * n);
+        if (f->txpwer >= 16u && f->txpwer <= 27u && f->txpwer != want) {   /* (a frame in use: fm1-base's 16 + level) */
+            f->txpwer = want;
+            f->txset = want;
+        }
+    }
+}
+#else
+static void bt_power(void) {}
+#endif
+
 static void bt_knob(int k, int v)
 {
+    if (k == K_BTRANGE) {
+        v = v < 0 ? 0 : v > 2 ? 2 : v;
+        if (v == bt_range())
+            return;
+        proj.bt_range = (uint8_t)(v + 1);
+        mark_dirty();
+        say("RANGE", v == 0 ? "NEAR: THE SPEAKER CLOSE" : v == 1 ? "MEDIUM" : "FAR: MORE POWER");
+        return;
+    }
     if (k == K_BTON) {
         v = v != 0;
         if (v == !proj.bt_off)
@@ -606,8 +641,14 @@ static void bt_tick(int page)                   /* every frame: what happened, s
     }
     if (bt_busy(st))
         bt.boot_tries = 99;
-    if (st == PLAT_BTA_STREAMING)
+    if (st == PLAT_BTA_STREAMING) {
+        static uint32_t pw_t;
         bt.asked = 0;                            /* (answered) */
+        if (now - pw_t >= 250u) {                /* (0.7.1-bt: Range, a few times a second; connecting at full) */
+            pw_t = now;
+            bt_power();
+        }
+    }
     if ((lost = plat_bta_lost()) != PLAT_BTA_LOST_NONE)
         warn("SPEAKER LOST", bt.conn);
     else if (st != bt.last_state) {
@@ -657,6 +698,8 @@ static int knob_get(int k)
         return plat_bta_out_device();
     if (k == K_BTON)
         return !proj.bt_off;
+    if (k == K_BTRANGE)
+        return bt_range();
     return 0;
 }
 static void knob_range(int k, int *lo, int *hi)
@@ -668,7 +711,7 @@ static void knob_range(int k, int *lo, int *hi)
         *lo = 0;
         *hi = k == K_LEDS ? 2 : k == K_CPU || k == K_WANDER || k == K_FADE ? 100 : k == K_PLAYMODE ? 1 :
               k == K_ACT ? EN_NACT - 1 : k == K_TIMER ? 4 : k == K_ANSWER ? 100 : k == K_BTDEV ? (bt.n ? bt.n - 1 : 0) :
-              k == K_BTOUT || k == K_BTON ? 1 : 0;
+              k == K_BTOUT || k == K_BTON ? 1 : k == K_BTRANGE ? 2 : 0;
     }
 }
 static const char *knob_name(int k)
@@ -677,7 +720,7 @@ static const char *knob_name(int k)
         return en_param_info(k)->name;
     return k == K_LEDS ? "Lights" : k == K_CPU ? "CPU" : k == K_PLAYMODE ? "Mode" : k == K_WANDER ? (!proj.wander ? "Wander" : proj.wander <= 50 ? "In order" : "Roaming") :
            k == K_FADE ? "Fade" : k == K_ACT ? "Act" : k == K_TIMER ? "Sleep" : k == K_ANSWER ? "Answer" :
-           k == K_BTDEV ? "Pick" : k == K_BTOUT ? "Play on" : k == K_BTON ? "Bluetooth" : "";
+           k == K_BTDEV ? "Pick" : k == K_BTOUT ? "Play on" : k == K_BTON ? "Bluetooth" : k == K_BTRANGE ? "Range" : "";
 }
 static void knob_text(int k, char *b)
 {
@@ -708,8 +751,8 @@ static void knob_text(int k, char *b)
             b++;
         *b++ = '/';
         itoa_u((uint32_t)bt.n, b);
-    } else if (k == K_ANSWER || k == K_BTOUT || k == K_BTON || k == K_BTDEV) {
-        const char *n = k == K_ANSWER ? (v ? 0 : "Off") : k == K_BTOUT ? (v ? "Speaker" : "FM-1") : k == K_BTON ? (v ? "On" : "Off") :
+    } else if (k == K_ANSWER || k == K_BTOUT || k == K_BTON || k == K_BTDEV || k == K_BTRANGE) {
+        const char *n = k == K_BTRANGE ? (v == 0 ? "Near" : v == 1 ? "Medium" : "Far") : k == K_ANSWER ? (v ? 0 : "Off") : k == K_BTOUT ? (v ? "Speaker" : "FM-1") : k == K_BTON ? (v ? "On" : "Off") :
                         bt.n ? bt.name[v] : "None";
         int j = 0;
         if (!n) {
@@ -783,7 +826,7 @@ static void knob_set(int k, int v)
     int lo, hi;
     if (k == K_CPU || k == K_NONE)
         return;
-    if (k == K_BTDEV || k == K_BTOUT || k == K_BTON) {
+    if (k == K_BTDEV || k == K_BTOUT || k == K_BTON || k == K_BTRANGE) {
         bt_knob(k, v);
         return;
     }
