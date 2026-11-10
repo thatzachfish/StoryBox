@@ -294,7 +294,7 @@ The page after System (turn SELECT past System). StoryBox sends its sound to Blu
 - **Sound to** sends the sound to the speaker or back to the FM-1's own output, keeping the connection.
 - **Bluetooth** turns the radio on or off (kept when you save).
 
-At power-on StoryBox calls the last speaker again. While it plays on a speaker, the FM-1's own output is quiet, and
+While it plays on a speaker, the FM-1's own output is quiet, and
 the sound arrives 150-300 ms late (the speaker's own buffer): fine for listening, not for playing in time with it.
 
 ### Answer (StoryBox 0.6)

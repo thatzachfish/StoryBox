@@ -409,7 +409,7 @@ static int key_target(int k)
 /* StoryBox 0.6: the sound to headphones and speakers (fm1-base's A2DP source, plat_bta_*). The Bluetooth page lists
  * the speakers known (the last one first) and those found around (it looks while the page is up and nothing plays);
  * Speaker picks one, SAVE connects it or lets it go, SAVE held forgets it. Sound to: the speaker or the FM-1's own
- * (the link kept). At power-on the last speaker is called again. While it streams the FM-1's own output is quiet,
+ * (the link kept). (0.6.9: no longer called again at power-on.) While it streams the FM-1's own output is quiet,
  * and the sound comes 150-300 ms late (the speaker's buffer). */
 #if !FM1B_BT_AUDIO                              /* (a build without it, the .rfm1: nothing there) */
 #define plat_bta_on(x) ((void)(x))
@@ -426,6 +426,8 @@ static int key_target(int k)
 #define plat_bta_lost() PLAT_BTA_LOST_NONE
 #endif
 #define BT_N 8
+#define BT_RECONNECT_AT_BOOT 0                   /* (0.6.9: off. A connection that crashed at power-on crashed again at the
+                                                  * next, twice, into safe mode: a speaker is connected by hand) */
 static struct {
     int sel, n, last_state, boot_tries, asked;   /* asked: a connect asked for (its no answer said) */
     uint8_t src[BT_N];                           /* a known one (0..3), or 10 + a found one */
@@ -452,6 +454,12 @@ static int bt_eq(const char *a, const char *b)
 static int bt_busy(int st)
 {
     return st == PLAT_BTA_PAGING || st == PLAT_BTA_LINKED || st == PLAT_BTA_SETUP || st == PLAT_BTA_STREAMING;
+}
+
+static int bt_connecting(void)
+{
+    int st = plat_bta_state();
+    return bt_busy(st) && st != PLAT_BTA_STREAMING;
 }
 
 static void bt_list(void)                       /* the known, then the found not known; the pick kept by its name */
@@ -563,7 +571,7 @@ static void bt_tick(int page)                   /* every frame: what happened, s
         plat_bta_on(1);
     }
     st = plat_bta_state();
-    if (bt.boot_tries < 6 && now - bt.boot_t > 1500u + 3000u * (uint32_t)bt.boot_tries && !bt_busy(st) &&
+    if (BT_RECONNECT_AT_BOOT && bt.boot_tries < 6 && now - bt.boot_t > 1500u + 3000u * (uint32_t)bt.boot_tries && !bt_busy(st) &&
         st != PLAT_BTA_SCANNING && st != PLAT_BTA_OFF) {
         if (plat_bta_known(0, nm) && plat_bta_reconnect(0) == 0) {
             bt_cpy(bt.conn, nm);
@@ -2319,8 +2327,8 @@ static void draw_main(void)
         static uint32_t last_t;
         static int last_view = -1;
         uint32_t now = plat_ms();
-        if (bt_busy(plat_bta_state()) && ui.view == last_view && now - last_t < 250u)
-            return;
+        if (ui.view == last_view && (bt_connecting() || (bt_busy(plat_bta_state()) && now - last_t < 250u)))
+            return;                              /* (connecting: kept still; playing: 4 a second) */
         last_t = now;
         last_view = ui.view;
     }
@@ -3025,16 +3033,19 @@ void ui_init(void)
 }
 
 #define DARK_AFTER 30000u
-/* (0.6.8) A speaker connected: the radio sends all the time, and its noise corrupts the screen's link at 60 MHz (at the
- * panel's limit): a byte lost mid-transfer shifts the rest (bands of colour, the picture slid down). While Bluetooth
- * connects or plays, the link at half speed (30 MHz), and every band redrawn each second, so a glitch heals */
+/* (0.6.9) A speaker connected: the radio sends all the time, and its noise corrupts the screen's link at 60 MHz (at the
+ * panel's limit): a byte lost mid-transfer shifts the rest (bands of colour, the picture slid down). While it plays,
+ * the link at half speed (30 MHz) and one band redrawn every quarter second, in turn, so a glitch heals. While it
+ * connects, nothing changed at all (the screen kept still: connecting is the radio's most demanding moment, and
+ * 0.6.8's redraws then were followed by a restart) */
 static void bt_screen(void)
 {
 #ifndef PLAT_HOST
     static int slow;
 #endif
     static uint32_t heal_t;
-    int b = bt_busy(plat_bta_state()), k;
+    static int heal_k;
+    int b = plat_bta_state() == PLAT_BTA_STREAMING;
     uint32_t now = plat_ms();
 #ifndef PLAT_HOST
     if (b != slow) {
@@ -3043,10 +3054,10 @@ static void bt_screen(void)
     }
     slow = b;
 #endif
-    if (b && now - heal_t >= 1000u) {
+    if (b && now - heal_t >= 250u) {
         heal_t = now;
-        for (k = 0; k < 4; k++)
-            ui.sig[k] ^= 0x5A5A5A5Au;            /* (a signature no band has: each redrawn) */
+        ui.sig[heal_k] ^= 0x5A5A5A5Au;           /* (a signature that band has not: redrawn) */
+        heal_k = (heal_k + 1) & 3;
     }
 }
 
