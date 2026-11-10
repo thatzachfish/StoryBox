@@ -199,6 +199,31 @@ static uint32_t pool_abs(void)                 /* the pool as absolute pitch cla
     uint32_t p = proj.pool, r = (uint32_t)proj.par[P_ROOT];
     return ((p << r) | (p >> (12u - r))) & 0xFFFu;
 }
+static uint32_t chord_pcs(void)                  /* the chord now's pitch classes */
+{
+    uint32_t c = 1u << (en_chord_root % 12u);
+    int k;
+    for (k = 0; k < EN_NPAD; k++)
+        c |= 1u << (en_chord[k] % 12);
+    return c;
+}
+static uint32_t lead_pool(void)                  /* (0.6.10) the scale the lead's keys light, following the chord: a chord
+                                                  * note outside the scale (Lobby's G7, its B; Abmaj7, its A flat) takes
+                                                  * the place of the scale's neighbour next to it (B flat, A) */
+{
+    uint32_t ap = pool_abs(), ch = chord_pcs(), pc;
+    for (pc = 0; pc < 12u; pc++) {
+        uint32_t up = (pc + 1u) % 12u, dn = (pc + 11u) % 12u;
+        if (!(ch >> pc & 1u) || (ap >> pc & 1u))
+            continue;
+        if ((ap >> dn & 1u) && !(ch >> dn & 1u))   /* (one neighbour only: the one below first, B for B flat) */
+            ap &= ~(1u << dn);
+        else if ((ap >> up & 1u) && !(ch >> up & 1u))
+            ap &= ~(1u << up);
+        ap |= 1u << pc;
+    }
+    return ap;
+}
 static const char *mode_name(void)             /* (StoryBox says major or minor, not the mode's name) */
 {
     uint32_t ap = pool_abs();
@@ -1943,7 +1968,7 @@ static void draw_lead(void)
 {
     char t[24], nm[16];
     int r = proj.par[P_ROOT], p, e, k;
-    uint32_t ap = pool_abs(), now = plat_ms(), ct = 1u << (en_chord_root % 12u);
+    uint32_t ap = lead_pool(), now = plat_ms(), ct = 1u << (en_chord_root % 12u);
     const int32_t top = 10, bot = 132, x0 = 8, x1 = 232;
     for (k = 0; k < EN_NPAD; k++)                /* the chord's notes */
         ct |= 1u << (en_chord[k] % 12);
@@ -2327,8 +2352,9 @@ static void draw_main(void)
         static uint32_t last_t;
         static int last_view = -1;
         uint32_t now = plat_ms();
-        if (ui.view == last_view && (bt_connecting() || (bt_busy(plat_bta_state()) && now - last_t < 250u)))
-            return;                              /* (connecting: kept still; playing: 4 a second) */
+        if (ui.view == last_view && (bt_connecting() || (bt_busy(plat_bta_state()) && now - last_t < 1000u)))
+            return;                              /* (connecting: kept still; playing: once a second, 0.6.11: each
+                                                  * long transfer to the screen holds up the radio's work) */
         last_t = now;
         last_view = ui.view;
     }
@@ -2342,7 +2368,7 @@ static void draw_main(void)
                  (uint32_t)ui.mutes | (uint32_t)ui.solos << 4 | (uint32_t)en_bd << 8 | (uint32_t)ui.bd_asked << 10);
         break;
     case 3:
-        h = hash(hash(h, (uint32_t)proj.par[P_LSOUND] | (uint32_t)proj.par[P_LOCT] << 8 | (uint32_t)proj.par[P_ROOT] << 16 | pool_abs() << 20),
+        h = hash(hash(h, (uint32_t)proj.par[P_LSOUND] | (uint32_t)proj.par[P_LOCT] << 8 | (uint32_t)proj.par[P_ROOT] << 16 | lead_pool() << 20),
                  ui.keys | (uint32_t)ui.lead << 31);
         h = hash(h, plat_ms() / 50u);           /* (the trace drifts) */
         break;
@@ -2485,7 +2511,7 @@ static int breath(void)                          /* lit, then fading down to dar
 }
 static void leds(void)
 {
-    uint32_t b = 0, k = 0, km = 0, kd = 0, i, ap = pool_abs(), db, play = 1u << B_PLAY;
+    uint32_t b = 0, k = 0, km = 0, kd = 0, i, ap = lead_pool(), db, play = 1u << B_PLAY;
     if (VIEW_BTN[ui.view] != NOBTN)
         b |= 1u << VIEW_BTN[ui.view];
     for (i = 0; i < EN_NFX; i++)                 /* the punch-ins on: lit */
@@ -3054,7 +3080,7 @@ static void bt_screen(void)
     }
     slow = b;
 #endif
-    if (b && now - heal_t >= 250u) {
+    if (b && now - heal_t >= 500u) {
         heal_t = now;
         ui.sig[heal_k] ^= 0x5A5A5A5Au;           /* (a signature that band has not: redrawn) */
         heal_k = (heal_k + 1) & 3;
