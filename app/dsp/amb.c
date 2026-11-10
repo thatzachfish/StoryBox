@@ -99,13 +99,13 @@ static const struct {
      * Dark (Em, Cmaj7). Its one-shots are the brothers' themes as Zach played them (0.7: from his MIDI): Fast (a flute,
      * leaping) and Slow (a cello, stepping down; 0.7.3: an octave up, to stand out), sixteen bars each; the third is the act's own ('#' between the
      * acts): Together (both), Dream and Flower (Zach's melodies over those chords), Searching (Slow, Fast four bars
-     * behind). Together's bass walks down as he played it (G G/F# Em Em/B) */
+     * behind). */
     {"Fast and Slow", {"Together", "Dream", "Flower", "The Dark"}, {
         {55, 45, 52, 48, 35, 30, 30, 45, 40, 2, 60, 78, 55, 45, 45, 40, 0, 1, 95, 7, 0, 0, 2, 0, 10, 30, 0, 35, 10, 0, 1, 50, 2, 62, 50, 25, 0, 80, 2},
         {62, 40, 40, 25, 30, 35, 40, 25, 48, 3, 70, 88, 66, 62, 56, 45, 0, 1, 95, 7, 0, 0, 1, 0, 15, 25, 0, 25, 10, 0, 1, 45, 2, 60, 50, 25, 0, 75, 2},
         {55, 60, 50, 50, 45, 40, 25, 50, 40, 2, 60, 78, 72, 40, 60, 50, 0, 1, 95, 7, 4, 0, 2, 0, 10, 30, 0, 40, 10, 0, 1, 58, 2, 62, 55, 25, 0, 80, 2},
         {60, 30, 58, 35, 25, 30, 45, 30, 45, 3, 68, 86, 35, 55, 35, 50, 0, 1, 95, 7, 0, 0, 2, 0, 20, 20, 0, 25, 10, 15, 1, 45, 2, 58, 45, 25, 0, 75, 2}},
-        {"G:1 G/F#:1 Em:1 Em/B:1 Cmaj7:2 G:2 G:1 G/F#:1 Em:1 Em/B:1 Cmaj7:2 Cmaj7:2 G:2", "D6:4 Cmaj7:4", "Fmaj7:4 Cmaj7:4", "Em:4 Cmaj7:4"},
+        {"G:2 Em:2 Cmaj7:2 G:2 Em:2 Cmaj7:2 Cmaj7:2 G:2", "D6:4 Cmaj7:4", "Fmaj7:4 Cmaj7:4", "Em:4 Cmaj7:4"},
         7, {"@2;G4:1 B4:1 D5:1 G5:1 G5:1 G5:1 G5:1.5 E5:.5 D5:1 D5:2 D5:1 E5:1 E5:1 E5:1 E5:1 D5:1 B4:1 E5:1 D5:.5 B4:1.5 B4:2 A4:1 G4:1.5 B4:.5 D5:1 G5:1 E5:1 D5:1 G5:1 E5:1 D5:1 E5:1 D5:.5 B4:1.5 D5:1 C5:1 B4:1 D5:.5 C5:.5 B4:2 D5:1 C5:1 G4:4", "@6;B5:3 A5:2 G5:1 E5:1 G5:1 A5:1 B5:3 E5:1 G5:1 A5:1 B5:1.5 A5:.5 G5:1 B5:6 B5:1 A5:1 G5:1 B5:2 B5:1 B5:1.5 A5:.5 G5:1 G5:3 E5:1 G5:1 A5:1 B5:1 A5:1 G5:1 G5:6",
             "@2;G4:1 B4:1 D5:1 G5:1 G5:1 G5:1 G5:1.5 E5:.5 D5:1 D5:2 D5:1 E5:1 E5:1 E5:1 E5:1 D5:1 B4:1 E5:1 D5:.5 B4:1.5 B4:2 A4:1 G4:1.5 B4:.5 D5:1 G5:1 E5:1 D5:1 G5:1 E5:1 D5:1 E5:1 D5:.5 B4:1.5 D5:1 C5:1 B4:1 D5:.5 C5:.5 B4:2 D5:1 C5:1 G4:4|@6;B5:3 A5:2 G5:1 E5:1 G5:1 A5:1 B5:3 E5:1 G5:1 A5:1 B5:1.5 A5:.5 G5:1 B5:6 B5:1 A5:1 G5:1 B5:2 B5:1 B5:1.5 A5:.5 G5:1 G5:3 E5:1 G5:1 A5:1 B5:1 A5:1 G5:1 G5:6#@6;r:2 D5:.5 D5:.5 D5:1 B4:1 A4:1 A4:3 r:1 D5:1 B4:1 B4:3 B4:1 G4:1 E4:1 r:1 B4:1 B4:1 B4:1.5 A4:.5 G4:1#@2;r:.5 E5:2 F5:.5 E5:.5 F5:.5 E5:.5 C5:.5 A4:1 A4:3 r:3 r:1 B4:2 C5:.5 B4:.5 C5:.5 B4:.5 G4:.5 E4:.5 E4:3 r:3 F4:1 A4:1 C5:1 E5:1 F5:1 E5:.5 F5:.5 E5:.5 C5:.5 A4:2 r:3 G4:1 B4:2 C5:.5 B4:2 C5:.5 B4:.5 G4:.5 E4:1 E4:1 E4:3#@6;B5:3 A5:2 G5:1 E5:1 G5:1 A5:1 B5:3 E5:1 G5:1 A5:1 B5:1.5 A5:.5 G5:1 B5:6 B5:1 A5:1 G5:1 B5:2 B5:1 B5:1.5 A5:.5 G5:1 G5:3 E5:1 G5:1 A5:1 B5:1 A5:1 G5:1 G5:6|@2;r:12 G4:1 B4:1 D5:1 G5:1 G5:1 G5:1 G5:1.5 E5:.5 D5:1 D5:2 D5:1 E5:1 E5:1 E5:1 E5:1 D5:1 B4:1 E5:1 D5:.5 B4:1.5 B4:2 A4:1 G4:1.5 B4:.5 D5:1 G5:1 E5:1 D5:1 G5:1 E5:1 D5:1 E5:1 D5:.5 B4:1.5 D5:1 C5:1 B4:1 D5:.5 C5:.5 B4:2 D5:1 C5:1 G4:4"},
         {"Fast", "Slow", "Together#Dream#Flower#Searching"}},
