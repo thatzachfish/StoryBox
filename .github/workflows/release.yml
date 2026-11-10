@@ -100,10 +100,10 @@ jobs:
         done
         ls $HOME/.jieli/toolchain/*/bin 2>&1 | tr '\n' ' ' | sed 's/^/CRASHLS /' || true; echo
         for T in $HOME/.jieli/toolchain/*/bin/*objdump* $HOME/.jieli/toolchain/*/bin/*addr2line*; do echo "CRASHLS tool $T"; done
-        for T in $HOME/.jieli/toolchain/*/bin/llvm-objdump $HOME/.jieli/toolchain/*/bin/*-objdump; do
+        for T in $HOME/.jieli/toolchain/pi32v2/bin/objdump; do
           [ -x "$T" ] || continue
-          for A in 0x2028878 0x2025d3e; do
-            "$T" -d --start-address=$((A - 0x40)) --stop-address=$((A + 0x10)) "app/build/$pkg.elf" 2>&1 | tail -40 | sed "s|^|CRASHDIS2 $(basename $T) |" || true
+          for A in 0x2028878 0x2025d3e 0x20281fc; do
+            "$T" -d -l --start-address=$((A - 0x60)) --stop-address=$((A + 0x10)) "app/build/$pkg.elf" 2>&1 | tail -80 | sed "s|^|CRASHDIS2 $(basename $T) |" || true
           done
         done
         for T in $HOME/.jieli/toolchain/*/bin/*addr2line*; do
