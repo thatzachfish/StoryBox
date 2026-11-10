@@ -227,6 +227,7 @@ int project_load(void)
     if (n >= 8 && project_valid()) {
         proj.piece = 0;                          /* (0.6.10) every start on Pre-show's Doors, not the act last played */
         proj.answer = 0;                         /* (0.7) and the Answer off */
+        proj.par[P_ENERGY] = 50;                 /* (0.7.3) and Energy in the middle */
         take(&proj.slot[0]);
         return 0;
     }
