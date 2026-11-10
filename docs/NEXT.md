@@ -190,3 +190,5 @@ Two brothers who try to walk across the world; they lose each other and find eac
 - Slow's theme (Zach played it, 90 bpm; as cleaned up, a bar a line, quarters unless held), over Together's chords:
   B A G | B. | B A G | G. | E G A | B A G | B (two bars) || B A G | B. | B A G | G. | E G A | B A G | G (two bars)
   (as played: the notes short, a few early (bar 12 and 14 of the take), an extra G eighth at the end of bar 4)
+- Fast's theme (Zach played it, 90 bpm; a bar a line, as read): G4 B4 D5 | G5 G5 G5 | G5 E5(e) D5 | D5(h) D5 |
+  E5 E5 E5 | E5 C5 B4 | E5(e) C5(e) B4 B4 — seven bars as recorded (more to come?), above Slow's
