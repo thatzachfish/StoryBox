@@ -1,16 +1,13 @@
-# The answer (0.6, call and response): Answer on (System), a phrase on the lead, a beat's rest, and StoryBox plays it
+# The answer (0.6, call and response): Answer on (0.7: the Lead page's fourth knob), a phrase on the lead, a beat's rest, and StoryBox plays it
 # back changed; a key while it answers stops it
 wait 300
 listen
-tap GLO
-turn SELECT 1
+tap EDIT
 wait 100
 spin K4 1
 wait 100
 said ANSWER ON
 expect answered 0
-tap EDIT
-wait 100
 key 7 down
 wait 250
 key 7 up
@@ -40,12 +37,135 @@ wait 100
 key 7 up
 wait 2000
 # off: nothing answers
-tap GLO
-turn SELECT 1
 wait 100
-expect view 11
+expect view 9
 expect answer 1
 spin K4 -1
 wait 100
 expect answer 0
 said ANSWER OFF
+# past the middle: it improvises leads of its own between phrases (busier with Energy)
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+spin K4 1
+wait 200
+expect answer 60
+said IMPROVISING
+wait 20000
+expect answered >0

@@ -171,7 +171,7 @@ const char *en_chord_name(const int *pcs, int n, char *buf);   /* "Em7", "Dsus4"
 const char *en_story_name(int s);
 int en_story_key(int s);                       /* the key its chords and stings are written in (pitch class) */
 /* StoryBox stings: two one-shots a story (a note or a chord on bells, ringing long), on the next beat */
-#define EN_NSTING 2
+#define EN_NSTING 3                             /* (0.7: a third, for Fast and Slow's themes together) */
 int en_sting_len(int piece, int k);            /* its notes, 0 none */
 const char *en_sting_name(int piece, int k);
 void en_sting(int piece, int k);

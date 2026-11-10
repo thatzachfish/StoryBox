@@ -21,10 +21,10 @@ enum { V_STORY, V_GARDEN, V_MIX, V_COLR, V_SPACE, V_PAD, V_BELLS, V_BASS, V_PULS
 #define NPAGES V_REV
 #define NOBTN 0xFF
 static const char *const VIEW_NAME[NVIEWS] = {"Story", "Feel", "Mixer", "Colours", "Effects", "Pad", "Melody", "Bass",
-                                              "Drums", "Lead", "Setup", "System", "Bluetooth", "Reverse", "Stutter", "Filter", "Sparkle"};
+                                              "Drums", "Lead", "Setup", "System", "Bluetooth", "Harmony", "Stutter", "Filter", "Sparkle"};
 static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, NOBTN, NOBTN, B_FX, B_SEL, NOBTN, NOBTN, NOBTN, NOBTN, B_EDIT, B_GLO, NOBTN,
                                          NOBTN, B_ENV, B_LFO, B_ARP, B_SEQ};
-/* the punch-ins: ENV Reverse, LFO Stutter, ARP Filter, SEQ Sparkle (held; a double tap latches one on) */
+/* the punch-ins: ENV Harmony (0.7, Reverse's place), LFO Stutter, ARP Filter, SEQ Sparkle (held; a double tap latches one on) */
 static const uint8_t FX_BTN[EN_NFX] = {B_ENV, B_LFO, B_ARP, B_SEQ};
 /* the four knobs of each page: a parameter, or one of these; and what the knob is called there */
 enum { K_LEDS = 100, K_CPU, K_NONE, K_PLAYMODE, K_WANDER, K_FADE, K_ACT, K_TIMER, K_ANSWER, K_BTDEV, K_BTOUT, K_BTON };
@@ -38,10 +38,10 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_BELLS, P_DENSITY, P_MSOUND, P_BOCT},
     {P_BASS, P_FIFTH, P_BSOUND, P_GLIDE},
     {P_PULSE, P_HITS, P_KIT, P_SWING},
-    {P_LLEVEL, P_LGLIDE, P_LSOUND, P_LTONE},
+    {P_LLEVEL, P_LGLIDE, P_LSOUND, K_ANSWER},   /* (0.7: Answer in Tone's place) */
     {P_ROOT, P_TEMPO, K_TIMER, K_FADE},
-    {P_TUNE, K_LEDS, P_MIDI, K_ANSWER},
-    {K_BTDEV, K_BTOUT, K_BTON, K_NONE},
+    {P_TUNE, K_LEDS, P_MIDI, K_CPU},
+    {K_NONE, K_BTDEV, K_BTOUT, K_BTON},   /* (0.7: to the right, knob 1 free) */
     {P_RVLEN, P_RVMIX, K_NONE, K_NONE},
     {P_STRATE, P_STMIX, K_NONE, K_NONE},
     {P_FLCUT, P_FLRES, K_NONE, K_NONE},
@@ -51,17 +51,17 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
     {"Act", "Structure", "Tension", "Wander"},
     {"Evolve", "Freedom", "Drift", "Motion"},
     {"Pad", "Melody", "Bass", "Drums"},
-    {"Shimmer", "Echo", "Drive", "Crush"},
+    {"Shimmer", "Echo", "Drive", "Punch"},
     {"Reverb", "Echo", "Echo time", "Surf"},
     {"Level", "Swell", "Sound", "Bright"},
     {"Level", "Density", "Sound", "Octave"},
     {"Level", "Fifth", "Sound", "Glide"},
-    {"Level", "Hits", "Kit", "Swing"},
-    {"Level", "Glide", "Sound", "Tone"},
+    {"Level", "Density", "Kit", "Swing"},
+    {"Level", "Glide", "Sound", "Answer"},
     {"Root", "Tempo", "Sleep", "Fade"},
-    {"Tune", "Lights", "MIDI out", "Answer"},
-    {"Speaker", "Sound to", "Bluetooth", ""},
-    {"Length", "Mix", "", ""},
+    {"Tune", "Lights", "MIDI out", "CPU"},
+    {"", "Pick", "Play on", "Bluetooth"},
+    {"Interval", "Mix", "", ""},
     {"Rate", "Mix", "", ""},
     {"Cutoff", "Resonance", "", ""},
     {"Size", "Mix", "", ""},
@@ -407,10 +407,10 @@ static void tr_tick(void)
 /* StoryBox 0.5's keyboard, one zone a job: the acts F3 G3 A3 B3, the mix on the black keys around them (F#3 Pad,
  * G#3 Melody, A#3 Bass, C#4 Drums, D#4 the breakdown); the stories on the white keys from middle C (C4 .. E5); the
  * stings on the top black keys (C#5 D#5 F#5); F#4 G#4 A#4, F5 G5 spare. The stories by whose: C4 D4 E4 Zach's (Inside,
- * Fly, Riebeck), F4 .. B4 Claude's (Lighthouse, Market, Forest, Sleep), C5 D5 E5 the show's (Pre-show, Intermission,
+ * Fly, Fast and Slow), F4 .. B4 (Lighthouse, Market, Riebeck, Sleep), C5 D5 E5 the show's (Pre-show, Intermission,
  * Post Show) */
 #define BLACK_KEY(k) ((0x0252A52Au >> (k)) & 1u)   /* F#3 G#3 A#3 C#4 D#4 F#4 G#4 A#4 C#5 D#5 F#5 */
-static const int8_t KEY_ACT[NKEYS] = {0, 50, 1, 51, 2, 52, 3, 15, 53, 16, 40, 19, 12, -1, 13, -1, 14, -1, 11, 10, 30, 17, 31, 18, -1, 32, -1};
+static const int8_t KEY_ACT[NKEYS] = {0, 50, 1, 51, 2, 52, 3, 15, 53, 16, 40, 14, 12, -1, 13, -1, 19, -1, 11, 10, 30, 17, 31, 18, -1, 32, -1};
 static const char *const TRACK_NAME[4] = {"PAD", "MELODY", "BASS", "DRUMS"};
 static void mutes_apply(void)                  /* what is heard: the solos if any, else all but the mutes */
 {
@@ -530,15 +530,15 @@ static void bt_knob(int k, int v)
         say("BLUETOOTH", v ? "ON" : "OFF");
     } else if (k == K_BTOUT) {
         if (plat_bta_state() != PLAT_BTA_STREAMING) {
-            say("SOUND TO", "NO SPEAKER YET");
+            say("PLAY ON", "NO SPEAKER YET");
             return;
         }
         plat_bta_output(v != 0);
-        say("SOUND TO", v ? "SPEAKER" : "FM-1");
+        say("PLAY ON", v ? "SPEAKER" : "FM-1");
     } else if (k == K_BTDEV && bt.n) {
         bt.sel = v < 0 ? 0 : v >= bt.n ? bt.n - 1 : v;
         bt_cpy(bt.want, bt.name[bt.sel]);
-        say("SPEAKER", bt.name[bt.sel]);
+        say("PICK", bt.name[bt.sel]);
     }
 }
 
@@ -677,7 +677,7 @@ static const char *knob_name(int k)
         return en_param_info(k)->name;
     return k == K_LEDS ? "Lights" : k == K_CPU ? "CPU" : k == K_PLAYMODE ? "Mode" : k == K_WANDER ? (!proj.wander ? "Wander" : proj.wander <= 50 ? "In order" : "Roaming") :
            k == K_FADE ? "Fade" : k == K_ACT ? "Act" : k == K_TIMER ? "Sleep" : k == K_ANSWER ? "Answer" :
-           k == K_BTDEV ? "Speaker" : k == K_BTOUT ? "Sound to" : k == K_BTON ? "Bluetooth" : "";
+           k == K_BTDEV ? "Pick" : k == K_BTOUT ? "Play on" : k == K_BTON ? "Bluetooth" : "";
 }
 static void knob_text(int k, char *b)
 {
@@ -809,8 +809,8 @@ static void knob_set(int k, int v)
     } else if (k == K_FADE) {
         proj.fade = (uint8_t)v;
     } else if (k == K_ANSWER) {
-        if (!proj.answer != !v)
-            say("ANSWER", v ? "ON" : "OFF");
+        if (!proj.answer != !v || (proj.answer > 50) != (v > 50))
+            say(v > 50 ? "IMPROVISING" : "ANSWER", v > 50 ? "ITS OWN LEADS, AND ANSWERS" : v ? "ON" : "OFF");
         proj.answer = (uint8_t)v;
         en_answer(v);
     } else if (k == K_ACT) {
@@ -1454,7 +1454,7 @@ static const char *view_hint(void)
     if (ui.help == B_HOME + 1)
         return "let go of HOME to close";
     if (ui.view == V_STORY)
-        return "tap a key: next phrase. hold: fade";
+        return "keys: tap next, hold fade";
     if (ui.view == V_SPACE || ui.view >= V_REV)
         return ui.view >= V_REV && (ui.fx_latch >> (ui.view - V_REV) & 1u) ? "double-tap its button: off" : "double-tap: latch";
     return 0;
@@ -1464,8 +1464,7 @@ static void draw_head(void)                     /* along the very top: the page 
     char t[24];
     int k;
     int32_t x, pg = ui.help == B_HOME + 1 ? -1 : ui.view < NPAGES ? ui.view : -1;
-    uint32_t h = hash(hash(2166136261u, (uint32_t)ui.view | (uint32_t)ui.help << 8 | (uint32_t)proj.par[P_ENERGY] << 16),
-                      (uint32_t)(batt() + 1));
+    uint32_t h = hash(hash(2166136261u, (uint32_t)ui.view | (uint32_t)ui.help << 8), (uint32_t)(batt() + 1));
     if (h == ui.sig[3])
         return;
     ui.sig[3] = h;
@@ -1475,13 +1474,6 @@ static void draw_head(void)                     /* along the very top: the page 
     x = 82;                                      /* (the dots in one place, whatever the name's length) */
     for (k = 0; k < NPAGES; k++)
         cv_round(x + k * 7, 6, 4, 4, 2, k == pg ? K_ACC : K_LINE);
-    {                                            /* 0.7: Energy, always: eight bars filling green, yellow, fuchsia */
-        int lit = (proj.par[P_ENERGY] * 8 + 50) / 100;
-        for (k = 0; k < 8; k++) {
-            uint16_t c = k < 3 ? K_PAD : k < 6 ? K_ACC : K_ALERT;
-            cv_rect(176 + k * 4, 9 - k / 2 * 2, 3, 4 + k / 2 * 2, k < lit ? c : K_PANEL);
-        }
-    }
     if (batt() >= 0)
         draw_batt(240 - 8 - BATT_W, batt());
     cv_blit(0, HDR_Y);
@@ -1498,6 +1490,7 @@ static void draw_bar(void)
                            (uint32_t)msg),
                       (uint32_t)(tr.pending >= 0 ? plat_ms() / 400u & 1u : 0u) << 30 | (uint32_t)(tr.pending + 1) |
                           (uint32_t)tr.on << 8 | (uint32_t)tr.piece << 9 | (uint32_t)(tr.t * 20.0f) << 16);
+    h = hash(h, (uint32_t)proj.par[P_ENERGY]);
     if (msg)
         h = hash(hash(h, (uint32_t)ui.msg[0][0] << 8 | ui.msg[0][1]), ui.msg_until);
     if (h == ui.sig[0])
@@ -1525,7 +1518,7 @@ static void draw_bar(void)
             int goal = tr.pending >= 0 ? tr.pending : tr.piece;
             const char *g = goal / EN_NACT != proj.piece / EN_NACT ? en_story_name(goal / EN_NACT) : en_act_name(goal);
             int32_t gx = x + 5, gw = text_w(&FONT_XS, g);
-            if (gx + 10 + gw <= 186) {
+            if (gx + 10 + gw <= 150) {
                 cv_rect(gx, 11, 6, 1, K_DIM);            /* an arrow */
                 cv_rect(gx + 4, 9, 1, 5, K_DIM);
                 cv_rect(gx + 5, 10, 1, 3, K_DIM);
@@ -1536,6 +1529,12 @@ static void draw_bar(void)
                 cv_text(gx + 10, 4, &FONT_XS, g, tr.pending >= 0 && (plat_ms() / 400u & 1u) ? K_LINE : K_ACC);
             }
         }
+    }
+    {   /* 0.7: Energy, always, left of the mode: eight blocks the same size, filling green, yellow, fuchsia */
+        int k, lit = (proj.par[P_ENERGY] * 8 + 50) / 100;
+        cv_rect(152, 2, 38, 18, K_BG);           /* (over a long line's end) */
+        for (k = 0; k < 8; k++)
+            cv_rect(156 + k * 4, 7, 3, 8, k < lit ? (k < 3 ? K_PAD : k < 6 ? K_ACC : K_ALERT) : K_PANEL);
     }
     cv_blit(0, BAR_Y);
 }
@@ -1697,7 +1696,7 @@ static void mix_meter_tick(void)                 /* how loud each is now (rising
 /* Colours: each instrument's own effect, in the Mixer's order, its card with a picture of what it does */
 static void draw_colours(void)
 {
-    static const char *const EN[4] = {"Shimmer", "Echo", "Drive", "Crush"};
+    static const char *const EN[4] = {"Shimmer", "Echo", "Drive", "Punch"};
     static const char *const TN[4] = {"Pad", "Melody", "Bass", "Drums"};
     static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
     static const uint8_t EP[4] = {P_SHIMMER, P_MECHO, P_DRIVE, P_CRUSH};
@@ -1729,13 +1728,13 @@ static void draw_colours(void)
                 px = x + 6 + k, py = y;
             }
             break;
-        default:                                 /* a wave in steps */
-            for (k = 0; k <= 40; k += 5) {
-                int32_t y = cy - (int32_t)(14.0f * fm_sinf((float)k * 0.16f)) / 4 * 4;
-                cv_rect(x + 6 + k, y, 5, 2, c);
-                if (k)
-                    cv_rect(x + 6 + k, py < y ? py : y, 2, (py < y ? y - py : py - y) + 2, c);
-                py = y;
+        default:                                 /* (0.7, Punch) three hits, each a tall attack and a short tail */
+            for (k = 0; k < 3; k++) {
+                int32_t hx = x + 8 + k * 14, j;
+                for (j = 0; j < 12; j++) {
+                    int32_t h = j == 0 ? 26 : 26 * (12 - j) / 30;
+                    cv_rect(hx + j, cy + 13 - h, 1, h, j == 0 ? c : mix(K_PANEL, c, 10));
+                }
             }
             break;
         }
@@ -1754,7 +1753,7 @@ static void draw_colours(void)
 #define HELP_LINES 4
 static const char *const BTN_LABEL[NB] = {"FX", "SEL", "ENV", "LFO", "EDIT", "GLO", "HOME", "SAVE", "ARP", "SEQ",
                                           "PLAY", "REC", "OCT-", "OCT+"};
-static const char *const BTN_DOES[12] = {"Colours", "Effects", "Reverse", "Stutter", "Lead", "Setup",
+static const char *const BTN_DOES[12] = {"Colours", "Effects", "Harmony", "Stutter", "Lead", "Setup",
                                          "Story", "Save", "Filter", "Sparkle", "Play", "Freeze"};
 static int help_lines(int b, const char *l[HELP_LINES])
 {
@@ -1779,7 +1778,7 @@ static int help_lines(int b, const char *l[HELP_LINES])
             L(" BACK TO ITS RECIPE");
         }
         break;
-    case B_HOME: L("HOME STORY, FX COLOURS, SEL EFFECTS,"); L(" ENV REVERSE, LFO STUTTER, EDIT LEAD, GLO SETUP,");
+    case B_HOME: L("HOME STORY, FX COLOURS, SEL EFFECTS,"); L(" ENV HARMONY, LFO STUTTER, EDIT LEAD, GLO SETUP,");
         L(" SAVE, ARP FILTER, SEQ SPARKLE,"); L(" PLAY, REC FREEZE"); break;
     default: break;
     }
@@ -1858,7 +1857,7 @@ static void draw_map(void)
                 int pc = shown / EN_NACT * EN_NACT + v;
                 c = K_ACC, nm = en_act_name(pc), here = pc == cur, going = pc == goal && pc != cur;
             } else if (v >= 10 && v < 10 + EN_NSTORY) {
-                static const char *const SHORT[EN_NSTORY] = {"Pre-show", "Sleep", "Lighthouse", "Market", "Forest", "Inside",
+                static const char *const SHORT[EN_NSTORY] = {"Pre-show", "Sleep", "Lighthouse", "Market", "Fast & Slow", "Inside",
                                                              "Fly", "Intermission", "Post Show", "Riebeck"};
                 c = K_FROST, nm = SHORT[v - 10], here = v - 10 == cur / EN_NACT;
                 going = goal >= 0 && v - 10 == goal / EN_NACT && !here;
@@ -2009,7 +2008,7 @@ static void draw_lead(void)
         cv_round(x0 - 4, 0, w + 8, 17, 3, K_BG);
         cv_text(x0, 0, &FONT_B, c, K_ACC);
         if (proj.answer)                         /* (0.6: the answer on, in its colour) */
-            cv_text(x0 + w + 8, 3, &FONT_XS, "answer on", K_BELL);
+            cv_text(x0 + w + 8, 3, &FONT_XS, proj.answer > 50 ? "improvising" : "answer on", K_BELL);
     }
 }
 
@@ -2022,23 +2021,37 @@ static void draw_setup(void)
     int n = 0;
     const char *s;
     draw_inst_strips(-2);                        /* (0.6.6: the strips, all dimmed, behind) */
-    cv_round(CX - 34, CY - 30, 68, 58, 10, K_BG);   /* (a clearing in the middle) */
+    cv_round(CX - 48, CY - 38, 96, 76, 14, K_BG);   /* (a clearing in the middle) */
+    cv_round(CX - 44, CY - 34, 88, 68, 12, K_PANEL);   /* 0.7: the little StoryBox, its screen showing the key */
+    cv_round(CX - 38, CY - 28, 76, 46, 8, K_BG);
+    {
+        int k, lit = en_playing ? (int)(plat_ms() / (60000u / (uint32_t)(proj.par[P_TEMPO] > 20 ? proj.par[P_TEMPO] : 20)) % 6u) : -1;
+        for (k = 0; k < 6; k++)
+            cv_rect(CX - 37 + k * 13, CY + 23, 10, 6, k == lit ? K_PAD : K_LINE);
+    }
     if (ui.timer) {
         uint32_t left = ui.timer_end - plat_ms(), total = (uint32_t)ui.timer * 15u * 60000u;
         seg_ring(66.0f, 6.0f, 30, fm_clampf((float)left / (float)total, 0.0f, 1.0f), K_PANEL, K_FROST);
         itoa_u((left + 59999u) / 60000u, t);
-        text_c(CX, CY - 14, &FONT_M, t, K_FROST);
-        text_c(CX, CY + 9, &FONT_XS, left < 180000u ? "fading" : "min", K_FROST);
+        text_c(CX, CY - 24, &FONT_M, t, K_FROST);
+        text_c(CX, CY - 1, &FONT_XS, left < 180000u ? "fading" : "min", K_FROST);
     } else {
         for (s = EN_NOTE_NAME[proj.par[P_ROOT]]; *s;)
             t[n++] = *s++;
         if (mode_name()[1] == 'i')
             t[n++] = 'm';
         t[n] = 0;
-        text_c(CX, CY - 16, &FONT_B, t, K_TEXT);
+        text_c(CX, CY - 26, &FONT_B, t, K_TEXT);
         itoa_u((uint32_t)proj.par[P_TEMPO], t);
-        text_c(CX, CY - 1, &FONT_B, t, K_TEXT);
-        text_c(CX, CY + 13, &FONT_XS, "bpm", K_DIM);
+        n = 0;
+        while (t[n])
+            n++;
+        t[n++] = ' ';
+        t[n++] = 'b';
+        t[n++] = 'p';
+        t[n++] = 'm';
+        t[n] = 0;
+        text_c(CX, CY - 6, &FONT_XS, t, K_DIM);
     }
 }
 
@@ -2088,7 +2101,28 @@ static void draw_bt(void)
     }
     if (!bt.n && !proj.bt_off)
         text_c(120, 56, &FONT_XS, "Put the speaker in pairing mode", K_DIM);
-    cv_text(8, 128, &FONT_XS, proj.bt_off ? "The Bluetooth knob turns it on" : "SAVE: connect / let go. Hold: forget", K_LINE);
+    cv_text(8, 128, &FONT_XS, proj.bt_off ? "Knob 4 turns Bluetooth on" : "Knob 2 picks. SAVE: connect / let go", K_LINE);
+}
+
+/* the little StoryBox (0.7: System's, the loading screen's): a box, a face on its screen, blinking now and then, its
+ * keys; (cx, y) its top's middle; lit: the key lit, -1 none */
+static void draw_guy(int32_t cx, int32_t y, int blink, int lit)
+{
+    int k;
+    cv_round(cx - 34, y, 68, 50, 10, K_PANEL);   /* the box */
+    cv_round(cx - 30, y + 4, 60, 30, 7, K_BG);   /* its screen, a face on it */
+    if (blink) {
+        cv_rect(cx - 14, y + 18, 8, 2, K_ACC);
+        cv_rect(cx + 6, y + 18, 8, 2, K_ACC);
+    } else {
+        cv_disc(cx - 10, y + 17, 3, K_ACC);
+        cv_disc(cx + 10, y + 17, 3, K_ACC);
+    }
+    cv_rect(cx - 5, y + 26, 10, 2, K_ALERT);     /* a smile */
+    cv_rect(cx - 7, y + 24, 2, 2, K_ALERT);
+    cv_rect(cx + 5, y + 24, 2, 2, K_ALERT);
+    for (k = 0; k < 6; k++)                      /* its keys */
+        cv_rect(cx - 26 + k * 9, y + 39, 7, 6, k == lit ? K_PAD : K_LINE);
 }
 
 /* System: a little StoryBox, blinking now and then, in front of the dimmed rings; under it, in words, how it is */
@@ -2098,23 +2132,7 @@ static void draw_system(void)
     int b = batt(), blink = (plat_ms() % 4200u) < 160u;
     draw_inst_strips(-2);                        /* (0.6.6: the strips, all dimmed, behind) */
     cv_round(CX - 40, 12, 80, 84, 10, K_BG);
-    cv_round(CX - 34, 16, 68, 50, 10, K_PANEL);  /* the box */
-    cv_round(CX - 30, 20, 60, 30, 7, K_BG);      /* its screen, a face on it */
-    if (blink) {
-        cv_rect(CX - 14, 34, 8, 2, K_ACC);
-        cv_rect(CX + 6, 34, 8, 2, K_ACC);
-    } else {
-        cv_disc(CX - 10, 33, 3, K_ACC);
-        cv_disc(CX + 10, 33, 3, K_ACC);
-    }
-    cv_rect(CX - 5, 42, 10, 2, K_ALERT);         /* a smile */
-    cv_rect(CX - 7, 40, 2, 2, K_ALERT);
-    cv_rect(CX + 5, 40, 2, 2, K_ALERT);
-    {
-        int k;                                   /* its keys */
-        for (k = 0; k < 6; k++)
-            cv_rect(CX - 26 + k * 9, 55, 7, 6, k == (int)(plat_ms() / 700u % 6u) ? K_PAD : K_LINE);
-    }
+    draw_guy(CX, 16, blink, (int)(plat_ms() / 700u % 6u));
     text_c(CX, 70, &FONT_B, "StoryBox", K_TEXT);
     text_c(CX, 86, &FONT_XS, "version " EN_VERSION, K_ACC);
     {   /* how it is: four pills */
@@ -2149,15 +2167,17 @@ static void fx_picture(int i, int32_t x0, int32_t y0, int32_t w, int32_t h, uint
     int k;
     int32_t my = y0 + h / 2;
     switch (i) {
-    case 0: {
-        int nb = w / 7;
-        for (k = 0; k < nb; k++) {
-            int32_t bh = 2 + k * (h - 10) / nb;
-            cv_rect(x0 + k * 7, my - bh / 2 - 3, 4, bh, c);
+    case 0: {                                    /* (0.7) Harmony: a wave, and the same wave again above it, quicker */
+        int32_t py0 = 0, py1 = 0;
+        for (k = 0; k <= w; k += 2) {
+            int32_t a = my + h / 5 - (int32_t)((float)h * 0.16f * fm_sinf((float)k * 0.14f)),
+                    b = my - h / 4 - (int32_t)((float)h * 0.14f * fm_sinf((float)k * 0.21f));
+            if (k) {
+                cv_line(x0 + k - 2, py0, x0 + k, a, c);
+                cv_line(x0 + k - 2, py1, x0 + k, b, c);
+            }
+            py0 = a, py1 = b;
         }
-        cv_rect(x0, y0 + h - 3, nb * 7, 2, c);   /* an arrow, back */
-        cv_rect(x0, y0 + h - 6, 2, 8, c);
-        cv_rect(x0 + 2, y0 + h - 5, 2, 6, c);
         break;
     }
     case 1: {
@@ -2389,7 +2409,8 @@ static void draw_main(void)
         break;
     case 7:
         h = hash(hash(h, (uint32_t)ui.timer | (uint32_t)proj.par[P_ROOT] << 4 | (uint32_t)proj.par[P_TEMPO] << 8 | pool_abs() << 16),
-                 ui.timer ? (ui.timer_end - plat_ms()) / 2000u : 0u);
+                 (ui.timer ? (ui.timer_end - plat_ms()) / 2000u : 0u) ^
+                     (en_playing ? plat_ms() / (60000u / (uint32_t)(proj.par[P_TEMPO] > 20 ? proj.par[P_TEMPO] : 20)) % 6u << 24 : 0u));
         h = hash(h, strips_sig());
         break;
     case 8:
@@ -2491,7 +2512,8 @@ static void draw_knobs(void)
         }
         knob_text(k, t);
         text_c(cx, 27, &FONT_B, t, hot ? K_ACC : K_TEXT);
-        text_c(cx, 42, &FONT_XS, VIEW_KNOB[ui.view][i] == K_WANDER && proj.wander ? (proj.wander <= 50 ? "In order" : "Roaming") : KNOB_LABEL[ui.view][i], hot ? K_TEXT : K_DIM);
+        text_c(cx, 42, &FONT_XS, VIEW_KNOB[ui.view][i] == K_WANDER && proj.wander ? (proj.wander <= 50 ? "In order" : "Roaming") :
+                                         VIEW_KNOB[ui.view][i] == K_ANSWER && proj.answer > 50 ? "Improv" : KNOB_LABEL[ui.view][i], hot ? K_TEXT : K_DIM);
     }
     cv_blit(0, KNB_Y);
 }
@@ -3019,26 +3041,18 @@ static void speak_dump(void)
 }
 #endif
 
-/* the loading screen: the home screen's rings, still, around the name; in two bands (the canvas holds 144 rows) */
+/* the loading screen (0.7): the little StoryBox from the System page, its name and version under it; in two bands
+ * (the canvas holds 144 rows) */
 void ui_splash(void)
 {
-    static const uint16_t C[4] = {K_PULSE, K_BASS, K_BELL, K_PAD};
-    static const float R[4] = {66.0f, 55.0f, 44.0f, 30.0f};
-    int band, r, i;
+    int band;
     for (band = 0; band < 2; band++) {
         int32_t y0 = band ? 144 : 0, h = band ? 96 : 144;
         cv_begin(240, (uint32_t)h, K_BG);
-        for (r = 0; r < 4; r++)
-            for (i = 0; i < 48; i++) {
-                int32_t x, y;
-                polar(120, 120 - y0, R[r], i, 48, &x, &y);
-                if (i % (r + 2) == 0)
-                    cv_disc(x, y, r == 0 ? 2 : 1, C[r]);
-                else
-                    cv_rect(x, y, 1, 1, K_LINE);
-            }
-        text_c(120, 111 - y0, &FONT_B, APP_NAME, K_ACC);
-        text_c(120, 214 - y0, &FONT_XS, "stories, music box, sleep", K_DIM);
+        draw_guy(120, 64 - y0, 0, 2);
+        text_c(120, 124 - y0, &FONT_B, APP_NAME, K_TEXT);
+        text_c(120, 146 - y0, &FONT_XS, "version " EN_VERSION, K_ACC);
+        text_c(120, 204 - y0, &FONT_XS, "stories, music box, sleep", K_DIM);
         cv_blit(0, y0);
     }
 }

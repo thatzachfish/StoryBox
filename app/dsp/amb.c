@@ -30,7 +30,7 @@ volatile uint32_t en_barno;
 
 static const en_param_t PARAMS[P_NPARAMS] = {
     {"Pad", 0, 100, 60},      {"Bells", 0, 100, 65},    {"Bass", 0, 100, 45},     {"Pulse", 0, 100, 40},
-    {"Density", 0, 100, 40},  {"Evolve", 0, 100, 35},   {"Drift", 0, 100, 25},    {"Hits", 0, 100, 35},
+    {"Density", 0, 100, 40},  {"Evolve", 0, 100, 35},   {"Drift", 0, 100, 25},    {"Density", 0, 100, 35},
     {"Echo", 0, 100, 45},     {"Echo time", 0, 5, 3},   {"Reverb", 0, 100, 65},   {"Size", 0, 100, 80},
     {"Bright", 0, 100, 40},   {"Swell", 0, 100, 60},    {"Bell tone", 0, 100, 50}, {"Motion", 0, 100, 50},
     {"Tune", -50, 50, 0},     {"MIDI out", 0, 1, 1},    {"Tempo", 30, 120, 72},   {"Root", 0, 11, 2},
@@ -40,10 +40,10 @@ static const en_param_t PARAMS[P_NPARAMS] = {
     {"Tension", 0, 100, 0},   {"Meter", 0, 1, 0},       {"Energy", 0, 100, 50},
     {"Lead", 0, EN_NLEAD - 1, 0}, {"Lead level", 0, 100, 65}, {"Lead tone", 0, 100, 50}, {"Glide", 0, 100, 20},
     {"Lead oct", -2, 2, 0},   {"Structure", 0, 100, 0}, {"Kit", 0, 4, 0},
-    {"Length", 0, 100, 40},   {"Mix", 0, 100, 100},     {"Rate", 0, 3, 1},        {"Mix", 0, 100, 100},
+    {"Interval", 0, 2, 0},    {"Mix", 0, 100, 60},     {"Rate", 0, 3, 1},        {"Mix", 0, 100, 100},
     {"Cutoff", 0, 100, 25},   {"Resonance", 0, 100, 40}, {"Size", 0, 100, 40},     {"Mix", 0, 100, 100},
     {"Surf", 0, 100, 0},      {"Melody", 0, EN_NMEL - 1, 0},
-    {"Shimmer", 0, 100, 0},   {"Echo", 0, 100, 50},     {"Drive", 0, 100, 0},     {"Crush", 0, 100, 0},
+    {"Shimmer", 0, 100, 0},   {"Echo", 0, 100, 50},     {"Drive", 0, 100, 0},     {"Punch", 0, 100, 0},
 };
 const en_param_t *en_param_info(int i) { return (i >= 0 && i < P_NPARAMS) ? &PARAMS[i] : &PARAMS[0]; }
 
@@ -93,11 +93,22 @@ static const struct {
         {45, 72, 55, 62, 70, 60, 20, 80, 40, 1, 45, 60, 78, 35, 75, 65, 0, 1, 104, 2, 4, 1, 0, 0, 10, 45, 30, 80, 100, 0, 0, 50, 0, 65, 60, 10, 0, 10, 0},
         {55, 45, 32, 22, 30, 25, 45, 25, 50, 3, 60, 75, 52, 65, 45, 40, 0, 1, 90, 2, 6, 0, 1, 0, 30, 25, 25, 45, 100, 0, 0, 50, 0, 65, 60, 10, 0, 15, 0},
         {55, 62, 50, 48, 50, 45, 30, 55, 55, 2, 60, 75, 62, 50, 60, 55, 0, 1, 96, 2, 4, 1, 0, 0, 20, 40, 30, 60, 100, 0, 0, 50, 0, 65, 60, 10, 0, 15, 0}}, {0}, 2, {0}, {0}},
-    {"Deep Forest", {"Path", "Hollow", "Spirits", "Clearing"}, {
-        {50, 50, 35, 25, 35, 40, 35, 30, 45, 3, 65, 80, 40, 55, 50, 50, 0, 1, 70, 2, 1, 0, 0, 0, 25, 30, 15, 45, 100, 0, 0, 50, 2, 60, 45, 30, 0, 20, 0},
-        {60, 35, 45, 20, 30, 45, 40, 20, 50, 2, 62, 86, 25, 65, 30, 65, 0, 1, 64, 2, 2, -1, 1, -1, 30, 35, 10, 35, 100, 0, 0, 50, 2, 60, 45, 30, 0, 20, 0},
-        {55, 70, 25, 10, 50, 60, 30, 10, 70, 4, 64, 88, 45, 60, 85, 80, 0, 1, 70, 2, 7, 1, 1, 0, 40, 20, 0, 30, 100, 0, 0, 50, 2, 60, 45, 30, 0, 20, 0},
-        {50, 65, 40, 30, 45, 40, 30, 35, 45, 3, 65, 80, 65, 50, 55, 50, 0, 1, 72, 2, 6, 0, 0, 0, 20, 35, 15, 50, 100, 0, 0, 50, 2, 60, 45, 30, 0, 20, 0}}, {0}, 2, {0}, {0}},
+    /* Fast and Slow (Zach's, 0.7): two brothers who try to walk across the world, lose each other and find each
+     * other again; happy and sad. A waltz in G, slower, the kit's oom-pah-pah (Structure up). Together (G Em Cmaj7 G,
+     * Em Cmaj7 Cmaj7 G: where it ends too), Dream (D6, Cmaj7), Flower (Fmaj7, Cmaj7: brighter, G with its F), The
+     * Dark (Em, Cmaj7). Its one-shots are the brothers' themes as Zach played them (0.7: from his MIDI): Fast (a flute,
+     * leaping) and Slow (a cello, stepping down), sixteen bars each; the third is the act's own ('#' between the
+     * acts): Together (both), Dream and Flower (Zach's melodies over those chords), Searching (Slow, Fast four bars
+     * behind). Together's bass walks down as he played it (G G/F# Em Em/B) */
+    {"Fast and Slow", {"Together", "Dream", "Flower", "The Dark"}, {
+        {55, 45, 52, 48, 35, 30, 30, 45, 40, 2, 60, 78, 55, 45, 45, 40, 0, 1, 72, 7, 0, 0, 2, 0, 10, 30, 0, 35, 10, 0, 1, 50, 2, 62, 50, 25, 0, 80, 2},
+        {62, 40, 40, 25, 30, 35, 40, 25, 48, 3, 70, 88, 48, 62, 40, 45, 0, 1, 68, 7, 0, 0, 1, 0, 15, 25, 0, 25, 10, 0, 1, 45, 2, 60, 50, 25, 0, 75, 2},
+        {55, 60, 50, 50, 45, 40, 25, 50, 40, 2, 60, 78, 72, 40, 60, 50, 0, 1, 74, 7, 4, 0, 2, 0, 10, 30, 0, 40, 10, 0, 1, 58, 2, 62, 55, 25, 0, 80, 2},
+        {60, 30, 58, 35, 25, 30, 45, 30, 45, 3, 68, 86, 35, 55, 35, 50, 0, 1, 68, 7, 0, 0, 2, 0, 20, 20, 0, 25, 10, 15, 1, 45, 2, 58, 45, 25, 0, 75, 2}},
+        {"G:1 G/F#:1 Em:1 Em/B:1 Cmaj7:2 G:2 G:1 G/F#:1 Em:1 Em/B:1 Cmaj7:2 Cmaj7:2 G:2", "D6:4 Cmaj7:4", "Fmaj7:4 Cmaj7:4", "Em:4 Cmaj7:4"},
+        7, {"@2;G4:1 B4:1 D5:1 G5:1 G5:1 G5:1 G5:1.5 E5:.5 D5:1 D5:2 D5:1 E5:1 E5:1 E5:1 E5:1 D5:1 B4:1 E5:1 D5:.5 B4:1.5 B4:2 A4:1 G4:1 B4:1 D5:1 G5:1 E5:1 D5:1 G5:1 E5:1 D5:1 E5:1 D5:.5 B4:1.5 D5:1 C5:1 B4:1 D5:.5 C5:.5 B4:2 D5:1 C5:1 G4:4", "@6;B4:3 A4:2 G4:1 E4:1 G4:1 A4:1 B4:3 E4:1 G4:1 A4:1 B4:1.5 A4:.5 G4:1 B4:6 B4:1 A4:1 G4:1 B4:2 B4:1 B4:1.5 A4:.5 G4:1 G4:3 E4:1 G4:1 A4:1 B4:1 A4:1 G4:1 G4:6",
+            "@2;G4:1 B4:1 D5:1 G5:1 G5:1 G5:1 G5:1.5 E5:.5 D5:1 D5:2 D5:1 E5:1 E5:1 E5:1 E5:1 D5:1 B4:1 E5:1 D5:.5 B4:1.5 B4:2 A4:1 G4:1 B4:1 D5:1 G5:1 E5:1 D5:1 G5:1 E5:1 D5:1 E5:1 D5:.5 B4:1.5 D5:1 C5:1 B4:1 D5:.5 C5:.5 B4:2 D5:1 C5:1 G4:4|@6;B4:3 A4:2 G4:1 E4:1 G4:1 A4:1 B4:3 E4:1 G4:1 A4:1 B4:1.5 A4:.5 G4:1 B4:6 B4:1 A4:1 G4:1 B4:2 B4:1 B4:1.5 A4:.5 G4:1 G4:3 E4:1 G4:1 A4:1 B4:1 A4:1 G4:1 G4:6#@6;r:2 D5:.5 D5:.5 D5:1 B4:1 A4:1 A4:3 r:1 D5:1 B4:1 B4:3 B4:1 G4:1 E4:1 r:1 B4:1 B4:1 B4:1.5 A4:.5 G4:1#@2;r:.5 E5:2 F5:.5 E5:.5 F5:.5 E5:.5 C5:.5 A4:1 A4:3 r:3 r:1 B4:2 C5:.5 B4:.5 C5:.5 B4:.5 G4:.5 E4:.5 E4:3 r:3 F4:1 A4:1 C5:1 E5:1 F5:1 E5:.5 F5:.5 E5:.5 C5:.5 A4:2 r:3 G4:1 B4:2 C5:.5 B4:2 C5:.5 B4:.5 G4:.5 E4:1 E4:1 E4:3#@6;B4:3 A4:2 G4:1 E4:1 G4:1 A4:1 B4:3 E4:1 G4:1 A4:1 B4:1.5 A4:.5 G4:1 B4:6 B4:1 A4:1 G4:1 B4:2 B4:1 B4:1.5 A4:.5 G4:1 G4:3 E4:1 G4:1 A4:1 B4:1 A4:1 G4:1 G4:6|@2;r:12 G4:1 B4:1 D5:1 G5:1 G5:1 G5:1 G5:1.5 E5:.5 D5:1 D5:2 D5:1 E5:1 E5:1 E5:1 E5:1 D5:1 B4:1 E5:1 D5:.5 B4:1.5 B4:2 A4:1 G4:1 B4:1 D5:1 G5:1 E5:1 D5:1 G5:1 E5:1 D5:1 E5:1 D5:.5 B4:1.5 D5:1 C5:1 B4:1 D5:.5 C5:.5 B4:2 D5:1 C5:1 G4:4"},
+        {"Fast", "Slow", "Together#Dream#Flower#Searching"}},
     /* Inside (The Story of the Inside): a waltz in G. A magician who makes the inside, his apprentice, her years
      * outside (G with a B flat everywhere: melodic minor; a slide down by half steps, Tension for the storm), her
      * return, and the magic chord (G, D, E, F#: no third) */
@@ -159,6 +170,7 @@ static int8_t prog_deg[EN_NPIECES][PROG_MAX], prog_off[EN_NPIECES][PROG_MAX], pr
 static uint8_t prog_q[EN_NPIECES][PROG_MAX], prog_bars[EN_NPIECES][PROG_MAX], prog_n[EN_NPIECES], prog_parsed;
 static uint8_t sting_note[EN_NSTORY][EN_NSTING][STING_MAX], sting_n[EN_NSTORY][EN_NSTING];
 static uint8_t sting_buzz[EN_NSTORY][EN_NSTING];
+static uint8_t sting_theme[EN_NSTORY][EN_NSTING];   /* (0.7) "@..." a theme: a melody in time (theme_fire) */
 static void buzz_start(int note);
 /* the qualities: a suffix and up to four intervals (0xFF: none) */
 #define NQUAL 13
@@ -245,6 +257,11 @@ static void prog_parse(void)
         for (k = 0; k < EN_NSTING; k++) {
             const char *t = STORIES[s].sting[k];
             int n = 0;
+            sting_theme[s][k] = t && *t == '@';
+            if (sting_theme[s][k]) {             /* (a theme: read when it is played) */
+                sting_n[s][k] = 1;
+                continue;
+            }
             sting_buzz[s][k] = t && *t == '~';   /* StoryBox: "~E4" a fly's buzz, about that note */
             if (sting_buzz[s][k])
                 t++;
@@ -277,10 +294,23 @@ int en_sting_len(int piece, int k)
         prog_parse();
     return (unsigned)piece < EN_NPIECES && (unsigned)k < EN_NSTING ? sting_n[piece / EN_NACT][k] : 0;
 }
-const char *en_sting_name(int piece, int k)
+static const char *act_part(const char *t, int a);
+const char *en_sting_name(int piece, int k)     /* ("a#b#c#d": one per act) */
 {
+    static char nm[2][16];
+    static int w;
     const char *n = (unsigned)piece < EN_NPIECES && (unsigned)k < EN_NSTING ? STORIES[piece / EN_NACT].sting_name[k] : 0;
-    return n ? n : "Sting";
+    int i = 0;
+    if (!n)
+        return "Sting";
+    n = act_part(n, piece % EN_NACT);
+    w ^= 1;
+    while (n[i] && n[i] != '#' && i < 15) {
+        nm[w][i] = n[i];
+        i++;
+    }
+    nm[w][i] = 0;
+    return nm[w];
 }
 
 const char *en_story_name(int s) { return STORIES[(unsigned)s < EN_NSTORY ? s : 0].name; }
@@ -298,7 +328,7 @@ void en_piece(int i, int16_t *par, uint16_t *pool)
     static const uint8_t STORY_MEL[EN_NSTORY][EN_NACT] = {
         {MEL_VIBES, MEL_VIBES, MEL_VIBES, MEL_VIBES},          {MEL_MUSICBOX, MEL_MUSICBOX, MEL_MUSICBOX, MEL_MUSICBOX},
         {MEL_GLASS, MEL_GLASS, MEL_GLASS, MEL_GLASS},          {MEL_MARIMBA, MEL_MARIMBA, MEL_MARIMBA, MEL_MARIMBA},
-        {MEL_KALIMBA, MEL_KALIMBA, MEL_KALIMBA, MEL_KALIMBA},  {MEL_BELLS, MEL_BELLS, MEL_BELLS, MEL_BELLS},
+        {MEL_MUSICBOX, MEL_GLASS, MEL_VIBES, MEL_GLASS},       {MEL_BELLS, MEL_BELLS, MEL_BELLS, MEL_BELLS},
         {MEL_MUSICBOX, MEL_SLIDE, MEL_SLIDE, MEL_GLASS},       /* Fly: the slide running through Approach, Devour */
         {MEL_VIBES, MEL_VIBES, MEL_VIBES, MEL_VIBES},          {MEL_BELLS, MEL_BELLS, MEL_KALIMBA, MEL_BELLS},
         {MEL_BANJO, MEL_BANJO, MEL_GLASS, MEL_BANJO},          /* Riebeck: the banjo by the fire, glass among stars */
@@ -307,7 +337,7 @@ void en_piece(int i, int16_t *par, uint16_t *pool)
         par[p] = STORIES[i / EN_NACT].v[i % EN_NACT][p];
     par[P_MSOUND] = STORY_MEL[i / EN_NACT][i % EN_NACT];
     {   /* each story's bass sound (0.5: the bass octave's place): Round, Upright, Synth, Sub */
-        static const uint8_t SBASS[EN_NSTORY] = {1, 3, 0, 1, 0, 0, 1, 1, 1, 0};
+        static const uint8_t SBASS[EN_NSTORY] = {1, 3, 0, 1, 0, 0, 1, 1, 1, 0};   /* (Fast and Slow, 4: Round) */
         par[P_BSOUND] = SBASS[i / EN_NACT];
     }
     if (i / EN_NACT == 2) {                      /* Lighthouse: the sea, under every act (the storm's the loudest) */
@@ -316,10 +346,10 @@ void en_piece(int i, int16_t *par, uint16_t *pool)
     }
     if (i == 9 * EN_NACT + 2)                    /* Riebeck's Drifting: a far wind */
         par[P_SURF] = 18;
-    {   /* each story's instrument effects: Shimmer, the melody's Echo, Drive, Crush */
+    {   /* each story's instrument effects: Shimmer, the melody's Echo, Drive, Punch (0.7, Crush's place) */
         static const int8_t SFX[EN_NSTORY][4] = {
-            {0, 50, 0, 15}, {35, 55, 0, 0}, {25, 55, 0, 0}, {0, 50, 0, 0},
-            {15, 55, 0, 0}, {20, 50, 0, 0}, {20, 50, 10, 0}, {0, 45, 15, 30}, {10, 45, 15, 20}, {30, 55, 0, 0},
+            {0, 50, 0, 25}, {35, 55, 0, 0}, {25, 55, 0, 0}, {0, 50, 0, 0},
+            {20, 50, 0, 20}, {20, 50, 0, 0}, {20, 50, 10, 0}, {0, 45, 15, 40}, {10, 45, 15, 35}, {30, 55, 0, 15},
         };
         par[P_SHIMMER] = SFX[i / EN_NACT][0];
         par[P_MECHO] = SFX[i / EN_NACT][1];
@@ -362,6 +392,8 @@ void en_param_text(int i, int v, char *b)
         s = ONOFF[v ? 1 : 0];
     else if (i == P_METER)
         s = v ? "3/4" : "4/4";
+    else if (i == P_RVLEN)                       /* (0.7: Harmony's Interval) */
+        s = v >= 2 ? "Both" : v ? "Octave" : "Fifth";
     else if (i == P_KIT)
         s = v == 4 ? "Bright" : v == 3 ? "Lounge" : v == 2 ? "Brushes" : v ? "Backbeat" : "Soft";
     else if (i == P_LSOUND)
@@ -591,7 +623,7 @@ void en_sting(int piece, int k)
 {
     if (!prog_parsed)
         prog_parse();
-    post(C_STING, k & 1, piece);
+    post(C_STING, (unsigned)k < EN_NSTING ? k : 0, piece);
 }
 void en_prog(int piece)
 {
@@ -624,6 +656,10 @@ static float lead_vol, lead_tone = 0.5f, lead_glide_t;   /* the lead's level, to
 static void lead_note_on(int key, int vel);
 static void lead_note_off(int key);
 static void call_on(int key, int vel);
+static void theme_fire(const char *t, int mv);
+static int theme_busy(void);
+static void theme_stop(void);
+static void theme_bar(void);
 static void call_off(int key);
 static void ans_stop(void);
 static void ans_beat(void);
@@ -1045,7 +1081,7 @@ static void prog_advance(void)                  /* the next step, on a bar: as w
     b = prog_bars[prog_cur][prog_i];
     en_prog_step = (int8_t)prog_i;
     if (d < 0) {                                /* a named chord: as written, or (with Freedom) the last one held */
-        prog_left = b + (frand() < freedom_eff() * 0.25f ? (b > 1 && frand() < 0.5f ? -1 : 1) : 0);
+        prog_left = b + (!theme_busy() && frand() < freedom_eff() * 0.25f ? (b > 1 && frand() < 0.5f ? -1 : 1) : 0);
         prog_total = prog_left;
         if (!(frand() < freedom_eff() * 0.3f))
             chord_named(prog_off[prog_cur][prog_i], prog_q[prog_cur][prog_i], prog_bass[prog_cur][prog_i]);
@@ -1452,11 +1488,25 @@ static void sting_mark(void)                    /* the voice just struck (the lo
     }
 }
 static int sting_pend = -1;                     /* a sting waiting for the beat: story * EN_NSTING + which */
+static int sting_act;                           /* (0.7: its act, for a theme with one per act) */
+static const char *act_part(const char *t, int a)   /* "x#y#z": the act's part (the first when it has none) */
+{
+    const char *u = t;
+    for (; a > 0 && u && *u; u++)
+        if (*u == '#' && --a == 0)
+            return u + 1;
+    return t;
+}
 static void sting_fire(void)                     /* its notes as bells, moved with Root, struck together (a hand's spread) */
 {
     int st = sting_pend / EN_NSTING, k = sting_pend % EN_NSTING, i, mv = (par[P_ROOT] - STORIES[st].key + 12) % 12;
     if (mv > 6)
         mv -= 12;
+    if (sting_theme[st][k]) {                   /* a theme: from the next bar, in time */
+        theme_fire(act_part(STORIES[st].sting[k], sting_act), mv);
+        sting_pend = -1;
+        return;
+    }
     if (sting_buzz[st][k] && sting_n[st][k]) {  /* a fly, flying past */
         buzz_start(sting_note[st][k][0] + mv);
         sting_pend = -1;
@@ -1480,6 +1530,7 @@ static void tick(void)
     int d, l;
     const float pa = fm_clampf(1.0f + 1.3f * arcm, 0.3f, 1.15f);   /* the arc: the pulse fades (never out) */
     const int bar = bar_pos == 0;
+    theme_bar();                                 /* (0.7: a theme's sixteenth; its start on the bar) */
     if (bar) {
         meter_bar();
         en_barno++;
@@ -2100,8 +2151,9 @@ static void drain(void)
                 bd_ret = 1;
             break;
         case C_STING:                            /* on the next beat (now while resting) */
-            if ((unsigned)b < EN_NPIECES && sting_n[b / EN_NACT][a & 1]) {
-                sting_pend = b / EN_NACT * EN_NSTING + (a & 1);
+            if ((unsigned)b < EN_NPIECES && (unsigned)a < EN_NSTING && sting_n[b / EN_NACT][a]) {
+                sting_pend = b / EN_NACT * EN_NSTING + a;
+                sting_act = b % EN_NACT;
                 if (!en_playing)
                     sting_fire();
             }
@@ -2132,7 +2184,10 @@ static void drain(void)
                 play_stop();
             }
             break;
-        case C_PANIC: quiet(); break;
+        case C_PANIC:
+            quiet();
+            theme_stop();
+            break;
         case C_REGROW: regrow(); break;
         }
     }
@@ -2692,6 +2747,7 @@ static struct {
     uint32_t on, off;
 } call[ANS_N], resp[ANS_N];
 static int call_n, call_held, resp_n, ans_state;   /* ans_state: 0 listening, 1 waiting for the beat, 2 answering */
+static int imp_rest;                             /* (0.7, improvising) beats to its next phrase */
 static uint32_t smp, call_last, ans_t0;
 volatile uint8_t en_ans_ring[16];                /* the answer's notes, for the screen: the key, | 0x80 let go */
 volatile uint8_t en_ans_w;
@@ -2724,6 +2780,7 @@ static void call_on(int key, int vel)
     int i;
     if (ans_state)
         ans_stop();                              /* the player again: the answer gives way */
+    imp_rest = 4;                                /* (and the improvising waits) */
     if (ans_amt > 0.0f) {
         if (call_n && !call_held && smp - call_last > (uint32_t)(EN_SR * 4.0f))
             call_n = 0;                          /* a long rest: a new phrase */
@@ -2772,7 +2829,7 @@ static int scale_deg(int key, const int *sc, int m)  /* the degree at or just be
 static void ans_build(void)                      /* the call, changed, into resp */
 {
     int sc[12], m = en_scale(pool, sc), i, j, d0, inv, shift, oct, n = 0;
-    const float a = ans_amt;
+    const float a = fm_minf(ans_amt * 2.0f, 1.0f);   /* (0.7: the knob's first half; past it, all the way) */
     uint32_t t0 = call[0].on;
     if (m < 3)
         return;
@@ -2832,10 +2889,98 @@ static void ans_go(void)
     ans_state = resp_n ? 2 : 0;
 }
 
-static void ans_beat(void)                       /* a beat: an answer waiting starts */
+/* (0.7) Improvise: Answer past its middle, StoryBox plays leads of its own between the player's phrases (and still
+ * answers them). A phrase of one or two bars on the scale, a walk mostly by steps from a note of the chord, now
+ * and then a leap, ending on the chord; how many notes, and how short the rests between phrases, with Energy
+ * (and the knob). A key played: it gives way at once, and waits a little after */
+static int chord_has(int pc)
 {
-    if (ans_state == 1)
+    int c;
+    pc = ((pc % 12) + 12) % 12;
+    if (pc == en_chord_root % 12)
+        return 1;
+    for (c = 0; c < EN_NPAD; c++)
+        if (en_chord[c] % 12 == pc)
+            return 1;
+    return 0;
+}
+static void imp_build(void)                      /* a phrase of its own, into resp */
+{
+    int sc[12], m = en_scale(pool, sc), n = 0, d, k, bars, len16, slot, last = 0;
+    const float e = fm_clampf((energy + 1.0f) * 0.5f, 0.0f, 1.0f), wild = fm_clampf((ans_amt - 0.5f) * 2.0f, 0.0f, 1.0f);
+    const float fill = 0.22f + 0.45f * e + 0.15f * wild;   /* how many of the eighths sound */
+    if (m < 3) {
+        resp_n = 0;
+        return;
+    }
+    bars = 1 + (frand() < 0.4f + 0.3f * e);
+    len16 = bars * (int)en_bar_len;
+    d = scale_deg(64 + irand(8), sc, m);         /* from about E4, onto a note of the chord */
+    for (k = 0; k < 3 && !chord_has(scale_note(d, sc, m)); k++)
+        d++;
+    for (slot = 0; slot < len16 && n < ANS_N; slot += 2) {
+        int dur, note;
+        if (slot && frand() > fill)
+            continue;
+        dur = 2;                                 /* an eighth, or longer where the next eighths rest */
+        while (slot + dur < len16 && dur < 8 && frand() > fill + 0.2f)
+            dur += 2;
+        if (frand() < 0.12f + 0.1f * wild)       /* a leap */
+            d += (frand() < 0.5f ? -1 : 1) * (2 + irand(2));
+        else if (slot)
+            d += frand() < 0.5f ? -1 : 1;
+        note = scale_note(d, sc, m);
+        while (note < 55)
+            note += 12, d += m;
+        while (note > 84)
+            note -= 12, d -= m;
+        resp[n].key = (uint8_t)note;
+        resp[n].vel = (uint8_t)(70 + irand(30));
+        resp[n].on = (uint32_t)((float)slot * step_len);
+        resp[n].off = (uint32_t)((float)(slot + dur) * step_len * 0.92f);
+        resp[n].state = 0;
+        last = n++;
+        slot += dur - 2;
+    }
+    if (n) {                                     /* its last note: onto the chord, a little longer */
+        int dd = scale_deg(resp[last].key, sc, m), j;
+        for (j = 0; j < 3; j++) {
+            if (chord_has(scale_note(dd - j, sc, m))) {
+                resp[last].key = (uint8_t)scale_note(dd - j, sc, m);
+                break;
+            }
+            if (chord_has(scale_note(dd + j, sc, m))) {
+                resp[last].key = (uint8_t)scale_note(dd + j, sc, m);
+                break;
+            }
+        }
+        resp[last].off += (uint32_t)(step_len * 2.0f);
+    }
+    resp_n = n;
+}
+
+static void ans_beat(void)                       /* a beat: an answer waiting starts; improvising, a phrase of its own */
+{
+    if (ans_state == 1) {
         ans_go();
+        imp_rest = 2 + irand(3);
+        return;
+    }
+    if (ans_amt <= 0.5f || ans_state || call_held || (call_n && smp - call_last < (uint32_t)(step_len * 8.0f)))
+        return;
+    if (call_n)                                  /* (a few notes left from the player, unanswered: let go) */
+        call_n = 0;
+    if (--imp_rest > 0)
+        return;
+    imp_build();
+    if (resp_n) {
+        ans_t0 = smp;
+        ans_state = 2;
+    }
+    {
+        const float e = fm_clampf((energy + 1.0f) * 0.5f, 0.0f, 1.0f);   /* the rest after it, in beats */
+        imp_rest = (int)(en_bar_len / 4u) * (1 + (frand() < 0.5f)) + (int)((1.0f - e) * 6.0f * frand());
+    }
 }
 
 static void ans_tick(uint32_t n)                 /* each chunk: is the call over? the answer's notes, on time */
@@ -2874,10 +3019,13 @@ static void ans_tick(uint32_t n)                 /* each chunk: is the call over
         ans_state = 0;
 }
 
-static void render_lead(uint32_t n)
+/* (0.7) one set of voices, one sound: the player's lead (lead[], Lead's sound), or a theme's voice (its own sound,
+ * never a plucked string: those keep ks[] per player voice). vol: its level; glide_t: its glide (s); bs: its bowed
+ * body's resonators; the vibrato's and tremolo's phases, moved once a chunk by render_lead */
+static void render_lead_v(uint32_t n, lead_t *vs, int nv, int sd, float vol, float glide_t, float (*bs)[3][2])
 {
-    int i, sd = par[P_LSOUND], kind = LEADS[sd].kind;
-    const float g = lead_vol * 0.4f * LEADS[sd].gain, dt = 1.0f + LEADS[sd].detune;
+    int i, kind = LEADS[sd].kind;
+    const float g = vol * 0.4f * LEADS[sd].gain, dt = 1.0f + LEADS[sd].detune;
     const int body = kind == LK_BOWED ? LEADS[sd].body : 0;
     static float bodl[BLK], bodr[BLK];
     float trem;
@@ -2891,26 +3039,20 @@ static void render_lead(uint32_t n)
     const float tdec = fm_expf(-6.9f / (0.05f * EN_SR)), cdec = fm_expf(-6.9f / (0.045f * EN_SR)),
                 a2dec = fm_expf(-6.9f / (0.7f * EN_SR));
     float vib;
-    lead_vib += (float)n * (5.2f / EN_SR);       /* one slow vibrato for the chunk */
-    if (lead_vib >= 1.0f)
-        lead_vib -= 1.0f;
     vib = LEADS[sd].vib * sine(lead_vib);
-    lead_trem += (float)n * (4.6f / EN_SR);      /* the Rhodes' tremolo, side to side */
-    if (lead_trem >= 1.0f)
-        lead_trem -= 1.0f;
     trem = 0.2f * sine(lead_trem);
     if (body)
         for (j0 = 0; j0 < n; j0++)
             bodl[j0] = bodr[j0] = 0.0f;
-    for (i = 0; i < NLEAD; i++) {
-        lead_t *v = &lead[i];
+    for (i = 0; i < nv; i++) {
+        lead_t *v = &vs[i];
         float cph = v->cph, cph2 = v->cph2, mph = v->mph, mph2 = v->mph2, amp = v->amp, amp2 = v->amp2, att = v->att,
               idx = v->idx, idx2 = v->idx2, rel = v->rel, inc = v->inc, blp = v->blp, bhp = v->bhp, chiff = v->chiff;
         float vd, pi, fl = 0.0f, ksg = 0.0f;
         uint32_t j;
         if (!v->on)
             continue;
-        inc += (v->inc_t - inc) * (lead_glide_t > 0.0f ? fm_minf((float)n / (lead_glide_t * EN_SR), 1.0f) : 1.0f);
+        inc += (v->inc_t - inc) * (glide_t > 0.0f ? fm_minf((float)n / (glide_t * EN_SR), 1.0f) : 1.0f);
         v->vt += (float)n * (1.0f / EN_SR);      /* the vibrato eases in: nothing for 0.25 s, all of it by 0.85 s */
         vd = 1.0f + vib * fm_clampf((v->vt - 0.25f) * 1.67f, 0.0f, 1.0f);
         pi = inc * vd;
@@ -3048,7 +3190,7 @@ static void render_lead(uint32_t n)
             float *b = c ? bodr : bodl, *o = c ? mixr : mixl;
             for (k = 0; k < 3; k++) {
                 const float f = FM_TWO_PI * bp[k][0] * (1.0f / EN_SR), q = 1.0f / bp[k][1], gk = bp[k][2] * q * 2.2f;
-                float band = body_s[c][k][0], low = body_s[c][k][1];
+                float band = bs[c][k][0], low = bs[c][k][1];
                 for (j0 = 0; j0 < n; j0++) {     /* Chamberlin's state variable filter: its band */
                     float hi = b[j0] - low - q * band;
                     band += f * hi;
@@ -3057,8 +3199,8 @@ static void render_lead(uint32_t n)
                     rsend[j0] += band * gk * 0.3f;
                     esend[j0] += band * gk * 0.33f;
                 }
-                body_s[c][k][0] = band;
-                body_s[c][k][1] = low;
+                bs[c][k][0] = band;
+                bs[c][k][1] = low;
             }
             for (j0 = 0; j0 < n; j0++) {
                 o[j0] += b[j0] * 0.3f;
@@ -3066,6 +3208,200 @@ static void render_lead(uint32_t n)
             }
         }
     }
+}
+
+
+/* (0.7) Themes: a story's melodies as one-shots (Fast and Slow's brothers): "@S;B4:1 A4:.5 r:1 ..." a part, its
+ * lead sound S (not a plucked string), each note and how many beats it lasts ("r" a rest); parts joined by '|'
+ * play together. Fired: from the next bar, each part its own voice (a lead voice of its own sound, beside the
+ * player's), legato within a part (a note into the next, a short glide), moved with Root as stings are. */
+#define TH_PARTS 2
+#define TH_EV 64
+static struct { uint8_t note; uint8_t len; uint16_t at; } th_ev[TH_PARTS][TH_EV];   /* (sixteenths) */
+static uint8_t th_n[TH_PARTS], th_i[TH_PARTS], th_snd[TH_PARTS], th_on[TH_PARTS], th_wait, th_play;
+static uint16_t th_pos, th_off[TH_PARTS], th_end;
+static lead_t thv[TH_PARTS];
+static float th_body[TH_PARTS][2][3][2];
+
+static void theme_note(int p, int note, int vel)   /* a part's voice: a new note (legato after the last), or off */
+{
+    lead_t *v = &thv[p];
+    int sd = th_snd[p];
+    float fv = (float)vel / 127.0f;
+    if (note < 0) {
+        if (v->on && v->held) {
+            v->held = 0;
+            midi(0x86 + (uint32_t)p, v->note, 0);
+        }
+        return;
+    }
+    note += 12 * LEADS[sd].oct;
+    while (note > 100)
+        note -= 12;
+    while (note < 28)
+        note += 12;
+    if (v->on && v->held) {                      /* legato: the bow (the breath) carries on to the next note */
+        midi(0x86 + (uint32_t)p, v->note, 0);
+        v->inc_t = mtof((float)note) * (1.0f / EN_SR);
+        v->note = (uint8_t)note;
+        midi(0x96 + (uint32_t)p, (uint32_t)note, (uint32_t)vel);
+        return;
+    }
+    v->on = 1;
+    v->held = 1;
+    v->key = (uint8_t)note;
+    v->note = (uint8_t)note;
+    v->cph = v->mph = v->mph2 = 0.0f;
+    v->cph2 = 0.37f;
+    v->blp = v->bhp = 0.0f;
+    v->chiff = 1.0f;
+    v->vt = 0.0f;
+    v->inc = v->inc_t = mtof((float)note) * (1.0f / EN_SR);
+    v->amp = 0.35f + 0.65f * fv;
+    v->amp2 = 0.5f * fv + 0.15f;
+    v->att = 0.0f;
+    v->idx = LEADS[sd].idx * (0.3f + 1.4f * lead_tone) * (0.6f + 0.6f * fv) * (1.0f / FM_TWO_PI);
+    v->idx2 = (0.4f + 1.2f * lead_tone) * fv * (1.0f / FM_TWO_PI);
+    v->rel = 1.0f;
+    midi(0x96 + (uint32_t)p, (uint32_t)note, (uint32_t)vel);
+}
+
+static void theme_stop(void)
+{
+    int p;
+    for (p = 0; p < TH_PARTS; p++)
+        theme_note(p, -1, 0);
+    th_play = th_wait = 0;
+}
+
+static void theme_fire(const char *t, int mv)    /* read the theme; it starts on the next bar */
+{
+    int p = 0;
+    theme_stop();
+    for (p = 0; p < TH_PARTS; p++)
+        th_n[p] = 0;
+    p = 0;
+    th_end = 0;
+    while (t && *t && *t != '#' && p < TH_PARTS) {   /* ('#': the next act's) */
+        uint16_t at = 0;
+        int n = 0, sd = 2;
+        if (*t == '@')
+            t++;
+        if (*t >= '0' && *t <= '9')
+            sd = *t++ - '0';
+        if (sd >= EN_NLEAD || LEADS[sd].kind == LK_STRING)
+            sd = 2;                              /* (the flute: never a plucked string here) */
+        th_snd[p] = (uint8_t)sd;
+        if (*t == ';')
+            t++;
+        while (*t && *t != '|' && *t != '#') {
+            int pc = -1, o = 0, rest = 0;
+            float b = 0.0f, frac = 0.0f, dv = 1.0f;
+            while (*t == ' ')
+                t++;
+            if (!*t || *t == '|' || *t == '#')
+                break;
+            if (*t == 'r') {
+                rest = 1;
+                t++;
+            } else {
+                if ((pc = note_pc(&t)) < 0)
+                    break;
+                while (*t >= '0' && *t <= '9')
+                    o = o * 10 + (*t++ - '0');
+            }
+            if (*t == ':') {                     /* its beats: 1, 2.5, .5 */
+                t++;
+                while (*t >= '0' && *t <= '9')
+                    b = b * 10.0f + (float)(*t++ - '0');
+                if (*t == '.') {
+                    t++;
+                    while (*t >= '0' && *t <= '9') {
+                        dv *= 0.1f;
+                        frac += (float)(*t++ - '0') * dv;
+                    }
+                }
+                b += frac;
+            } else
+                b = 1.0f;
+            {
+                int len = (int)(b * 4.0f + 0.5f);   /* (in sixteenths) */
+                if (len < 1)
+                    len = 1;
+                if (!rest && n < TH_EV) {
+                    int note = 12 * (o + 1) + pc + mv;
+                    th_ev[p][n].note = (uint8_t)(note < 24 ? 24 : note > 108 ? 108 : note);
+                    th_ev[p][n].len = (uint8_t)(len > 255 ? 255 : len);
+                    th_ev[p][n].at = at;
+                    n++;
+                }
+                at = (uint16_t)(at + len);
+            }
+            while (*t && *t != ' ' && *t != '|' && *t != '#')
+                t++;
+        }
+        th_n[p] = (uint8_t)n;
+        if (at > th_end)
+            th_end = at;
+        if (*t == '|')
+            t++;
+        p++;
+    }
+    for (p = 0; p < TH_PARTS; p++)
+        th_i[p] = th_on[p] = 0;
+    th_wait = th_end > 0;
+    if (th_wait && prog_on()) {                  /* (0.7: the progression from its start with it, so they agree) */
+        prog_i = -1;
+        prog_left = 1;
+    }
+}
+static int theme_busy(void) { return th_wait || th_play; }
+
+static void theme_bar(void)                      /* every sixteenth: the theme's notes on time */
+{
+    int p;
+    if (th_wait && bar_pos == 0) {               /* (it waits for the bar) */
+        th_wait = 0;
+        th_play = 1;
+        th_pos = 0;
+    }
+    if (!th_play)
+        return;
+    for (p = 0; p < TH_PARTS; p++) {
+        if (th_on[p] && th_pos >= th_off[p]) {   /* a note's end: off, unless the next starts now (legato) */
+            th_on[p] = 0;
+            if (!(th_i[p] < th_n[p] && th_ev[p][th_i[p]].at == th_pos))
+                theme_note(p, -1, 0);
+        }
+        if (th_i[p] < th_n[p] && th_ev[p][th_i[p]].at == th_pos) {
+            theme_note(p, th_ev[p][th_i[p]].note, 100);
+            th_off[p] = (uint16_t)(th_pos + th_ev[p][th_i[p]].len);
+            th_on[p] = 1;
+            th_i[p]++;
+        }
+    }
+    if (++th_pos > th_end)
+        theme_stop();
+}
+
+static void theme_render(uint32_t n)
+{
+    int p;
+    for (p = 0; p < TH_PARTS; p++)
+        if (thv[p].on)
+            render_lead_v(n, &thv[p], 1, th_snd[p], lead_vol * 0.9f + 0.25f, 0.035f, th_body[p]);
+}
+
+static void render_lead(uint32_t n)
+{
+    lead_vib += (float)n * (5.2f / EN_SR);       /* one slow vibrato for the chunk */
+    if (lead_vib >= 1.0f)
+        lead_vib -= 1.0f;
+    lead_trem += (float)n * (4.6f / EN_SR);      /* the Rhodes' tremolo, side to side */
+    if (lead_trem >= 1.0f)
+        lead_trem -= 1.0f;
+    render_lead_v(n, lead, NLEAD, par[P_LSOUND], lead_vol, lead_glide_t, body_s);
+    theme_render(n);
 }
 
 /* ------------------------------------------------------------- punch-in --- */
@@ -3094,7 +3430,7 @@ static float rb_read(float p)                    /* the ring at p (22 kHz sample
 
 static void fx_chunk(uint32_t n)                 /* once a chunk: the fades, the grab, the filter's and phaser's settings */
 {
-    int i, grab = (fx_mask & 3u) != 0;
+    int i, grab = (fx_mask & 2u) != 0;            /* (0.7: Stutter alone holds the moment; the Harmony plays on) */
     const float k = fm_minf((float)n / (0.03f * EN_SR), 1.0f);
     uint8_t on = 0;
     for (i = 0; i < EN_NFX; i++) {
@@ -3108,16 +3444,11 @@ static void fx_chunk(uint32_t n)                 /* once a chunk: the fades, the
         float beat = 60.0f / (float)par[P_TEMPO] * 22050.0f;
         rb_held = 1;
         rb_start = (float)rb_w;
-        if (fx_mask & 1u) {
-            rb_len = (0.15f + 0.0075f * (float)par[P_RVLEN]) * 22050.0f;
-            rb_pos = rb_start;
-        } else {
-            rb_len = beat * SLICE[par[P_STRATE] & 3];
-            rb_pos = rb_start - rb_len;
-        }
+        rb_len = beat * SLICE[par[P_STRATE] & 3];
+        rb_pos = rb_start - rb_len;
         if (rb_len > (float)(RB_N / 2 - 64))      /* at most half the ring: room to record the next while it plays */
             rb_len = (float)(RB_N / 2 - 64);
-    } else if (!grab && fxw[FX_REVERSE] < 0.01f && fxw[FX_STUTTER] < 0.01f) {
+    } else if (!grab && fxw[FX_STUTTER] < 0.01f) {
         rb_held = 0;                             /* both faded out: recording again */
         rb_rec = rb_regrab = 0;
     }
@@ -3141,17 +3472,38 @@ static void fx_sample(float *l, float *r)        /* one frame of the whole sound
             }
         }
     }
-    if (fxw[FX_REVERSE] > 0.0005f || fxw[FX_STUTTER] > 0.0005f) {   /* the held moment, backwards or again */
+    if (fxw[FX_REVERSE] > 0.0005f) {             /* (0.7: Harmony, in Reverse's place) the whole sound again, a fifth
+                                                  * or an octave up (Interval: fifth, octave, both), over it: two
+                                                  * read heads in the ring, a window apart, faded in turn */
+        static const float RATIO[3][2] = {{1.4983f, 0.0f}, {2.0f, 0.0f}, {1.4983f, 2.0f}};
+        static float hd[2];
+        const int iv = par[P_RVLEN] < 0 ? 0 : par[P_RVLEN] > 2 ? 2 : par[P_RVLEN];
+        const float W = 1100.0f, w = fxw[FX_REVERSE] * (float)par[P_RVMIX] * 0.01f;
+        float wet = 0.0f;
+        int h;
+        for (h = 0; h < 2; h++) {
+            float r = RATIO[iv][h], d, a, b2, ga, gb;
+            if (r <= 0.0f)
+                continue;
+            hd[h] -= 0.5f * (r - 1.0f);          /* (the ring at half rate: a head at 0.5 r a frame, the writing at 0.5) */
+            if (hd[h] < 1.0f)
+                hd[h] += W;
+            d = hd[h];
+            a = rb_read((float)rb_w - d);
+            d += W * 0.5f;
+            if (d >= W)
+                d -= W;
+            b2 = rb_read((float)rb_w - (d < 1.0f ? d + W : d));
+            ga = 1.0f - fm_fabsf(2.0f * hd[h] / W - 1.0f);
+            gb = 1.0f - ga;
+            wet += (a * ga + b2 * gb) * (h ? 0.6f : 0.8f);
+        }
+        x += wet * w;
+        y += wet * w;
+    }
+    if (fxw[FX_STUTTER] > 0.0005f) {             /* the held moment, again */
         float wet, w;
-        if (fxw[FX_REVERSE] >= fxw[FX_STUTTER]) {
-            rb_pos -= 0.5f;
-            if (rb_pos < rb_start - rb_len) {
-                rb_pos += rb_len;
-                if (rb_regrab)                   /* the seam: the fresh moment */
-                    rb_regrab = 0, rb_start = (float)rb_w, rb_pos = rb_start;
-            }
-            w = fxw[FX_REVERSE] * (float)par[P_RVMIX] * 0.01f;
-        } else {
+        {
             rb_pos += 0.5f;
             if (rb_pos >= rb_start) {
                 rb_pos -= rb_len;
@@ -3310,9 +3662,8 @@ static void render_surf(uint32_t n)
 
 /* StoryBox 0.4: each instrument's own effect. A track is rendered alone (the mix so far set aside, put back after)
  * so its effect touches only it. Shimmer: the pad an octave up (rectified: its frequency doubled), into the reverb.
- * Drive: the bass through tanh, as loud at its middle. Crush: the drums at a lower rate and fewer bits */
-static float aside_l[BLK], aside_r[BLK], sh_dc, sh_lp, cr_hl, cr_hr;
-static uint32_t cr_n;
+ * Drive: the bass through tanh, as loud at its middle. Punch (0.7, Crush's place): the drums' hits forward */
+static float aside_l[BLK], aside_r[BLK], sh_dc, sh_lp;
 static void alone_begin(uint32_t n)
 {
     uint32_t j;
@@ -3351,21 +3702,23 @@ static void drive(uint32_t n)
         mixr[j] = fm_tanhf(mixr[j] * k) * norm;
     }
 }
-static void crush(uint32_t n)
+static float pu_fast, pu_slow;
+static void crush(uint32_t n)                    /* (0.7: Punch, in Crush's place) the drums' hits pushed forward: a
+                                                  * fast follower against a slow one finds each attack and lifts it,
+                                                  * the tail held back a little, a soft clip rounding the peaks */
 {
     uint32_t j;
-    const float c = (float)par[P_CRUSH] * 0.01f, lv = fm_exp2f(11.0f - 7.5f * c);
-    const uint32_t hold = 1u + (uint32_t)(c * 6.0f);
+    const float c = (float)par[P_CRUSH] * 0.01f, fa = 0.25f, fr = 0.0012f, sa = 0.0035f, sr = 0.00015f;
     if (c <= 0.0f)
         return;
     for (j = 0; j < n; j++) {
-        if (++cr_n >= hold) {
-            cr_n = 0;
-            cr_hl = (float)(int32_t)(mixl[j] * lv + (mixl[j] < 0.0f ? -0.5f : 0.5f)) / lv;
-            cr_hr = (float)(int32_t)(mixr[j] * lv + (mixr[j] < 0.0f ? -0.5f : 0.5f)) / lv;
-        }
-        mixl[j] = cr_hl;
-        mixr[j] = cr_hr;
+        float x = fm_fabsf(mixl[j]) + fm_fabsf(mixr[j]), tr, g;
+        pu_fast += (x - pu_fast) * (x > pu_fast ? fa : fr);
+        pu_slow += (x - pu_slow) * (x > pu_slow ? sa : sr);
+        tr = fm_clampf((pu_fast - pu_slow) / (pu_slow + 0.02f), 0.0f, 3.0f) * (1.0f / 3.0f);   /* 0..1: an attack */
+        g = (1.0f + 1.6f * c * tr) * (1.0f - 0.3f * c * (1.0f - tr)) * (1.0f + 0.5f * c);
+        mixl[j] = fm_tanhf(mixl[j] * g * 0.9f) * 1.12f;
+        mixr[j] = fm_tanhf(mixr[j] * g * 0.9f) * 1.12f;
     }
 }
 
