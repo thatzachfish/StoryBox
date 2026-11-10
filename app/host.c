@@ -76,11 +76,6 @@ int app_host_cmd(const char *cmd, const char *a, const char *b, const char *c, c
         batt_host = (int8_t)(strcmp(a, "off") ? atoi(a) : -2);
         return 1;
     }
-    if (!strcmp(cmd, "style")) {                 /* style V F: the design options (the instruments', the effects') */
-        extern void ui_style(int v, int f);
-        ui_style(atoi(a), atoi(b));
-        return 1;
-    }
     if (!strcmp(cmd, "storeamb")) {              /* storeamb: an AMB-1 project ("ENO1") where StoryBox keeps its own */
         static uint32_t o[64];
         memset(o, 0x11, sizeof o);
