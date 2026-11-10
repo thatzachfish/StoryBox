@@ -1982,15 +1982,14 @@ static void draw_lead(void)
 
 /* Setup: the rings dimmed behind; the sleep timer, when it runs, as a ring of frost draining around the minutes left;
  * else the key and the tempo in the middle */
+static void draw_inst_strips(int focus);
 static void draw_setup(void)
 {
     char t[24];
     int n = 0;
     const char *s;
-    ring_chord = 0;
-    draw_rings(9);
-    ring_chord = 1;
-    cv_disc(CX, CY, 26, K_BG);                   /* (a clearing in the middle) */
+    draw_inst_strips(-2);                        /* (0.6.6: the strips, all dimmed, behind) */
+    cv_round(CX - 34, CY - 30, 68, 58, 10, K_BG);   /* (a clearing in the middle) */
     if (ui.timer) {
         uint32_t left = ui.timer_end - plat_ms(), total = (uint32_t)ui.timer * 15u * 60000u;
         seg_ring(66.0f, 6.0f, 30, fm_clampf((float)left / (float)total, 0.0f, 1.0f), K_PANEL, K_FROST);
@@ -2014,6 +2013,7 @@ static void draw_setup(void)
  * connected green; how to work it */
 static void draw_bt(void)
 {
+    draw_inst_strips(-2);                        /* (0.6.6: the strips, all dimmed, behind the list) */
     int st = plat_bta_state(), busy = bt_busy(st), i, first, rows = 5, dots = (int)(plat_ms() / 400u % 4u);
     char t[40];
     const char *w;
@@ -2064,9 +2064,8 @@ static void draw_system(void)
 {
     char t[16];
     int b = batt(), blink = (plat_ms() % 4200u) < 160u;
-    ring_chord = 0;
-    draw_rings(9);
-    ring_chord = 1;
+    draw_inst_strips(-2);                        /* (0.6.6: the strips, all dimmed, behind) */
+    cv_round(CX - 40, 12, 80, 84, 10, K_BG);
     cv_round(CX - 34, 16, 68, 50, 10, K_PANEL);  /* the box */
     cv_round(CX - 30, 20, 60, 30, 7, K_BG);      /* its screen, a face on it */
     if (blink) {
@@ -2247,14 +2246,15 @@ static void draw_inst_strips(int focus)
     static const uint8_t TP[4] = {P_PAD, P_BELLS, P_BASS, P_PULSE};
     static const int NP[4] = {EN_NPAD, EN_NLOOP, 1, EN_NDRUM};
     char t[8];
-    int f, i, mixer = focus < 0;
+    int f, i, mixer = focus == -1, behind = focus == -2;   /* behind: Setup's, System's, Bluetooth's, all dimmed */
     for (f = 0; f < 4; f++) {
         int me = mixer || f == focus, solo = ui.solos >> f & 1u, heard = ui.solos ? solo : !(ui.mutes >> f & 1u);
         int32_t x = 4 + f * 58, w = 56, x1 = x + (mixer ? 14 : 3), pw = (x + w - 3 - x1) / NP[f], top = 20, bot = 112;
         uint16_t c = heard ? TC[f] : K_LINE;
         if (!mixer && me)
             cv_round(x, 0, w, 132, 6, K_PANEL);
-        text_c(x + w / 2, 2, &FONT_XS, TN[f], me ? c : mix(K_BG, c, 8));
+        if (!behind)
+            text_c(x + w / 2, 2, &FONT_XS, TN[f], me ? c : mix(K_BG, c, 8));
         if (mixer) {                             /* the fader: its level */
             int32_t fy = bot - proj.par[TP[f]] * (bot - top) / 100;
             cv_rect(x + 6, top, 2, bot - top, K_LINE);
@@ -2273,7 +2273,7 @@ static void draw_inst_strips(int focus)
                     cv_round(px + 1, y + 1, pw - 3, (bot - top) / 14 - 2, 1, sg < lit ? mix(K_BG, c, 6) : mix(K_BG, K_PANEL, 10));
                 }
             }
-            if (!mixer)
+            if (!mixer && !behind)
                 text_c(px + pw / 2 - 1, 116, &FONT_XS, part_label(f, i, t), me ? K_TEXT : K_LINE);
         }
         if (mixer)
@@ -2462,6 +2462,18 @@ static uint32_t parts_sig(void)                  /* the strips' levels, coarsely
     return hash(h, (uint32_t)en_pad_note[0] | (uint32_t)en_pad_note[1] << 8 | (uint32_t)en_pad_note[2] << 16 |
                        (uint32_t)en_pad_note[3] << 24);
 }
+static uint32_t strips_sig(void)                 /* (0.6.6) parts_sig, at most ~12 times a second (6 while Bluetooth
+                                                  * streams): the strips redrawn each frame starved the radio's work,
+                                                  * the screen tearing and the keys' lights stuttering */
+{
+    static uint32_t sig, t;
+    uint32_t now = plat_ms(), per = plat_bta_state() == PLAT_BTA_STREAMING ? 160u : 80u;
+    if (now - t >= per) {
+        t = now;
+        sig = parts_sig();
+    }
+    return sig;
+}
 static int ring_focus(void)                      /* an instrument's page: its ring */
 {
     return ui.view == V_PAD ? 0 : ui.view == V_BELLS ? 1 : ui.view == V_BASS ? 2 : ui.view == V_PULSE ? 3 : -1;
@@ -2491,9 +2503,9 @@ static void draw_main(void)
         h = hash(h, plat_ms() / 50u);           /* (the trace drifts) */
         break;
     case 9:
-        h = hash(h, parts_sig());
+        h = hash(h, strips_sig());
         for (i = 0; i < 4; i++)
-            h = hash(h, (uint32_t)(mix_meter[i] * 16.0f) | (uint32_t)proj.par[i] << 8);
+            h = hash(h, (uint32_t)proj.par[i] << 8);
         h = hash(h, (uint32_t)ui.mutes | (uint32_t)ui.solos << 4);
         break;
     case 10:
@@ -2508,24 +2520,31 @@ static void draw_main(void)
     case 7:
         h = hash(hash(h, (uint32_t)ui.timer | (uint32_t)proj.par[P_ROOT] << 4 | (uint32_t)proj.par[P_TEMPO] << 8 | pool_abs() << 16),
                  ui.timer ? (ui.timer_end - plat_ms()) / 2000u : 0u);
-        goto rings_too;
+        h = hash(h, strips_sig());
+        break;
     case 8:
         h = hash(hash(h, (uint32_t)(batt() + 1) | (uint32_t)proj.leds << 4 | (uint32_t)proj.par[P_MIDI] << 8),
                  (plat_ms() % 4200u < 160u) | (plat_ms() / 700u % 6u) << 1 | (plat_ms() / 1000u) << 4);
-        goto rings_too;
+        h = hash(h, strips_sig());
+        break;
     case 11:
         h = hash(hash(hash(h, (uint32_t)plat_bta_state() | (uint32_t)bt.sel << 4 | (uint32_t)bt.n << 8 |
                                   (uint32_t)plat_bta_out_device() << 12 | (uint32_t)proj.bt_off << 13),
                       plat_ms() / 400u), (uint32_t)bt.name[bt.sel][0] | (uint32_t)bt.conn[0] << 8 | (uint32_t)bt.name[0][1] << 16);
+        h = hash(h, strips_sig());
         break;
     case 6:
         h = hash(hash(h, (uint32_t)proj.par[P_ENERGY] | (uint32_t)proj.par[P_TENSION] << 8 | (uint32_t)(en_drift * 40.0f) << 16),
                  (uint32_t)(en_arc * 100.0f + 100.0f));
         break;
     default:
-        if (ring_focus() >= 0)
-            h = hash(h, parts_sig());
-    rings_too:
+        if (ring_focus() >= 0) {
+            h = hash(hash(h, strips_sig()), (uint32_t)ui.mutes | (uint32_t)ui.solos << 4 | (uint32_t)en_playing << 8);
+            for (i = 0; i < 4; i++)
+                h = hash(h, (uint32_t)proj.par[i]);
+            break;
+        }
+    /* (the rings: no page left draws them but the Story page) */
         for (i = 0; i < EN_NPAD; i++)
             h = hash(h, en_chord[i]);
         for (i = 0; i < EN_NLOOP; i++)
