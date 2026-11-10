@@ -187,3 +187,6 @@ Two brothers who try to walk across the world; they lose each other and find eac
   Sweet, legato instruments that harmonize with each other (two that blend, not two that clash). The melodies should
   also shape the melody / improvisation (the generated melody drawing on their notes and rhythms).
 - Waiting for: the melodies (the recorder: thatzachfish.github.io/StoryBox/record/).
+- Slow's theme (Zach played it, 90 bpm; as cleaned up, a bar a line, quarters unless held), over Together's chords:
+  B A G | B. | B A G | G. | E G A | B A G | B (two bars) || B A G | B. | B A G | G. | E G A | B A G | G (two bars)
+  (as played: the notes short, a few early (bar 12 and 14 of the take), an extra G eighth at the end of bar 4)
