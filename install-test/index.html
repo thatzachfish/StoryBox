@@ -1130,7 +1130,7 @@ window.addEventListener("beforeunload", (e) => { if (writing) { e.preventDefault
 (async () => {
   if (!navigator.requestMIDIAccess) { sayK("nomidi"); return; }
   try {
-    const r = await fetch(meta.pkg);
+    const r = await fetch(meta.pkg, {cache: "no-store"});   // (never an older copy the browser kept)
     if (!r.ok) throw new Error(`${meta.pkg}: HTTP ${r.status}`);
     const pkg = new Uint8Array(await r.arrayBuffer());
     if (productOf(pkg) !== meta.product) { sayK("badpkg"); return; }
@@ -1142,7 +1142,7 @@ window.addEventListener("beforeunload", (e) => { if (writing) { e.preventDefault
   /* m-bootloader: offered only when its package is here and is the one the site was made with */
   try {
     if (!meta.boot) return;
-    const r = await fetch(meta.boot.pkg);
+    const r = await fetch(meta.boot.pkg, {cache: "no-store"});
     if (!r.ok) return;
     const raw = new Uint8Array(await r.arrayBuffer());
     const hex = [...new Uint8Array(await crypto.subtle.digest("SHA-256", raw))].map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -1156,7 +1156,7 @@ window.addEventListener("beforeunload", (e) => { if (writing) { e.preventDefault
 (async () => {
   try {
     if (!meta.res) return;
-    const r = await fetch(meta.res);
+    const r = await fetch(meta.res, {cache: "no-store"});
     if (!r.ok) return;
     const raw = new Uint8Array(await r.arrayBuffer());
     resPayload(raw);
