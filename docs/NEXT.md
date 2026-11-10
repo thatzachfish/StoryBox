@@ -222,3 +222,20 @@ Two brothers who try to walk across the world; they lose each other and find eac
   next crash's record survives a power-off, and the stats show the sound's load every 5 minutes.
 - Range (the radio's strength: fm1-base's 16 + level in each BR/EDR frame's txpwer/txset) needs a helper in
   fm1-base's BSP: the build refuses FM1_BR_* registers outside it. A request for fm1-base.
+
+## Queued for 0.8 (Zach, 2026-11-10 review) — not built yet
+Already in the code (0.7.4, unpublished): Together's chords G Em Cmaj7 G / Em Cmaj7 Cmaj7 G, two bars each; Energy 50 at
+power-on.
+- Dream: a haunting bell refrain over D6, D D D B A (from his dream.mid: D5 D5 D5 B4 A4).
+- Story page: Act off knob 1 (PRESETS does it); Tempo on knob 1.
+- HOME held + SELECT: Fade (not Tempo). Fade's default 5 s.
+- Instrument pages, one pattern: 1 level, 2 how much, 3 the sound (the only box), 4 its character:
+  Pad Level Swell Sound Bright; Melody Level Density Sound Octave (a circle); Bass Level Fifth Sound Glide;
+  Drums Level Density Kit Swing; Lead Level Glide Sound(box) Octave.
+- OCT-/OCT+: Answer on every page, five steps: Off, Short answer, Long answer, Sparse improv, Full improv
+  (OCT+ up, OCT- down); both held: Off. The screen says the step. (Lead's octave: its knob 4, not the buttons.)
+- System: CPU as text on the page; knob 4 free.
+- Punch-in pages' knobs 3 and 4: Harmony Shimmer, Width; Stutter Length, Pitch; Filter Sweep, Type (low/high/band);
+  Sparkle Pitch, Spread.
+- Later: one-shot controls (Level, Reverb, Echo for the themes) on their own small page; Bluetooth's knob 1 for Range
+  (needs a helper in fm1-base).
