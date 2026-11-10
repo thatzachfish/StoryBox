@@ -1500,7 +1500,7 @@ static void draw_bar(void)
     cv_rect(0, 0, 240, 1, K_LINE);
     {   /* the mode, boxed, at the right */
         const char *m = ui.lead ? "LEAD" : "ACTS";
-        uint16_t c = ui.lead ? K_PAD : K_ACC;
+        uint16_t c = ui.lead ? K_ALERT : K_ACC;   /* (0.7: LEAD in pink) */
         cv_round(192, 3, 42, 16, 4, c);
         cv_round(193, 4, 40, 14, 3, K_BG);
         text_c(213, 4, &FONT_XS, m, c);
