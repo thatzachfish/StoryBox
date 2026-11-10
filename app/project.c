@@ -60,7 +60,7 @@ void project_defaults(void)
     proj.leds = 1;
     proj.wander = 0;
     proj.fade = 35;
-    proj.recipes = 1;
+    proj.recipes = 2;
 }
 
 static int pool_ok(uint32_t p)                   /* the root and at least two more notes */
@@ -116,9 +116,10 @@ static void recipes_update(void)                /* (0.7) a saved act still on a 
     static const struct { uint8_t piece, was; } KIT_WAS[] = {
         {0, 1}, {1, 1}, {2, 1}, {3, 1},            /* Pre-show: the backbeat, now Lounge (Lights Down brushed) */
         {33, 1}, {34, 1},                          /* Post Show's Encore, Stage Door: the backbeat, now Bright */
+        {32, 2},                                   /* and its Bows: the brushes, now Bright */
     };
     unsigned i;
-    if (proj.recipes >= 1)
+    if (proj.recipes >= 2)                       /* (1: 0.6.3's kits; 2: and Bows) */
         return;
     for (i = 0; i < sizeof KIT_WAS / sizeof KIT_WAS[0]; i++) {
         slot_t r;
@@ -130,7 +131,7 @@ static void recipes_update(void)                /* (0.7) a saved act still on a 
         if (pc == proj.piece)
             proj.par[P_KIT] = r.par[P_KIT];
     }
-    proj.recipes = 1;
+    proj.recipes = 2;
 }
 
 static int project_valid(void)                  /* an older format: the recipes again */

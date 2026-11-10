@@ -1431,16 +1431,24 @@ static void draw_head(void)                     /* along the very top: the page 
     char t[24];
     int k;
     int32_t x, pg = ui.help == B_HOME + 1 ? -1 : ui.view < NPAGES ? ui.view : -1;
-    uint32_t h = hash(hash(2166136261u, (uint32_t)ui.view | (uint32_t)ui.help << 8), (uint32_t)(batt() + 1));
+    uint32_t h = hash(hash(2166136261u, (uint32_t)ui.view | (uint32_t)ui.help << 8 | (uint32_t)proj.par[P_ENERGY] << 16),
+                      (uint32_t)(batt() + 1));
     if (h == ui.sig[3])
         return;
     ui.sig[3] = h;
     cv_begin(240, HDR_H, K_BG);
     caps(t, ui.help == B_HOME + 1 ? "Buttons" : VIEW_NAME[ui.view], sizeof t);
     cv_text(8, 1, &FONT_XS, t, K_ACC);
-    x = 92;                                      /* (the dots in one place, whatever the name's length) */
+    x = 82;                                      /* (the dots in one place, whatever the name's length) */
     for (k = 0; k < NPAGES; k++)
         cv_round(x + k * 7, 6, 4, 4, 2, k == pg ? K_ACC : K_LINE);
+    {                                            /* 0.7: Energy, always: eight bars filling green, yellow, fuchsia */
+        int lit = (proj.par[P_ENERGY] * 8 + 50) / 100;
+        for (k = 0; k < 8; k++) {
+            uint16_t c = k < 3 ? K_PAD : k < 6 ? K_ACC : K_ALERT;
+            cv_rect(176 + k * 4, 9 - k / 2 * 2, 3, 4 + k / 2 * 2, k < lit ? c : K_PANEL);
+        }
+    }
     if (batt() >= 0)
         draw_batt(240 - 8 - BATT_W, batt());
     cv_blit(0, HDR_Y);

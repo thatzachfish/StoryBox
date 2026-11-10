@@ -130,14 +130,15 @@ static const struct {
         {"Cm7:2 Fm7:2", "Cm7:2 Fm7:2 Abmaj7:2 G7:2", "Fm7:2 Bb7:2 Ebmaj7:2 Abmaj7:1 G7:1", "Abmaj7:2 G7:2"},
         0, {"C6 G5", "C3 C3 Eb4 G4 Bb4"}, {"Chime", "Curtain"}},
     /* Post Show: Intermission's family, jazzy and bright (0.5: major sevenths, nothing scary): F major, swung; a Rhodes,
-     * an organ, strings. Each act its own drums: Bows brushed, Encore and Stage Door Bright (0.7: four on the floor,
-     * the claps, the hats between: not Intermission's boom-bap), Walk Home soft */
+     * an organ, strings. Each act its own drums: Bows, Encore and Stage Door Bright (0.7: four on the floor, the claps,
+     * the hats between: not Intermission's boom-bap), Walk Home soft. (0.7: Bows plain and glad, F Bb F C, no
+     * sevenths; its brushes were too tense) */
     {"Post Show", {"Bows", "Encore", "Stage Door", "Walk Home"}, {
-        {50, 45, 55, 55, 40, 30, 25, 45, 35, 1, 40, 55, 60, 35, 60, 40, 0, 1, 90, 5, 0, 0, 0, 0, 10, 45, 30, 50, 10, 0, 0, 55, 4, 60, 50, 15, 0, 85, 2},
+        {50, 45, 55, 55, 40, 30, 25, 45, 35, 1, 40, 55, 60, 35, 60, 40, 0, 1, 90, 5, 0, 0, 0, 0, 10, 45, 30, 50, 10, 0, 0, 55, 4, 60, 50, 15, 0, 85, 4},
         {55, 55, 65, 66, 50, 40, 20, 65, 40, 1, 40, 55, 65, 35, 65, 50, 0, 1, 92, 5, 0, 0, 2, 0, 10, 55, 40, 60, 10, 0, 0, 60, 4, 60, 50, 15, 0, 85, 4},
         {55, 55, 68, 70, 55, 45, 20, 82, 45, 1, 40, 55, 65, 30, 70, 55, 0, 1, 96, 5, 0, 0, 3, 0, 10, 60, 25, 80, 15, 0, 0, 65, 4, 65, 55, 15, 0, 60, 4},
         {55, 45, 50, 40, 35, 30, 30, 35, 50, 2, 50, 65, 50, 45, 55, 40, 0, 1, 88, 5, 0, 0, 0, 0, 15, 40, 45, 40, 10, 0, 0, 50, 4, 55, 45, 15, 0, 90, 0}},
-        {"Fmaj7:2 Bbmaj7:2 Fmaj7:2 C7:2", "Fmaj7:2 Am7:2 Bbmaj7:2 C7:2", "Bbmaj7:2 Ebmaj7:2 Fmaj7:2 Dbmaj7:1 C7:1",
+        {"F:2 Bb:2 F:2 C:2", "Fmaj7:2 Am7:2 Bbmaj7:2 C7:2", "Bbmaj7:2 Ebmaj7:2 Fmaj7:2 Dbmaj7:1 C7:1",
          "Fmaj7:2 Bbmaj7:2 Gm7:2 C7:2"},
         5, {"F5 A5 C6", "F3 C4 F4 A4 C5"}, {"Fanfare", "Bow"}},
     /* Riebeck: an original campfire-and-stars piece in the spirit of a game Zach loves (none of its music): a banjo
