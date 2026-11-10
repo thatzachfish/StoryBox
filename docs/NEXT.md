@@ -239,3 +239,6 @@ power-on.
   Sparkle Pitch, Spread.
 - Later: one-shot controls (Level, Reverb, Echo for the themes) on their own small page; Bluetooth's knob 1 for Range
   (needs a helper in fm1-base).
+- One-shots page (Zach, 2026-11-10): hold a one-shot key (C#5 D#5 F#5) to open it (a tap still plays). Four knobs
+  for all the one-shots together: Level, Space (their own reverb), Echo, Tone (dark .. bright). Kept with each story.
+  The page shows the three one-shots' names, the one playing lit.
