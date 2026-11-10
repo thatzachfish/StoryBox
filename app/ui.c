@@ -41,7 +41,7 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_LLEVEL, P_LGLIDE, P_LSOUND, K_ANSWER},   /* (0.7: Answer in Tone's place) */
     {P_ROOT, P_TEMPO, K_TIMER, K_FADE},
     {P_TUNE, K_LEDS, P_MIDI, K_CPU},
-    {K_BTRANGE, K_BTDEV, K_BTOUT, K_BTON},   /* (0.7.1: Range on knob 1) */
+    {K_NONE, K_BTDEV, K_BTOUT, K_BTON},   /* (0.7: to the right, knob 1 free) */
     {P_RVLEN, P_RVMIX, K_NONE, K_NONE},
     {P_STRATE, P_STMIX, K_NONE, K_NONE},
     {P_FLCUT, P_FLRES, K_NONE, K_NONE},
@@ -60,7 +60,7 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
     {"Level", "Glide", "Sound", "Answer"},
     {"Root", "Tempo", "Sleep", "Fade"},
     {"Tune", "Lights", "MIDI out", "CPU"},
-    {"Range", "Pick", "Play on", "Bluetooth"},
+    {"", "Pick", "Play on", "Bluetooth"},
     {"Interval", "Mix", "", ""},
     {"Rate", "Mix", "", ""},
     {"Cutoff", "Resonance", "", ""},
@@ -511,32 +511,9 @@ static void bt_list(void)                       /* the known, then the found not
     bt.sel = i < n ? i : 0;
 }
 
-/* (0.7.1-bt) Range: the radio's strength while a speaker is linked. Its sending draws current in bursts, and the
- * FM-1's supply dips with them (the screen's backlight flickered with a speaker on): fm1-base notes that the flash
- * reads come back wrong when the supply sags under the radio (radio.c, its start), and the crashes with a speaker were
- * in the sound's code read from the flash. Less strength, less current: Near (level 4 of fm1-base's 0..11), Medium (7),
- * Far (11, fm1-base's and the stock firmware's). Set in the radio's own table, on every frame it has set up */
-static int bt_range(void) { return proj.bt_range >= 1 && proj.bt_range <= 3 ? proj.bt_range - 1 : 1; }
-#if FM1B_BT_AUDIO && !defined(PLAT_HOST)
-#include "fm1_bredr.h"
-static void bt_power(void)                      /* the main loop, while a speaker is linked: every frame's strength */
-{
-    static const uint8_t LVL[3] = {4, 7, 11};
-    uint32_t base = FM1_BR_TBASE, n, want = 16u + LVL[bt_range()];
-    if (!(FM1_BR_BTEN & (1u << 10)) || base < 0x01C00000u || base >= 0x01C80000u)
-        return;                                  /* (the block off, or a table not in RAM: nothing) */
-    for (n = 0; n < (FM1_BR_OFF_ESCO - FM1_BR_OFF_FRAME) / 180u; n++) {
-        volatile struct fm1_br_frame *f = (volatile struct fm1_br_frame *)(uintptr_t)(base + FM1_BR_OFF_FRAME + 180u * n);
-        if (f->txpwer >= 16u && f->txpwer <= 27u && f->txpwer != want) {   /* (a frame in use: fm1-base's 16 + level) */
-            f->txpwer = want;
-            f->txset = want;
-        }
-    }
-}
-#else
+static int bt_range(void) { return 1; }     /* (Range: kept for a later build, with a helper in fm1-base for the
+                                                 * radio's strength; the build's checks keep BSP registers in the BSP) */
 static void bt_power(void) {}
-#endif
-
 static void bt_knob(int k, int v)
 {
     if (k == K_BTRANGE) {
