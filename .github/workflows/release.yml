@@ -95,6 +95,9 @@ jobs:
         OBJ="$HOME/.jieli/toolchain/common/bin/objdump"
         if [ -x "$OBJ" ]; then "$OBJ" -t "app/build/$pkg.elf" > app/build/syms.txt 2>&1 || true; fi
         wc -l app/build/syms.txt 2>&1 | sed 's/^/CRASHTOOL /' || true
+        for A in 0x2028878 0x2025d3e; do
+          "$OBJ" -d -l --mcpu=r3 --start-address=$((A - 0x30)) --stop-address=$((A + 0x8)) "app/build/$pkg.elf" 2>&1 | tail -40 | sed 's/^/CRASHDIS /' || true
+        done
         python3 - app/build/syms.txt 2028878 2025d3e 20281fc 2027f56 2029320 20291c2 <<'PY' || true
         import re, sys
         syms = []
