@@ -2085,6 +2085,23 @@ static void draw_system(void)
     }
     text_c(CX, 70, &FONT_B, "StoryBox", K_TEXT);
     text_c(CX, 86, &FONT_XS, "version " EN_VERSION, K_ACC);
+    {                                            /* (diagnostic) the slowest frame each page has had, ms */
+        static const char *const AB[NVIEWS] = {"St", "Fe", "Mx", "Co", "Ef", "Pa", "Me", "Ba", "Dr", "Le", "Se", "Sy", "Bt",
+                                                "Rv", "Su", "Fi", "Sp"};
+        extern uint16_t frame_worst_get(int v);
+        int k, x = 2;
+        for (k = 0; k < NVIEWS; k++) {
+            char n[12];
+            int q = 0, w = frame_worst_get(k);
+            const char *a = AB[k];
+            while (*a)
+                n[q++] = *a++;
+            itoa_u((uint32_t)(w / 10), n + q);
+            if (k == 9) x = 2;
+            cv_text(x, k < 9 ? 0 : 92, &FONT_XS, n, K_TEXT);
+            x += text_w(&FONT_XS, n) + 4;
+        }
+    }
     {   /* how it is: four pills */
         static const char *const L[4] = {"Power", "Lights", "MIDI", "Load"};
         int k;
@@ -3195,7 +3212,19 @@ void ui_init(void)
 }
 
 #define DARK_AFTER 30000u
+static uint16_t frame_worst[NVIEWS];             /* (diagnostic) each page's slowest frame, in 0.1 ms */
+uint16_t frame_worst_get(int v) { return v >= 0 && v < NVIEWS ? frame_worst[v] : 0; }
+static void ui_frame_(void);
 void ui_frame(void)
+{
+    uint32_t t0 = plat_ticks24(), d;
+    int v = ui.view;
+    ui_frame_();
+    d = (plat_ticks24() - t0) / (PLAT_TICKS_PER_US * 100u);
+    if (v < NVIEWS && d > frame_worst[v] && ui.frame > 120u)
+        frame_worst[v] = (uint16_t)(d > 65535u ? 65535u : d);
+}
+static void ui_frame_(void)
 {
     input();
     tr_tick();
