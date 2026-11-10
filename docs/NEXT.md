@@ -210,3 +210,15 @@ Two brothers who try to walk across the world; they lose each other and find eac
 - Bluetooth crash: render_chunk (the engine's audio render) faulting under radio load; it can also reset without a
   crash record. Bluetooth was steady through 0.6.5. Candidates: the engine render in RAM (PLAT_RAM_CODE), or
   comparing what 0.6.6+ added to the audio path (the strips' redraws, Answer, themes) under a long BT stream.
+
+## The crashes (2026-11-10 night)
+- 0.7 resets with no crash record, also without a speaker (Sleep, Riebeck, on the FM-1's own speaker). The reports'
+  "last watchdog reset in ?" is a stale .noinit value (wdt_stage is only written on a watchdog reset), not evidence.
+- 0.6.11's two records: the same pc, render_chunk+0x5208, vec 1 (a CPU exception). The disassembler in CI (pi32v2
+  objdump) prints no code, so the instruction is unknown.
+- The engine's load is unchanged from 0.6.5 (host bench, every act, 60 s: averages within noise), and 20 minutes of
+  each Sleep and Riebeck act under ASan/UBSan (float casts, divides) found nothing.
+- 0.7.1 keeps the crash history and debug stats in flash (fm1.toml crash_history, debug_stats; plat_stats_enable): the
+  next crash's record survives a power-off, and the stats show the sound's load every 5 minutes.
+- Range (the radio's strength: fm1-base's 16 + level in each BR/EDR frame's txpwer/txset) needs a helper in
+  fm1-base's BSP: the build refuses FM1_BR_* registers outside it. A request for fm1-base.
