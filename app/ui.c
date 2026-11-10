@@ -3025,8 +3025,34 @@ void ui_init(void)
 }
 
 #define DARK_AFTER 30000u
+/* (0.6.8) A speaker connected: the radio sends all the time, and its noise corrupts the screen's link at 60 MHz (at the
+ * panel's limit): a byte lost mid-transfer shifts the rest (bands of colour, the picture slid down). While Bluetooth
+ * connects or plays, the link at half speed (30 MHz), and every band redrawn each second, so a glitch heals */
+static void bt_screen(void)
+{
+#ifndef PLAT_HOST
+    static int slow;
+#endif
+    static uint32_t heal_t;
+    int b = bt_busy(plat_bta_state()), k;
+    uint32_t now = plat_ms();
+#ifndef PLAT_HOST
+    if (b != slow) {
+        lcd_sync();                              /* (between transfers) */
+        fm1_lcd_baud(b ? 1u : LCD_BAUD);
+    }
+    slow = b;
+#endif
+    if (b && now - heal_t >= 1000u) {
+        heal_t = now;
+        for (k = 0; k < 4; k++)
+            ui.sig[k] ^= 0x5A5A5A5Au;            /* (a signature no band has: each redrawn) */
+    }
+}
+
 void ui_frame(void)
 {
+    bt_screen();
     input();
     tr_tick();
     bt_tick(ui.view == V_BT);
