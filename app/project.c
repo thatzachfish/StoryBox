@@ -60,7 +60,7 @@ void project_defaults(void)
     proj.leds = 1;
     proj.wander = 0;
     proj.fade = 35;
-    proj.recipes = 3;
+    proj.recipes = 4;
 }
 
 static int pool_ok(uint32_t p)                   /* the root and at least two more notes */
@@ -119,17 +119,20 @@ static void recipes_update(void)                /* (0.7) a saved act still on a 
         {32, 2},                                   /* and its Bows: the brushes, now Bright */
     };
     unsigned i;
-    if (proj.recipes < 3) {                      /* (3, 0.7: Deep Forest's place is Fast and Slow's: its acts from their
-                                                  * recipes) */
+    if (proj.recipes < 4) {                      /* (3, 0.7: Deep Forest's place is Fast and Slow's: its acts from their
+                                                  * recipes; 4, 0.7.2: again, once: Zach's FM-1 still had Deep Forest's
+                                                  * D in them) */
         for (i = 4u * EN_NACT; i < 5u * EN_NACT; i++)
             recipe((int)i, &proj.slot[i]);
         if (proj.piece / EN_NACT == 4)
             take(&proj.slot[proj.piece]);
-        proj.par[P_RVLEN] = 0;                   /* (and Reverse's Length is Harmony's Interval: a fifth) */
-        proj.par[P_RVMIX] = 60;
+        if (proj.recipes < 3) {
+            proj.par[P_RVLEN] = 0;               /* (and Reverse's Length is Harmony's Interval: a fifth) */
+            proj.par[P_RVMIX] = 60;
+        }
     }
     if (proj.recipes >= 2) {                     /* (1: 0.6.3's kits; 2: and Bows) */
-        proj.recipes = 3;
+        proj.recipes = 4;
         return;
     }
     for (i = 0; i < sizeof KIT_WAS / sizeof KIT_WAS[0]; i++) {
@@ -142,7 +145,7 @@ static void recipes_update(void)                /* (0.7) a saved act still on a 
         if (pc == proj.piece)
             proj.par[P_KIT] = r.par[P_KIT];
     }
-    proj.recipes = 3;
+    proj.recipes = 4;
 }
 
 static int project_valid(void)                  /* an older format: the recipes again */
