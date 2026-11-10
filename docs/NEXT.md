@@ -192,3 +192,12 @@ Two brothers who try to walk across the world; they lose each other and find eac
   (as played: the notes short, a few early (bar 12 and 14 of the take), an extra G eighth at the end of bar 4)
 - Fast's theme (Zach played it, 90 bpm; a bar a line, as read): G4 B4 D5 | G5 G5 G5 | G5 E5(e) D5 | D5(h) D5 |
   E5 E5 E5 | E5 C5 B4 | E5(e) C5(e) B4 B4 — seven bars as recorded (more to come?), above Slow's
+- (Zach, 2026-11-09 evening) Act 1 renamed Together; its chords: G Em Cmaj7 G | Em Cmaj7 Cmaj7 G, two bars each (3/4)
+  (not G Em D Em ...). Dream: D6 (the 6th, the 5th and the octave brought out), then Cmaj7. Flower: Fmaj7 to Cmaj7,
+  brighter and happier. A stronger waltz, a slower tempo. Waiting: is Fast's theme 7 bars; bars 3 and 7's quick notes.
+- Next build (queued): Answer on the Lead page in Tone's place (Off / answer / past half: improvises, busier with
+  Energy; off at every start); Punch for Crush (drums); a Harmonizer for Reverse; the Energy meter in the bottom bar,
+  equal blocks; the Bluetooth page simpler, its first knob free; the little guy as the boot screen, Setup's box like
+  him; Drums' Hits named Density. Later: the Story page's first knob (free now PRESETS turns the acts).
+- Bluetooth crashes: render_chunk (pc 0x2028878) while streaming: flash reads corrupted under the radio's current
+  (fm1-base radio.c's note). Possible fix: the engine's render in RAM (PLAT_RAM_CODE), its own test build.
