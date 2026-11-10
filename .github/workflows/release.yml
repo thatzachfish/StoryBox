@@ -91,6 +91,20 @@ jobs:
         fi
         # the firmware described for hubs (base/docs/FIRMWARE-JSON.md)
         cp app/build/firmware.json build/release-assets/
+        # StoryBox: crash addresses to functions (a crash record's pc, ret and e lines), printed to this log
+        python3 - app/build/$pkg.dis 02028878 02025d3e 020281fc 02027f56 02029320 020291c2 <<'PY' || true
+        import re, sys
+        lines = open(sys.argv[1], errors="replace").read().splitlines()
+        labels = [(int(m.group(1), 16), m.group(2)) for l in lines for m in [re.match(r"^([0-9a-f]{8}) <(.+)>:$", l)] if m]
+        labels.sort()
+        for a in sys.argv[2:]:
+            x = int(a, 16)
+            f = max((l for l in labels if l[0] <= x), default=(0, "?"))
+            print(f"CRASHSYM {a} = {f[1]} + {x - f[0]:#x}")
+        for l in lines:
+            if l.strip().startswith(sys.argv[2][1:] + ":") or l.strip().startswith("2028878:"):
+                print("CRASHLINE", l)
+        PY
       test: |
         set -euo pipefail
         pkg=storybox
