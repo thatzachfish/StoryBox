@@ -11,4 +11,4 @@ expect piece 1
 tap SAVE
 reboot
 wait 300
-expect piece 1
+expect piece 0

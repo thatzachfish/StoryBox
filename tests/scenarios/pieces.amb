@@ -54,8 +54,8 @@ expect view 9
 tap EDIT
 expect view 0
 expect piece 9
-# saved, and still there after a restart
+# saved; a restart starts on Pre-show's Doors (0.6.10), the act kept to come back to
 tap SAVE
 reboot
 wait 300
-expect piece 9
+expect piece 0

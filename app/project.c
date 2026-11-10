@@ -210,8 +210,11 @@ int project_load(void)
         return -1;
     }
     proj = buf.p;
-    if (n >= 8 && project_valid())
+    if (n >= 8 && project_valid()) {
+        proj.piece = 0;                          /* (0.6.10) every start on Pre-show's Doors, not the act last played */
+        take(&proj.slot[0]);
         return 0;
+    }
     project_defaults();
     return -1;
 }
