@@ -45,7 +45,7 @@ typedef struct {
     uint8_t fade;                        /* a held act's crossfade, 0..100 (5 s .. 2 min) */
     uint8_t bt_off;                      /* 0.6: Bluetooth off (the Bluetooth page); 0 on (an older save: on) */
     uint8_t answer;                      /* 0.6: the lead's answer, 0 off .. 100 free (an older save: off) */
-    uint8_t rsv0[1];
+    uint8_t recipes;                     /* 0.7: the recipes' changes brought into saved acts (0: none yet) */
     slot_t slot[NPIECES];                /* every piece as it was left (Tune and MIDI out are global) */
     uint8_t rsv[16];                     /* room to grow */
 } project_t;

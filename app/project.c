@@ -60,6 +60,7 @@ void project_defaults(void)
     proj.leds = 1;
     proj.wander = 0;
     proj.fade = 35;
+    proj.recipes = 1;
 }
 
 static int pool_ok(uint32_t p)                   /* the root and at least two more notes */
@@ -110,11 +111,34 @@ static void clamp_pars(void)                    /* (0.5) a value out of range (a
     }
 }
 
+static void recipes_update(void)                /* (0.7) a saved act still on a kit its recipe changed: the new one */
+{
+    static const struct { uint8_t piece, was; } KIT_WAS[] = {
+        {0, 1}, {1, 1}, {2, 1}, {3, 1},            /* Pre-show: the backbeat, now Lounge (Lights Down brushed) */
+        {33, 1}, {34, 1},                          /* Post Show's Encore, Stage Door: the backbeat, now Bright */
+    };
+    unsigned i;
+    if (proj.recipes >= 1)
+        return;
+    for (i = 0; i < sizeof KIT_WAS / sizeof KIT_WAS[0]; i++) {
+        slot_t r;
+        int pc = KIT_WAS[i].piece;
+        if (pc >= NPIECES || proj.slot[pc].par[P_KIT] != KIT_WAS[i].was)
+            continue;
+        recipe(pc, &r);
+        proj.slot[pc].par[P_KIT] = r.par[P_KIT];
+        if (pc == proj.piece)
+            proj.par[P_KIT] = r.par[P_KIT];
+    }
+    proj.recipes = 1;
+}
+
 static int project_valid(void)                  /* an older format: the recipes again */
 {
     int i;
     if (proj.magic == PROJ_MAGIC && proj.format == PROJ_FORMAT) {
         clamp_pars();
+        recipes_update();
         proj.bt_off = proj.bt_off != 0;          /* (0.6's settings, in bytes kept spare before) */
         if (proj.answer > 100)
             proj.answer = 100;

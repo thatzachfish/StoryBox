@@ -1542,7 +1542,9 @@ static void seg_ring(float r, float w, int n, float v, uint16_t track, uint16_t 
 static uint32_t drum_steps(void)                 /* the hits in the bar: the thump's, and the backbeat's snare */
 {
     uint32_t p = en_drum_pat[0];
-    if (proj.par[P_KIT] && en_bar_len == 16)
+    if (proj.par[P_KIT] == 3 && en_bar_len == 16)
+        p |= 1u << 12;
+    else if (proj.par[P_KIT] && en_bar_len == 16)
         p |= 1u << 4 | 1u << 12;
     if (proj.par[P_KIT] && en_bar_len == 12)
         p |= 1u << 4 | 1u << 8;

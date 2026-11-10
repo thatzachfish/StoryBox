@@ -39,7 +39,7 @@ static const en_param_t PARAMS[P_NPARAMS] = {
     {"Swing", 0, 100, 0},     {"Hats", 0, 100, 50},     {"Freedom", 0, 100, 100},
     {"Tension", 0, 100, 0},   {"Meter", 0, 1, 0},       {"Energy", 0, 100, 50},
     {"Lead", 0, EN_NLEAD - 1, 0}, {"Lead level", 0, 100, 65}, {"Lead tone", 0, 100, 50}, {"Glide", 0, 100, 20},
-    {"Lead oct", -2, 2, 0},   {"Structure", 0, 100, 0}, {"Kit", 0, 2, 0},
+    {"Lead oct", -2, 2, 0},   {"Structure", 0, 100, 0}, {"Kit", 0, 4, 0},
     {"Length", 0, 100, 40},   {"Mix", 0, 100, 100},     {"Rate", 0, 3, 1},        {"Mix", 0, 100, 100},
     {"Cutoff", 0, 100, 25},   {"Resonance", 0, 100, 40}, {"Size", 0, 100, 40},     {"Mix", 0, 100, 100},
     {"Surf", 0, 100, 0},      {"Melody", 0, EN_NMEL - 1, 0},
@@ -71,11 +71,12 @@ static const struct {
     const char *sting[EN_NSTING];
     const char *sting_name[EN_NSTING];
 } STORIES[EN_NSTORY] = {
+    /* Pre-show (0.7: its drums the Lounge kit, a ride's swing and a cross-stick on four; Lights Down brushed) */
     {"Pre-show", {"Doors", "Warm Up", "Lounge", "Lights Down"}, {
-        {50, 40, 50, 45, 30, 30, 30, 45, 40, 2, 50, 65, 45, 45, 55, 40, 0, 1, 86, 2, 1, 0, 0, 0, 15, 30, 70, 55, 30, 0, 0, 50, 0, 60, 45, 15, 0, 70, 1},
-        {55, 55, 60, 62, 45, 40, 25, 62, 40, 2, 45, 60, 55, 40, 60, 50, 0, 1, 88, 2, 1, 0, 0, 0, 10, 40, 70, 65, 15, 0, 0, 50, 0, 60, 45, 15, 0, 70, 1},
-        {55, 70, 55, 58, 55, 50, 25, 58, 50, 1, 50, 65, 60, 45, 70, 55, 0, 1, 88, 2, 4, 0, 0, 0, 15, 40, 65, 70, 40, 0, 0, 50, 0, 60, 45, 15, 0, 70, 1},
-        {50, 35, 40, 40, 25, 30, 35, 40, 50, 3, 60, 75, 35, 55, 45, 40, 0, 1, 80, 2, 1, 0, 0, 0, 20, 30, 70, 45, 100, 0, 0, 50, 0, 60, 45, 15, 0, 70, 1}},
+        {50, 40, 50, 45, 30, 30, 30, 45, 40, 2, 50, 65, 45, 45, 55, 40, 0, 1, 86, 2, 1, 0, 0, 0, 15, 30, 70, 55, 30, 0, 0, 50, 0, 60, 45, 15, 0, 70, 3},
+        {55, 55, 60, 62, 45, 40, 25, 62, 40, 2, 45, 60, 55, 40, 60, 50, 0, 1, 88, 2, 1, 0, 0, 0, 10, 40, 70, 65, 15, 0, 0, 50, 0, 60, 45, 15, 0, 70, 3},
+        {55, 70, 55, 58, 55, 50, 25, 58, 50, 1, 50, 65, 60, 45, 70, 55, 0, 1, 88, 2, 4, 0, 0, 0, 15, 40, 65, 70, 40, 0, 0, 50, 0, 60, 45, 15, 0, 70, 3},
+        {50, 35, 40, 40, 25, 30, 35, 40, 50, 3, 60, 75, 35, 55, 45, 40, 0, 1, 80, 2, 1, 0, 0, 0, 20, 30, 70, 45, 100, 0, 0, 50, 0, 60, 45, 15, 0, 70, 2}},
         {"1:2 4:2", "1:2 4:2 7:2 3:2", "1:2 7:2 4:2 1:2", 0}, 2, {0}, {0}},
     {"Sleep", {"Dusk", "Drifting", "Deep", "Stillness"}, {
         {50, 45, 30, 0, 30, 30, 55, 0, 40, 4, 55, 85, 35, 70, 30, 45, 0, 1, 56, 2, 6, 0, 0, 0, 40, 25, 0, 40, 100, 0, 0, 50, 2, 50, 30, 40, 0, 0, 0},
@@ -129,12 +130,12 @@ static const struct {
         {"Cm7:2 Fm7:2", "Cm7:2 Fm7:2 Abmaj7:2 G7:2", "Fm7:2 Bb7:2 Ebmaj7:2 Abmaj7:1 G7:1", "Abmaj7:2 G7:2"},
         0, {"C6 G5", "C3 C3 Eb4 G4 Bb4"}, {"Chime", "Curtain"}},
     /* Post Show: Intermission's family, jazzy and bright (0.5: major sevenths, nothing scary): F major, swung; a Rhodes,
-     * an organ, strings. Each act its own drums: Bows brushed, Encore the backbeat, Stage Door the busiest (looser,
-     * more hats), Walk Home soft */
+     * an organ, strings. Each act its own drums: Bows brushed, Encore and Stage Door Bright (0.7: four on the floor,
+     * the claps, the hats between: not Intermission's boom-bap), Walk Home soft */
     {"Post Show", {"Bows", "Encore", "Stage Door", "Walk Home"}, {
         {50, 45, 55, 55, 40, 30, 25, 45, 35, 1, 40, 55, 60, 35, 60, 40, 0, 1, 90, 5, 0, 0, 0, 0, 10, 45, 30, 50, 10, 0, 0, 55, 4, 60, 50, 15, 0, 85, 2},
-        {55, 55, 65, 66, 50, 40, 20, 65, 40, 1, 40, 55, 65, 35, 65, 50, 0, 1, 92, 5, 0, 0, 2, 0, 10, 55, 40, 60, 10, 0, 0, 60, 4, 60, 50, 15, 0, 85, 1},
-        {55, 55, 68, 70, 55, 45, 20, 82, 45, 1, 40, 55, 65, 30, 70, 55, 0, 1, 96, 5, 0, 0, 3, 0, 10, 60, 25, 80, 15, 0, 0, 65, 4, 65, 55, 15, 0, 60, 1},
+        {55, 55, 65, 66, 50, 40, 20, 65, 40, 1, 40, 55, 65, 35, 65, 50, 0, 1, 92, 5, 0, 0, 2, 0, 10, 55, 40, 60, 10, 0, 0, 60, 4, 60, 50, 15, 0, 85, 4},
+        {55, 55, 68, 70, 55, 45, 20, 82, 45, 1, 40, 55, 65, 30, 70, 55, 0, 1, 96, 5, 0, 0, 3, 0, 10, 60, 25, 80, 15, 0, 0, 65, 4, 65, 55, 15, 0, 60, 4},
         {55, 45, 50, 40, 35, 30, 30, 35, 50, 2, 50, 65, 50, 45, 55, 40, 0, 1, 88, 5, 0, 0, 0, 0, 15, 40, 45, 40, 10, 0, 0, 50, 4, 55, 45, 15, 0, 90, 0}},
         {"Fmaj7:2 Bbmaj7:2 Fmaj7:2 C7:2", "Fmaj7:2 Am7:2 Bbmaj7:2 C7:2", "Bbmaj7:2 Ebmaj7:2 Fmaj7:2 Dbmaj7:1 C7:1",
          "Fmaj7:2 Bbmaj7:2 Gm7:2 C7:2"},
@@ -361,7 +362,7 @@ void en_param_text(int i, int v, char *b)
     else if (i == P_METER)
         s = v ? "3/4" : "4/4";
     else if (i == P_KIT)
-        s = v == 2 ? "Brushes" : v ? "Backbeat" : "Soft";
+        s = v == 4 ? "Bright" : v == 3 ? "Lounge" : v == 2 ? "Brushes" : v ? "Backbeat" : "Soft";
     else if (i == P_LSOUND)
         s = EN_LEAD_NAME[(unsigned)v < EN_NLEAD ? v : 0];
     else if (i == P_PADTONE)
@@ -1269,6 +1270,18 @@ static void drum_publish(int d)
     drum_pat[d] = en_euclid(drum_k[d], drum_n[d], drum_rot[d]);
     if (par[P_KIT] == 1 && en_bar_len == 16 && d == 0)   /* backbeat: boom-bap (one, the and of two, three's and), more with Hits */
         drum_pat[0] = drum_k[0] >= 3 ? 0x0485u : 0x0481u;
+    else if (par[P_KIT] == 3 && en_bar_len == 16 && d == 0)   /* 0.7, Lounge: the kick soft on one and three's and */
+        drum_pat[0] = drum_k[0] >= 3 ? 0x0601u : 0x0401u;
+    else if (par[P_KIT] == 3 && en_bar_len == 16 && d == 1)   /* the ride's swing: ding, ding-a ding, ding-a */
+        drum_pat[1] = drum_k[1] >= 6 ? 0x5555u : 0x5151u;
+    else if (par[P_KIT] == 3 && en_bar_len == 16 && d == 2)   /* (no open hat: the ride is enough) */
+        drum_pat[2] = drum_k[2] >= 4 ? 0x4000u : 0u;
+    else if (par[P_KIT] == 4 && en_bar_len == 16 && d == 0)   /* 0.7, Bright: four on the floor */
+        drum_pat[0] = drum_k[0] >= 5 ? 0x1111u | 1u << 14 : 0x1111u;
+    else if (par[P_KIT] == 4 && en_bar_len == 16 && d == 1)   /* the hats on the off-beats, sixteenths when busier */
+        drum_pat[1] = drum_k[1] >= 7 ? 0xEEEEu : 0x4444u;
+    else if (par[P_KIT] == 4 && en_bar_len == 16 && d == 2)   /* an open hat lifting into each half */
+        drum_pat[2] = drum_k[2] >= 2 ? 0x4040u : 0x4000u;
     else if (par[P_KIT] && en_bar_len == 16 && d == 2)   /* and the open hat steps back for the snare */
         drum_pat[2] &= ~0x1010u;
     if (en_bar_len == 12 && d == 0)              /* 3/4: the thump always on the one */
@@ -1328,7 +1341,8 @@ static void drum_fire(int d, float vel)
     }
     case 1:                                     /* closed hat: short; it chokes the open one */
         v->note = DRUM_GM[1];
-        v->adec = fm_expf(-6.9f / ((par[P_KIT] == 2 ? 0.1f : 0.06f) * EN_SR));   /* (brushes: a shaker) */
+        v->adec = fm_expf(-6.9f / ((par[P_KIT] == 2 ? 0.1f : par[P_KIT] == 3 ? 0.24f : 0.06f) * EN_SR));   /* (brushes: a shaker;
+                                                                                          * Lounge: a ride's ring) */
         drum[2].adec = fm_expf(-6.9f / (0.02f * EN_SR));
         break;
     default:                                    /* open hat: a long, soft "tss" */
@@ -1500,7 +1514,14 @@ static void tick(void)
                                                  * surely with Structure, more often with Energy */
         fill_bar = (en_barno & 3u) == 0u && !pulse_rest && !bd && drum_kb[0] > 0 &&
                    frand() < (0.2f + 0.45f * (float)par[P_GROOVE] * 0.01f) * (0.7f + 0.3f * energy);
-    if (par[P_KIT] && en_bar_len == 16 && !pulse_rest && !bd && par[P_PULSE] > 0) {   /* the backbeat kit */
+    if (par[P_KIT] == 3 && en_bar_len == 16 && !pulse_rest && !bd && par[P_PULSE] > 0) {   /* Lounge: the cross-stick */
+        int b = bar_pos;
+        if (b == 12)
+            snare_fire((0.55f + 0.15f * frand()) * pa);
+        else if ((b == 6 || b == 14) && frand() < 0.08f + 0.15f * (energy + 1.0f) * 0.5f)
+            snare_fire(0.2f * pa);
+    } else if (par[P_KIT] && en_bar_len == 16 && !pulse_rest && !bd && par[P_PULSE] > 0) {   /* the backbeat kit (and
+                                                                                     * Bright's: a clap on two, four) */
         int b = bar_pos;
         if (b == 4 || b == 12)
             snare_fire((0.75f + 0.2f * frand()) * pa);
@@ -2456,7 +2477,7 @@ static void snare_fire(float vel)
 static void render_snare(uint32_t n, float g)
 {
     uint32_t j;
-    const int rim = par[P_KIT] == 2;            /* brushes: a rim's click (a short knock, ~1.2 kHz) */
+    const int rim = par[P_KIT] == 2 || par[P_KIT] == 3;   /* brushes, Lounge: a rim's click (a short knock, ~1.2 kHz) */
     const float dec = fm_expf(-6.9f / ((rim ? 0.01f : 0.2f) * EN_SR)), bdec = fm_expf(-6.9f / ((rim ? 0.03f : 0.08f) * EN_SR)),
                 binc = (rim ? 1250.0f : 190.0f) / EN_SR;
     if (!sn.on)
