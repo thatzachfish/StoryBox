@@ -92,12 +92,9 @@ jobs:
         # the firmware described for hubs (base/docs/FIRMWARE-JSON.md)
         cp app/build/firmware.json build/release-assets/
         # StoryBox: crash addresses to functions (a crash record's pc, ret and e lines), printed to this log
-        ( for d in "${JIELI_TOOLCHAIN:-}" /opt/jieli "$AC79_SDK"; do ls "$d"/common/bin/objdump 2>/dev/null; done; \
-          find / -name objdump -path "*common/bin*" 2>/dev/null | head -3 ) | sed 's/^/CRASHTOOL /' || true
-        OBJ=$( (ls "${JIELI_TOOLCHAIN:-/nonexistent}"/common/bin/objdump /opt/jieli/common/bin/objdump 2>/dev/null; \
-                find / -name objdump -path "*common/bin*" 2>/dev/null) | head -1 )
-        if [ -n "$OBJ" ]; then "$OBJ" -t "app/build/$pkg.elf" > app/build/syms.txt 2>&1 || docker run --rm -v "$PWD:$PWD" -w "$PWD" jieli "$OBJ" -t "app/build/$pkg.elf" > app/build/syms.txt 2>&1 || true; fi
-        ls -la app/build/*.elf app/build/syms.txt 2>&1 | sed 's/^/CRASHTOOL /' || true
+        OBJ="$HOME/.jieli/toolchain/common/bin/objdump"
+        if [ -x "$OBJ" ]; then "$OBJ" -t "app/build/$pkg.elf" > app/build/syms.txt 2>&1 || true; fi
+        wc -l app/build/syms.txt 2>&1 | sed 's/^/CRASHTOOL /' || true
         python3 - app/build/syms.txt 2028878 2025d3e 20281fc 2027f56 2029320 20291c2 <<'PY' || true
         import re, sys
         syms = []
