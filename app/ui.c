@@ -2085,7 +2085,7 @@ static void draw_system(void)
             cv_rect(CX - 26 + k * 9, 55, 7, 6, k == (int)(plat_ms() / 700u % 6u) ? K_PAD : K_LINE);
     }
     text_c(CX, 70, &FONT_B, "StoryBox", K_TEXT);
-    text_c(CX, 86, &FONT_XS, EN_VERSION, K_DIM);
+    text_c(CX, 86, &FONT_XS, "version " EN_VERSION, K_ACC);
     {   /* how it is: four pills */
         static const char *const L[4] = {"Power", "Lights", "MIDI", "Load"};
         int k;
