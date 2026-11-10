@@ -92,24 +92,25 @@ jobs:
         # the firmware described for hubs (base/docs/FIRMWARE-JSON.md)
         cp app/build/firmware.json build/release-assets/
         # StoryBox: crash addresses to functions (a crash record's pc, ret and e lines), printed to this log
-        python3 - app/build/$pkg.dis 2028878 2025d3e 20281fc 2027f56 2029320 20291c2 <<'PY' || true
+        ( for d in "${JIELI_TOOLCHAIN:-}" /opt/jieli "$AC79_SDK"; do ls "$d"/common/bin/objdump 2>/dev/null; done; \
+          find / -name objdump -path "*common/bin*" 2>/dev/null | head -3 ) | sed 's/^/CRASHTOOL /' || true
+        OBJ=$( (ls "${JIELI_TOOLCHAIN:-/nonexistent}"/common/bin/objdump /opt/jieli/common/bin/objdump 2>/dev/null; \
+                find / -name objdump -path "*common/bin*" 2>/dev/null) | head -1 )
+        if [ -n "$OBJ" ]; then "$OBJ" -t "app/build/$pkg.elf" > app/build/syms.txt 2>&1 || docker run --rm -v "$PWD:$PWD" -w "$PWD" jieli "$OBJ" -t "app/build/$pkg.elf" > app/build/syms.txt 2>&1 || true; fi
+        ls -la app/build/*.elf app/build/syms.txt 2>&1 | sed 's/^/CRASHTOOL /' || true
+        python3 - app/build/syms.txt 2028878 2025d3e 20281fc 2027f56 2029320 20291c2 <<'PY' || true
         import re, sys
-        lines = open(sys.argv[1], errors="replace").read().splitlines()
-        lab = None
-        labels = []
-        for i, l in enumerate(lines):
-            m = re.match(r"^\s*([0-9a-fA-F]+)\s+<([^>]+)>:", l)
+        syms = []
+        for l in open(sys.argv[1], errors="replace"):
+            m = re.match(r"^([0-9a-f]{8})\s.*\s([FO]|\s)\s+\S+\s+([0-9a-f]{8})\s+(\S+)$", l.strip())
             if m:
-                labels.append((int(m.group(1), 16), m.group(2)))
-        print("CRASHSYM labels", len(labels), labels[:3])
+                syms.append((int(m.group(1), 16), int(m.group(3), 16), m.group(4)))
+        print("CRASHSYM symbols", len(syms))
         for a in sys.argv[2:]:
             x = int(a, 16)
-            f = max((l for l in labels if l[0] <= x), default=(0, "?"))
-            print(f"CRASHSYM {a} = {f[1]} + {x - f[0]:#x}")
-        for i, l in enumerate(lines):
-            if l.strip().startswith(sys.argv[2] + ":"):
-                for k in range(max(0, i - 12), min(len(lines), i + 4)):
-                    print("CRASHLINE", lines[k])
+            hit = [s for s in syms if s[0] <= x < s[0] + max(s[1], 1)]
+            near = max((s for s in syms if s[0] <= x), default=(0, 0, "?"))
+            print(f"CRASHSYM {a} = {hit[0][2] if hit else near[2]} + {x - (hit[0][0] if hit else near[0]):#x}")
         PY
       test: |
         set -euo pipefail
