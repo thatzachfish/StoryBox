@@ -201,3 +201,12 @@ Two brothers who try to walk across the world; they lose each other and find eac
   him; Drums' Hits named Density. Later: the Story page's first knob (free now PRESETS turns the acts).
 - Bluetooth crashes: render_chunk (pc 0x2028878) while streaming: flash reads corrupted under the radio's current
   (fm1-base radio.c's note). Possible fix: the engine's render in RAM (PLAT_RAM_CODE), its own test build.
+
+## After 0.7 (Zach, 2026-11-09)
+- Story page: the act's four squares (PRESETS turns them) and the Energy meter side by side, near their controls; then
+  Story's knob 1 is free for something new.
+- OCTAVE buttons: per page. On Pad, Bells, Bass and Lead pages they move that instrument's octave; on Story, Energy
+  down/up. In LEAD key mode they stay the keyboard's octave.
+- Bluetooth crash: render_chunk (the engine's audio render) faulting under radio load; it can also reset without a
+  crash record. Bluetooth was steady through 0.6.5. Candidates: the engine render in RAM (PLAT_RAM_CODE), or
+  comparing what 0.6.6+ added to the audio path (the strips' redraws, Answer, themes) under a long BT stream.
