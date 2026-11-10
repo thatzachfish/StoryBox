@@ -106,6 +106,8 @@ jobs:
             if m:
                 syms.append((int(m.group(1), 16), int(m.group(3), 16), m.group(4)))
         print("CRASHSYM symbols", len(syms))
+        for a0, sz, nm in sorted(syms, key=lambda s: -s[1])[:40]:
+            print(f"SIZESYM {a0:08x} {sz:6d} {nm}")
         for a in sys.argv[2:]:
             x = int(a, 16)
             hit = [s for s in syms if s[0] <= x < s[0] + max(s[1], 1)]
