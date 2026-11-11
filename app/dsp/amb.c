@@ -635,7 +635,7 @@ void en_sting(int piece, int k)
 {
     if (!prog_parsed)
         prog_parse();
-    post(C_STING, (unsigned)(k & 7) < EN_NSTING ? k : 0, piece);   /* (k + 8: join the loop now, 0.8.1) */
+    post(C_STING, (unsigned)(k & 7) < EN_NSTING ? k : 0, piece);   /* (k + 16: stop it, 0.8.2) */   /* (k + 8: join the loop now, 0.8.1) */
 }
 void en_prog(int piece)
 {
@@ -2209,7 +2209,12 @@ static void drain(void)
         case C_STING:                            /* on the next beat (now while resting); (0.8.1) a theme: a + 8,
                                                   * joining the loop now, else from the loop's start */
             {
-                int join = a >= 8;
+                int join = (a & 8) != 0;
+                if (a & 16) {                    /* (0.8.2) k + 16: the theme stops, now */
+                    theme_stop();
+                    sting_pend = -1;
+                    break;
+                }
                 a &= 7;
                 if ((unsigned)b < EN_NPIECES && (unsigned)a < EN_NSTING && sting_n[b / EN_NACT][a]) {
                     sting_pend = b / EN_NACT * EN_NSTING + a;

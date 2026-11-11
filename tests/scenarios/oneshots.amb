@@ -24,6 +24,11 @@ wait 150
 tapkey 20
 said NOW Fast
 wait 3000
+# twice again while it plays: it stops (0.8.2)
+tapkey 20
+wait 150
+tapkey 20
+said STOP Fast
 shot oneshots-playing.png
 # another act of the story: the same settings
 turn PRESET 1
@@ -62,3 +67,10 @@ spin K4 1
 expect par58 1
 wait 1500
 release ARP
+# an act key twice: now (0.8.2)
+tapkey 4
+wait 150
+tapkey 4
+said NOW Flower
+wait 8000
+expect piece 18

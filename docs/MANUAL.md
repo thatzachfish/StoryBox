@@ -118,17 +118,18 @@ A key, a knob or another button puts the card away, and letting go does nothing 
 | Control | What it does |
 |---|---|
 | PRESETS | The act (on the next phrase). |
+| An act key (F3 G3 A3 B3) | A tap: on the next phrase. Twice (0.8.2), or held: now, over Fade. |
 | ALGORITHM | Energy. It starts at 50 at power-on. |
 | SELECT | The pages. HOME held + SELECT: Fade (5 s at first). |
 | OCT− / OCT+ | Answer in five steps; both together: off. |
-| A one-shot key (C#5, D#5, F#5) | (0.8.1) A tap plays it from the start of the loop (the act's chords from the top); a double tap starts it now, from where the loop is, so you can play just its second half. A hold opens the One-shots page. |
+| A one-shot key (C#5, D#5, F#5) | (0.8.1) A tap plays it from the start of the loop (the act's chords from the top); a double tap starts it now, from where the loop is, so you can play just its second half; (0.8.2) a double tap while it plays stops it. A hold opens the One-shots page. |
 
 The four knobs, page by page:
 
 | Page | 1 | 2 | 3 | 4 |
 |---|---|---|---|---|
 | Story | Tempo | Structure | Tension | Wander |
-| Perform | Evolve | Freedom | Drift | Motion |
+| Acts | Evolve | Freedom | Drift | Motion |
 | Pad | Level | Swell | Sound | Bright |
 | Melody | Level | Density | Sound | Octave |
 | Bass | Level | Fifth | Sound | Glide |
@@ -142,7 +143,7 @@ The four knobs, page by page:
 | Filter | Cutoff | Resonance | Sweep | Type |
 | Sparkle | Size | Mix | Pitch | Spread |
 
-The Perform page (0.8.1, the Feel page's place, just after Story; One-shots just after it) shows the chord now, the
+The Acts page (0.8.1, the Feel page's place, just after Story; One-shots just after it) shows the chord now, the
 act's loop of chords a bar to a cell with the bar now lit, and the four act keys (F G A B) big, the one playing lit and
 the one coming outlined.
 

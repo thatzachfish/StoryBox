@@ -31,7 +31,7 @@ static int page_pos(int v)
     return -1;
 }
 #define NOBTN 0xFF
-static const char *const VIEW_NAME[NVIEWS] = {"Story", "Perform", "Mixer", "Colours", "Effects", "Pad", "Melody", "Bass",
+static const char *const VIEW_NAME[NVIEWS] = {"Story", "Acts", "Mixer", "Colours", "Effects", "Pad", "Melody", "Bass",
                                               "Drums", "Lead", "Setup", "System", "Bluetooth", "One-shots", "Harmony", "Stutter", "Filter", "Sparkle"};
 static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, NOBTN, NOBTN, B_FX, B_SEL, NOBTN, NOBTN, NOBTN, NOBTN, B_EDIT, B_GLO, NOBTN,
                                          NOBTN, NOBTN, B_ENV, B_LFO, B_ARP, B_SEQ};
@@ -112,7 +112,8 @@ static struct {
     uint8_t bd_asked;                  /* the breakdown asked for (or on) */
     uint8_t timer;                     /* the sleep timer: 0 off, 1..4 a quarter hour each */
     uint8_t dark;                      /* the screen dark: the timer on and nothing touched for 30 s */
-    uint8_t sting_k, sting_dbl;                 /* the sting last fired (1..3), and when: its key's flash */
+    uint8_t sting_k, sting_dbl, sting_was, act_tap_k;   /* (act_tap: an act key's last tap, for a double) */
+    uint32_t act_tap_t;                 /* the sting last fired (1..3), and when: its key's flash */
     uint32_t sting_t;
     uint32_t input_t;                  /* the last touch */
     uint32_t timer_end;
@@ -1213,11 +1214,19 @@ static void input(void)
                                                   * second tap soon after: now, joining the loop where it is */
                     int k = KEY_ACT[i] - KEY_STING,
                         dbl = ui.sting_k == k + 1 && plat_ms() - ui.sting_t < 450u && !ui.sting_dbl;
+                    if (!dbl)                    /* (was it sounding before this tap? a double tap then stops it) */
+                        ui.sting_was = (uint8_t)(ui.sting_k == k + 1 && en_theme_busy());
                     ui.sting_k = (uint8_t)(k + 1);
                     ui.sting_t = plat_ms();
                     ui.sting_dbl = (uint8_t)dbl;
-                    en_sting(cur, k | (dbl ? 8 : 0));
-                    say(dbl ? "NOW" : "STING", en_sting_name(cur, k));
+                    if (dbl && ui.sting_was) {   /* (0.8.2) twice while it plays: it stops, now */
+                        en_sting(cur, k | 16);
+                        ui.sting_k = 0;
+                        say("STOP", en_sting_name(cur, k));
+                    } else {
+                        en_sting(cur, k | (dbl ? 8 : 0));
+                        say(dbl ? "NOW" : "STING", en_sting_name(cur, k));
+                    }
                 }
             }
         } else if (t >= 0) {                     /* ACTS: a tap queues, a hold fades now */
@@ -1228,7 +1237,15 @@ static void input(void)
                 ui.key_held |= 1u << i;
                 tr_queue(t, 1);
             } else if ((ch >> i & 1u) && !(keys >> i & 1u) && !(ui.key_held >> i & 1u)) {
-                tr_queue(t, 0);
+                if (ui.act_tap_k == i + 1 && plat_ms() - ui.act_tap_t < 450u) {
+                    tr_queue(t, 1);              /* (0.8.2) twice: now, as a hold does */
+                    say("NOW", en_act_name(t));
+                    ui.act_tap_k = 0;
+                } else {
+                    tr_queue(t, 0);
+                    ui.act_tap_k = (uint8_t)(i + 1);
+                    ui.act_tap_t = plat_ms();
+                }
             }
         }
     }
