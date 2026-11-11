@@ -1803,10 +1803,10 @@ static void draw_oneshots(int cur, int32_t y)
         int has = en_sting_len(cur, k) != 0, me = has && ui.sting_k == k + 1,
             play = me && (th == 2 || (!th && plat_ms() - ui.sting_t < 2500u)), wait = me && th == 1;
         const char *n = has ? en_sting_name(cur, k) : "-";
-        cv_round(x, y, 74, 20, 5, play || wait ? K_ALERT : K_PANEL);
+        cv_round(x, y, 74, 20, 5, play || wait ? K_ALERT : has ? mix(K_BG, K_ALERT, 5) : K_PANEL);   /* (0.8.13: dim pink) */
         if (wait)
             cv_round(x + 2, y + 2, 70, 16, 4, K_BG);
-        cv_text(x + 4, y + 3, &FONT_XS, SK[k], play ? K_BG : K_DIM);
+        cv_text(x + 4, y + 3, &FONT_XS, SK[k], play ? K_BG : has ? mix(K_BG, K_ALERT, 12) : K_DIM);
         cv_text(x + 22, text_w(&FONT_S, n) <= 50 ? y + 2 : y + 4, text_w(&FONT_S, n) <= 50 ? &FONT_S : &FONT_XS, n,
                 play ? K_BG : wait ? K_ALERT : has ? K_TEXT : K_LINE);
     }
@@ -2162,7 +2162,8 @@ static void draw_map(void)
         for (k = 0; k < n; k++) {
             int st = BANK[r][k], here = st == cur / EN_NACT, going = goal >= 0 && st == goal / EN_NACT && !here;
             int32_t x = x0 + k * (w + gap);
-            cv_round(x, y, w, 17, 4, here ? K_ACC : going && blink ? mix(K_BG, K_ACC, 10) : K_PANEL);
+            cv_round(x, y, w, 17, 4, here ? K_ACC : going && blink ? mix(K_BG, K_ACC, 10) : mix(K_BG, K_ACC, 5));   /* (0.8.13:
+                                                  * the rest dim yellow) */
             text_c(x + w / 2, y + 1, &FONT_XS, SHORT[st], here ? K_BG : going ? K_ACC : K_TEXT);
         }
     }
