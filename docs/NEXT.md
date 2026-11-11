@@ -259,3 +259,7 @@ power-on.
 - Fade range: 1 s .. 2 min (was 5 s .. 2 min). Zach uses 1 s, 3 s and 5 s
   often, so make those easy to land on near the bottom of the knob. Keep the
   default at 5 s (bump saved projects' fade so their time doesn't change).
+- Harmony's Interval: add thirds and an "All". Settings: Third, Fifth, Octave,
+  Fifth + Octave (today's "Both"), All (third + fifth + octave). The third
+  follows the chord: major over a major chord, minor over a minor one. Needs a
+  third read head; map saved Fifth/Octave/Both to their new places.
