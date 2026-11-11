@@ -67,7 +67,7 @@ void project_defaults(void)
     proj.leds = 1;
     proj.wander = 51;                   /* (0.8.3: Pre-show's, about a minute an act) */
     proj.fade = 0;                       /* (0.8: 5 s) */
-    proj.recipes = 6;
+    proj.recipes = 7;
 }
 
 static int pool_ok(uint32_t p)                   /* the root and at least two more notes */
@@ -152,8 +152,15 @@ static void recipes_update(void)                /* (0.7) a saved act still on a 
         if (proj.piece / EN_NACT == 0 || proj.piece / EN_NACT == 7 || proj.piece / EN_NACT == 8)
             take(&proj.slot[proj.piece]);
     }
+    if (proj.recipes < 7) {                      /* (7, 0.8.7: the lead quieter, 40, everywhere) */
+        int i;
+        for (i = 0; i < NPIECES; i++)
+            proj.slot[i].par[P_LLEVEL] = 40;
+        proj.par[P_LLEVEL] = 40;
+        proj.slot[6 * EN_NACT].par[P_MSOUND] = MEL_SLIDE;   /* (and Fly's Entry on the slide guitar) */
+    }
     if (proj.recipes >= 2) {                     /* (1: 0.6.3's kits; 2: and Bows) */
-        proj.recipes = 6;
+        proj.recipes = 7;
         return;
     }
     for (i = 0; i < sizeof KIT_WAS / sizeof KIT_WAS[0]; i++) {
@@ -166,7 +173,7 @@ static void recipes_update(void)                /* (0.7) a saved act still on a 
         if (pc == proj.piece)
             proj.par[P_KIT] = r.par[P_KIT];
     }
-    proj.recipes = 6;
+    proj.recipes = 7;
 }
 
 static int project_valid(void)                  /* an older format: the recipes again */

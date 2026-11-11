@@ -33,7 +33,7 @@ static int page_pos(int v)
 #define NOBTN 0xFF
 static const char *const VIEW_NAME[NVIEWS] = {"Story", "Acts", "Mixer", "Colours", "Effects", "Pad", "Melody", "Bass",
                                               "Drums", "Lead", "Setup", "System", "Bluetooth", "One-shots", "Harmony", "Stutter", "Filter", "Sparkle"};
-static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, NOBTN, NOBTN, B_FX, B_SEL, NOBTN, NOBTN, NOBTN, NOBTN, B_EDIT, B_GLO, NOBTN,
+static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, B_SEL, NOBTN, B_FX, NOBTN, NOBTN, NOBTN, NOBTN, NOBTN, B_EDIT, B_GLO, NOBTN,
                                          NOBTN, NOBTN, B_ENV, B_LFO, B_ARP, B_SEQ};
 /* the punch-ins: ENV Harmony (0.7, Reverse's place), LFO Stutter, ARP Filter, SEQ Sparkle (held; a double tap latches one on) */
 static const uint8_t FX_BTN[EN_NFX] = {B_ENV, B_LFO, B_ARP, B_SEQ};
@@ -280,13 +280,14 @@ static uint32_t fade_ms(void)                  /* Fade 0..100: 5 s .. 2 min, as 
     float f = (float)proj.fade / 100.0f;
     return 5000u + (uint32_t)(115000.0f * f * f);
 }
-static uint32_t wander_phrases(void)           /* in order (1..50): 48 .. 8 phrases (0.8.4: was 32 .. 8); roaming (51..100):
-                                                  * 8 .. 2 (at 86 bpm: 4:28 .. 45 s, then 45 s .. 11 s) */
-{
-    uint32_t w = proj.wander;
-    return w <= 50u ? 8u + (50u - w) * 40u / 49u : 8u - (w - 51u) * 6u / 49u;
-}
 static uint32_t phrase_ms(void) { return PHRASE_BARS * en_bar_len * 60000u / ((uint32_t)proj.par[P_TEMPO] * 4u); }
+static uint32_t wander_phrases(void)           /* (0.8.7) by time, whatever the tempo: in order (1..50) 5 min .. 2 min an
+                                                  * act; roaming (51..100) 90 s .. 10 s; in whole phrases */
+{
+    uint32_t w = proj.wander, sec = w <= 50u ? 300u - (w - 1u) * 180u / 49u : 90u - (w - 51u) * 80u / 49u, pm = phrase_ms();
+    uint32_t n = (sec * 1000u + pm / 2u) / (pm ? pm : 1u);
+    return n < 1u ? 1u : n;
+}
 static int tr_goal(void) { return tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : proj.piece; }   /* where it's going */
 static int tr_shown_act(void)                  /* the act the screen shows: where it is going, else where it is */
 {
@@ -314,7 +315,8 @@ static void tr_start(int piece, uint32_t ms)
 /* (0.8.3) each story's Wander as it starts: Zach's performance stories (Fast and Slow, Inside, Fly) Perform, the acts
  * waiting for him; the house music: Pre-show roaming, its longest (about 45 s an act; 0.8.6), Intermission in order, as long as it goes, Post Show
  * about three minutes, in order (the rest as they were) */
-static const int8_t STORY_WANDER[EN_NSTORY] = {51, -1, -1, -1, 0, 0, 0, 1, 18, -1};   /* (0.8.4: Post Show about 3 min) */
+static const int8_t STORY_WANDER[EN_NSTORY] = {51, -1, -1, -1, 0, 0, 0, 1, 34, -1};   /* (0.8.7: Pre-show roaming 90 s,
+                                                  * Intermission in order 5 min, Post Show in order 3 min) */
 static void story_wander(void)
 {
     int w = STORY_WANDER[proj.piece / EN_NACT % EN_NSTORY];
@@ -1998,7 +2000,7 @@ static int help_lines(int b, const char *l[HELP_LINES])
     int n = 0;
 #define L(t) (l[n++] = (t))
     switch (b) {
-    case B_SEL: L("EFFECTS"); L("REVERB, ECHO, ECHO TIME,"); L("SURF"); break;
+    case B_SEL: L("ACTS"); L("THE CHORD, THE LOOP, THE ONE-SHOTS,"); L("THE ACTS (EFFECTS: SELECT)"); break;
     case B_FX: L("COLOURS"); L("EACH INSTRUMENT'S OWN:"); L("SHIMMER, ECHO, DRIVE, PUNCH"); break;
     case B_GLO: L("SETUP"); L("ROOT, TEMPO, SLEEP, FADE"); break;
     case B_EDIT: L("LEAD: THE KEYS PLAY A LEAD"); L("IN THE SCALE. KNOB 4: ITS OCTAVE"); L("AGAIN: BACK TO THE ACTS"); break;
@@ -2016,7 +2018,7 @@ static int help_lines(int b, const char *l[HELP_LINES])
             L(" BACK TO ITS RECIPE");
         }
         break;
-    case B_HOME: L("HOME STORY, FX COLOURS, SEL EFFECTS,"); L(" ENV HARMONY, LFO STUTTER, EDIT LEAD, GLO SETUP,");
+    case B_HOME: L("HOME STORY, FX COLOURS, SEL ACTS,"); L(" ENV HARMONY, LFO STUTTER, EDIT LEAD, GLO SETUP,");
         L(" SAVE, ARP FILTER, SEQ SPARKLE,"); L(" PLAY, REC FREEZE"); break;
     default: break;
     }

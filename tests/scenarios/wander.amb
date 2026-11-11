@@ -1,14 +1,14 @@
-# Wander: 0 the acts wait; up to 50 they move on in order (Doors, Warm Up, Lounge, Lights Down, Doors...);
+# Wander: 0 the acts wait; up to 50 they move on in order (0.8.7: 5 min .. 2 min an act) (Doors, Warm Up, Lounge, Lights Down, Doors...);
 # above, more and more often to any other act
 wait 300
 expect piece 0
-# (0.8.3: Pre-show starts wandering, 51, roaming its longest (0.8.6); down to 41 here, in order, 15 phrases)
-turn K4 -10 100
-wait 90000
+# (0.8.7: Wander by time: Pre-show starts roaming at its longest, 90 s; down one here: in order, its shortest, 2 min)
+turn K4 -1 100
+wait 135000
 expect piece 1
-wait 80000
+wait 120000
 expect piece 2
-wait 80000
+wait 120000
 expect piece 3
-wait 100000
+wait 120000
 expect piece 0

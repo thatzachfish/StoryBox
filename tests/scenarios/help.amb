@@ -35,7 +35,8 @@ wait 700
 release SAVE
 wait 200
 expect par0 50
-tap SEL
+tap HOME
+turn SELECT 5
 turn K2 1 80
 wait 100
 shot space_turning.png

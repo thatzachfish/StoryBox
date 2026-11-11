@@ -122,6 +122,7 @@ A key, a knob or another button puts the card away, and letting go does nothing 
 | An act key (F3 G3 A3 B3) | A tap: on the next phrase. Twice (0.8.2), or held: now, over Fade. |
 | ALGORITHM | Energy. It starts at 50 at power-on. |
 | SELECT | The pages. HOME held + SELECT: Fade (5 s at first). |
+| SEL | (0.8.7) The Acts page. Effects: by SELECT. |
 | OCT− / OCT+ | Answer in five steps; both together: off. |
 | A one-shot key (C#5, D#5, F#5) | (0.8.1) A tap plays it from the start of the loop (the act's chords from the top); a double tap starts it now, from where the loop is, so you can play just its second half; (0.8.2) a double tap while it plays stops it. A hold opens the One-shots page. |
 
@@ -499,3 +500,9 @@ share the source of the files you changed too.
 
 M-VAVE and FM-1 are trademarks of their owners. AMB-1 is not affiliated with M-VAVE, Brian Eno or
 Hügelton Instruments.
+
+### Wander, by time (0.8.7)
+
+Wander sets how long an act lasts, whatever the tempo: in order, 5 minutes (just above Perform) to 2 minutes; then
+roaming, 90 seconds down to 10. Pre-show starts roaming at 90 s, Intermission in order at 5 min, Post Show in order at
+3 min. The lead starts at level 40.

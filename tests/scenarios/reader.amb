@@ -3,7 +3,7 @@
 wait 200
 listen
 wait 100
-said Story page: Tempo 86, Structure 70, Tension 0, Wander 45s. Piece Pre-show, D minor
+said Story page: Tempo 86, Structure 70, Tension 0, Wander 1:29. Piece Pre-show, D minor
 # (the rings follow, queued: the chord, how far to the next, the scale from the root up)
 listen
 where
@@ -35,8 +35,9 @@ wait 300
 said Lights Keys
 spin K2 -1
 wait 300
-# SEL: the effects
-tap SEL
+# the effects (0.8.7: SEL is the Acts page; SELECT on to Effects)
+tap HOME
+turn SELECT 5
 wait 300
 said Effects page: Reverb 50, Echo 40, Echo time 1/2., Surf 0
 spin K3 -1
@@ -115,4 +116,4 @@ wait 1000
 said Tempo 86
 # WHERE: everything again
 where
-said Story page: Tempo 86, Structure 70, Tension 0, Wander 45s. Piece Pre-show
+said Story page: Tempo 86, Structure 70, Tension 0, Wander 1:29. Piece Pre-show
