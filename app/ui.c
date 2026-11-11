@@ -19,8 +19,19 @@
 enum { V_STORY, V_GARDEN, V_MIX, V_COLR, V_SPACE, V_PAD, V_BELLS, V_BASS, V_PULSE, V_LEAD, V_SETUP, V_SYSTEM, V_BT,
        V_SHOTS, V_REV, V_STUT, V_FILT, V_SCAT, NVIEWS };
 #define NPAGES V_REV
+/* (0.8.1) SELECT's order: One-shots just after Perform */
+static const uint8_t PAGE_ORDER[NPAGES] = {V_STORY, V_GARDEN, V_SHOTS, V_MIX, V_COLR, V_SPACE, V_PAD, V_BELLS, V_BASS,
+                                            V_PULSE, V_LEAD, V_SETUP, V_SYSTEM, V_BT};
+static int page_pos(int v)
+{
+    int k;
+    for (k = 0; k < NPAGES; k++)
+        if (PAGE_ORDER[k] == v)
+            return k;
+    return -1;
+}
 #define NOBTN 0xFF
-static const char *const VIEW_NAME[NVIEWS] = {"Story", "Feel", "Mixer", "Colours", "Effects", "Pad", "Melody", "Bass",
+static const char *const VIEW_NAME[NVIEWS] = {"Story", "Perform", "Mixer", "Colours", "Effects", "Pad", "Melody", "Bass",
                                               "Drums", "Lead", "Setup", "System", "Bluetooth", "One-shots", "Harmony", "Stutter", "Filter", "Sparkle"};
 static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, NOBTN, NOBTN, B_FX, B_SEL, NOBTN, NOBTN, NOBTN, NOBTN, B_EDIT, B_GLO, NOBTN,
                                          NOBTN, NOBTN, B_ENV, B_LFO, B_ARP, B_SEQ};
@@ -101,7 +112,7 @@ static struct {
     uint8_t bd_asked;                  /* the breakdown asked for (or on) */
     uint8_t timer;                     /* the sleep timer: 0 off, 1..4 a quarter hour each */
     uint8_t dark;                      /* the screen dark: the timer on and nothing touched for 30 s */
-    uint8_t sting_k;                   /* the sting last fired (1..3), and when: its key's flash */
+    uint8_t sting_k, sting_dbl;                 /* the sting last fired (1..3), and when: its key's flash */
     uint32_t sting_t;
     uint32_t input_t;                  /* the last touch */
     uint32_t timer_end;
@@ -1198,11 +1209,15 @@ static void input(void)
                 say("ONE-SHOTS", 0);
             } else if ((ch >> i & 1u) && !(keys >> i & 1u) && !(ui.key_held >> i & 1u)) {
                 int cur = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : proj.piece;
-                if (en_sting_len(cur, KEY_ACT[i] - KEY_STING)) {
-                    ui.sting_k = (uint8_t)(KEY_ACT[i] - KEY_STING + 1);
+                if (en_sting_len(cur, KEY_ACT[i] - KEY_STING)) {   /* (0.8.1) a tap: from the loop's start; a
+                                                  * second tap soon after: now, joining the loop where it is */
+                    int k = KEY_ACT[i] - KEY_STING,
+                        dbl = ui.sting_k == k + 1 && plat_ms() - ui.sting_t < 450u && !ui.sting_dbl;
+                    ui.sting_k = (uint8_t)(k + 1);
                     ui.sting_t = plat_ms();
-                    en_sting(cur, KEY_ACT[i] - KEY_STING);
-                    say("STING", en_sting_name(cur, KEY_ACT[i] - KEY_STING));
+                    ui.sting_dbl = (uint8_t)dbl;
+                    en_sting(cur, k | (dbl ? 8 : 0));
+                    say(dbl ? "NOW" : "STING", en_sting_name(cur, k));
                 }
             }
         } else if (t >= 0) {                     /* ACTS: a tap queues, a hold fades now */
@@ -1235,7 +1250,7 @@ static void input(void)
         } else if (ui.view >= V_REV) {           /* from an effect's page: back to Effects */
             set_view(V_SPACE);
         } else {                                 /* round the bend: past the last page to the first, and back */
-            set_view(((int)ui.view + (e > 0 ? 1 : -1) + NPAGES) % NPAGES);
+            set_view(PAGE_ORDER[(page_pos(ui.view) + (e > 0 ? 1 : -1) + NPAGES) % NPAGES]);
         }
         ui.turn_t = plat_ms();
     }
@@ -1507,7 +1522,7 @@ static void draw_head(void)                     /* along the very top: the page 
 {
     char t[24];
     int k;
-    int32_t x, pg = ui.help == B_HOME + 1 ? -1 : ui.view < NPAGES ? ui.view : -1;
+    int32_t x, pg = ui.help == B_HOME + 1 ? -1 : ui.view < NPAGES ? page_pos(ui.view) : -1;
     uint32_t h = hash(hash(2166136261u, (uint32_t)ui.view | (uint32_t)ui.help << 8), (uint32_t)(batt() + 1));
     if (h == ui.sig[3])
         return;
@@ -1696,25 +1711,123 @@ static void meter2(int32_t x, int32_t y, int32_t h, int v, uint16_t off, uint16_
     for (k = 0; k < n; k++)
         cv_round(x + k * 11, y, 9, h, 2, k < lit ? mix(lo, hi, (uint32_t)(k * 16 / (n - 1))) : off);
 }
-static void draw_feel(void)
+/* (0.8.1) the Perform page (the Feel page's knobs): the chord now, big; the progression's loop, a cell a bar, its chords
+ * over them and the bar now lit; and the act keys, big: F G A B and their acts, the one playing lit, the one coming
+ * outlined */
+static int name_pc(const char *t, int *len)     /* "F#m7" -> 6, its root's length 2 */
 {
-    char t[8];
-    int e = proj.par[P_ENERGY], tn = proj.par[P_TENSION], now = (int)(50.0f + 50.0f * fm_clampf(en_arc, -1.0f, 1.0f));
-    int nx = (int)(100.0f * fm_clampf(en_drift, 0.0f, 1.0f));
-    cv_text(10, 0, &FONT_XS, "ENERGY", K_ACC);   /* Energy: as set (ALGORITHM), and where the music is now */
-    itoa_u((uint32_t)e, t);
-    cv_text(230 - text_w(&FONT_B, t), -1, &FONT_B, t, K_TEXT);
-    cv_text(10, 15, &FONT_XS, "set", K_DIM);
-    meter2(42, 17, 10, e, mix(K_BG, K_ACC, 4), K_PAD, e > 75 ? K_ALERT : K_ACC);
-    cv_text(10, 32, &FONT_XS, "now", K_DIM);
-    meter2(42, 34, 10, now, mix(K_BG, K_BELL, 4), K_BELL, K_FROST);
-    cv_text(10, 54, &FONT_XS, "TENSION", K_ALERT);
-    itoa_u((uint32_t)tn, t);
-    cv_text(230 - text_w(&FONT_B, t), 53, &FONT_B, t, K_TEXT);
-    meter2(10, 71, 10, tn, mix(K_BG, K_ALERT, 4), mix(K_ALERT, K_ACC, 6), K_ALERT);
-    cv_text(10, 92, &FONT_XS, "NEXT CHORD", K_PAD);
-    meter2(10, 109, 10, nx, mix(K_BG, K_PAD, 4), mix(K_BG, K_PAD, 10), K_PAD);
-    cv_text(10, 124, &FONT_XS, "Motion: how far now wanders", K_LINE);
+    static const int8_t PC[7] = {9, 11, 0, 2, 4, 5, 7};
+    int pc, n = 1;
+    if (*t < 'A' || *t > 'G')
+        return -1;
+    pc = PC[*t - 'A'];
+    if (t[1] == '#')
+        pc++, n++;
+    else if (t[1] == 'b')
+        pc--, n++;
+    *len = n;
+    return (pc + 12) % 12;
+}
+static void chord_moved(const char *t, int n, int mv, char *out)   /* a written chord, moved with Root ("Em" +2: "F#m") */
+{
+    static const char *const NM[12] = {"C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"};
+    int k = 0, l, pc = name_pc(t, &l), j;
+    if (pc < 0) {
+        out[0] = 0;
+        return;
+    }
+    for (j = 0; NM[(pc + mv + 12) % 12][j]; j++)
+        out[k++] = NM[(pc + mv + 12) % 12][j];
+    for (j = l; j < n && k < 9; j++) {
+        if (t[j] == '/') {                        /* (a bass under it: moved too) */
+            int l2, p2 = name_pc(t + j + 1, &l2), m;
+            if (p2 < 0)
+                break;
+            out[k++] = '/';
+            for (m = 0; NM[(p2 + mv + 12) % 12][m] && k < 11; m++)
+                out[k++] = NM[(p2 + mv + 12) % 12][m];
+            break;
+        }
+        out[k++] = t[j];
+    }
+    out[k] = 0;
+}
+static void draw_perform(void)
+{
+    static const char *const KN[4] = {"F", "G", "A", "B"};
+    char nm[16];
+    int cur = tr.on ? tr.piece : proj.piece, next = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : -1, a;
+    const char *pt = en_prog_text(proj.piece);
+    int mv = (proj.par[P_ROOT] - en_story_key(proj.piece / EN_NACT) + 12) % 12, bars = en_loop_bars, bar = en_loop_bar;
+    cv_text(8, -2, &FONT_M, en_playing ? chord_now(nm) : "-", K_TEXT);   /* the chord now */
+    if (bar >= 0 && bars > 0) {
+        char t[16];
+        int n = 0;
+        itoa_u((uint32_t)(bar + 1), t);
+        while (t[n])
+            n++;
+        t[n++] = ' ';
+        t[n++] = 'o';
+        t[n++] = 'f';
+        t[n++] = ' ';
+        itoa_u((uint32_t)bars, t + n);
+        cv_text(230 - text_w(&FONT_XS, "BAR"), 2, &FONT_XS, "BAR", K_DIM);
+        cv_text(230 - text_w(&FONT_B, t), 14, &FONT_B, t, K_TEXT);
+    } else
+        cv_text(230 - text_w(&FONT_XS, "chords: free"), 14, &FONT_XS, "chords: free", K_DIM);
+    if (pt && bars > 0 && bar >= 0) {            /* the loop: a cell a bar, grouped by chord */
+        int32_t x0 = 8, w = 224, cw = (w + 2) / bars - 2, x = x0, b = 0;
+        if (cw < 3)
+            cw = 3;
+        while (*pt && b < bars) {
+            const char *tok;
+            int tl = 0, nb = 0, k, here;
+            while (*pt == ' ')
+                pt++;
+            tok = pt;
+            while (pt[tl] && pt[tl] != ':' && pt[tl] != ' ')
+                tl++;
+            pt += tl;
+            if (*pt == ':') {
+                pt++;
+                while (*pt >= '0' && *pt <= '9')
+                    nb = nb * 10 + (*pt++ - '0');
+            }
+            if (nb < 1)
+                nb = 1;
+            here = bar >= b && bar < b + nb;
+            chord_moved(tok, tl, mv, nm);
+            if (text_w(&FONT_XS, nm) + 2 > (cw + 2) * nb) {   /* (short: "maj7" as "M7", then the root alone) */
+                int q, r;
+                for (q = 0; nm[q]; q++)
+                    if (nm[q] == 'm' && nm[q + 1] == 'a' && nm[q + 2] == 'j') {
+                        nm[q] = 'M';
+                        for (r = q + 1; nm[r + 2]; r++)
+                            nm[r] = nm[r + 2];
+                        nm[r] = 0;
+                        break;
+                    }
+                if (text_w(&FONT_XS, nm) + 2 > (cw + 2) * nb)
+                    nm[nm[1] == '#' || nm[1] == 'b' ? 2 : 1] = 0;
+            }
+            if (nm[0])
+                cv_text(x, 40, &FONT_XS, nm, here ? K_ACC : K_DIM);
+            for (k = 0; k < nb && b < bars; k++, b++, x += cw + 2)
+                cv_round(x, 56, cw, 16, 2, b == bar ? K_ACC : b < bar ? mix(K_BG, K_ACC, 6) : here ? mix(K_BG, K_ACC, 4) : K_PANEL);
+            x += 2;                              /* (a gap between chords) */
+            while (*pt && *pt != ' ')
+                pt++;
+        }
+    }
+    for (a = 0; a < EN_NACT; a++) {              /* the act keys, big */
+        int32_t x = 6 + a * 58;
+        int pc = cur / EN_NACT * EN_NACT + a, on = pc == cur, nx = pc == next && next != cur;
+        cv_round(x, 80, 54, 56, 8, on ? K_PAD : nx ? K_ACC : K_PANEL);
+        if (!on)
+            cv_round(x + 2, 82, 50, 52, 6, nx ? K_BG : K_PANEL);
+        text_c(x + 27, 84, &FONT_B, KN[a], on ? K_BG : nx ? K_ACC : K_TEXT);
+        text_c(x + 27, 112, &FONT_XS, en_act_name(pc), on ? K_BG : nx ? K_ACC : K_DIM);
+    }
 }
 
 /* how loud each instrument is now (the Mixer's strips are draw_inst_strips, 0.7) */
@@ -2118,8 +2231,8 @@ static void draw_shots(void)
         if (on)
             cv_text(226 - text_w(&FONT_XS, "playing"), y + 4, &FONT_XS, "playing", K_BG);
     }
-    cv_text(8, 112, &FONT_XS, "Tap a key: play it. The knobs:", K_LINE);
-    cv_text(8, 126, &FONT_XS, "all three, kept with the story", K_LINE);
+    cv_text(8, 112, &FONT_XS, "Tap: from the loop's start", K_LINE);
+    cv_text(8, 126, &FONT_XS, "Tap twice: now, where the loop is", K_LINE);
 }
 
 static void draw_bt(void)
@@ -2493,9 +2606,12 @@ static void draw_main(void)
                  (uint32_t)proj.par[P_OSLEVEL] | (uint32_t)proj.par[P_OSSPACE] << 8 | (uint32_t)proj.par[P_OSECHO] << 16 |
                      (uint32_t)proj.par[P_OSTONE] << 24);
         break;
-    case 6:
-        h = hash(hash(h, (uint32_t)proj.par[P_ENERGY] | (uint32_t)proj.par[P_TENSION] << 8 | (uint32_t)(en_drift * 40.0f) << 16),
-                 (uint32_t)(en_arc * 100.0f + 100.0f));
+    case 6:                                      /* (0.8.1, Perform) */
+        h = hash(hash(h, (uint32_t)en_chord_root | (uint32_t)en_chord[0] << 4 | (uint32_t)en_chord[1] << 11 |
+                             (uint32_t)en_chord[2] << 18 | (uint32_t)en_playing << 25),
+                 (uint32_t)(en_loop_bar + 1) | (uint32_t)en_loop_bars << 8 | (uint32_t)proj.piece << 16 |
+                     (uint32_t)(tr.pending + 1) << 22 | (uint32_t)tr.on << 30);
+        h = hash(h, (uint32_t)tr.piece | (uint32_t)proj.par[P_ROOT] << 8);
         break;
     default:
         if (ring_focus() >= 0) {
@@ -2526,7 +2642,7 @@ static void draw_main(void)
     case 3: draw_lead(); break;
     case 4: draw_fx_list(); break;
     case 5: draw_fx_page(); break;
-    case 6: draw_feel(); break;
+    case 6: draw_perform(); break;
     case 7: draw_setup(); break;
     case 8: draw_system(); break;
     case 9: draw_inst_strips(-1); break;

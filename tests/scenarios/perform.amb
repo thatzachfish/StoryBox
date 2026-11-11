@@ -23,9 +23,9 @@ expect bd 1
 tapkey 10
 wait 6500
 expect bd 0
-# the Mixer page (two to the right of Story): the four levels
+# the Mixer page (three to the right of Story: Perform, One-shots, then it; 0.8.1): the four levels
 tap HOME
-turn SELECT 2
+turn SELECT 3
 expect view 2
 spin K4 -10
 expect par3 35

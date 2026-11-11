@@ -15,8 +15,14 @@ expect par61 50
 spin K4 10
 expect par64 60
 shot oneshots.png
-# a tap plays it
+# a tap plays it, from the loop's start (0.8.1); twice: now, where the loop is
 tapkey 25
+said STING Together
+wait 200
+tapkey 20
+wait 150
+tapkey 20
+said NOW Fast
 wait 3000
 shot oneshots-playing.png
 # another act of the story: the same settings

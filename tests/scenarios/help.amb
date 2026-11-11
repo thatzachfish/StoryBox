@@ -15,7 +15,7 @@ tap REC
 wait 200
 expect frozen 0
 tap HOME
-turn SELECT 2
+turn SELECT 3
 turn K1 3 10
 expect par0 53
 wait 500

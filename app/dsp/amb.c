@@ -317,6 +317,11 @@ const char *en_sting_name(int piece, int k)     /* ("a#b#c#d": one per act) */
 }
 
 const char *en_story_name(int s) { return STORIES[(unsigned)s < EN_NSTORY ? s : 0].name; }
+const char *en_prog_text(int i)                 /* (0.8.1, the Perform page) an act's progression as written; its key */
+{
+    i = (unsigned)i < EN_NPIECES ? i : 0;
+    return STORIES[i / EN_NACT].prog[i % EN_NACT];
+}
 const char *en_act_name(int i)
 {
     i = (unsigned)i < EN_NPIECES ? i : 0;
@@ -630,7 +635,7 @@ void en_sting(int piece, int k)
 {
     if (!prog_parsed)
         prog_parse();
-    post(C_STING, (unsigned)k < EN_NSTING ? k : 0, piece);
+    post(C_STING, (unsigned)(k & 7) < EN_NSTING ? k : 0, piece);   /* (k + 8: join the loop now, 0.8.1) */
 }
 void en_prog(int piece)
 {
@@ -667,6 +672,8 @@ static void lead_note_off(int key);
 static void call_on(int key, int vel);
 static void theme_fire(const char *t, int mv);
 static int theme_busy(void);
+static uint8_t th_join;                          /* (0.8.1) a theme: 0 waits for the loop's start (the next bar
+                                                  * without a progression); 1 joins now, where the loop is */
 static void theme_stop(void);
 static void theme_bar(void);
 static void call_off(int key);
@@ -1085,6 +1092,10 @@ static void chord_named(int off, int q, int bass)   /* a named chord, off semito
 /* (0.8) a refrain on the bells over a chord of the progression: Fast and Slow's Dream, over D6, D D D B A as Zach
  * played it (a beat and a half in, twice in the chord's four bars), soft and far */
 static void bell_voice(int l, int n, float vel, int32_t wait);
+/* (0.8.1) where the progression's loop is: sixteenths since its first chord (-1: no progression), and its length in
+ * bars; the Perform page shows it, a one-shot joins it */
+static int32_t loop16 = -1;
+volatile int16_t en_loop_bar = -1, en_loop_bars;
 static int16_t rf_t = -1;                        /* sixteenths since it began (-1: none) */
 static const struct { uint8_t piece, step, n; int8_t ev[12][2]; } REFRAIN = {
     4 * EN_NACT + 1, 0, 10,
@@ -1108,6 +1119,8 @@ static void prog_advance(void)                  /* the next step, on a bar: as w
     prog_i = prog_i + 1 >= prog_n[prog_cur] || prog_i < 0 ? 0 : prog_i + 1;
     if (prog_cur == REFRAIN.piece && prog_i == REFRAIN.step && !bd)
         rf_t = 0;                                /* (0.8: the refrain, from this bar) */
+    if (prog_i == 0)
+        loop16 = 0;                              /* (0.8.1: the loop from its start) */
     d = prog_deg[prog_cur][prog_i];
     b = prog_bars[prog_cur][prog_i];
     en_prog_step = (int8_t)prog_i;
@@ -1561,7 +1574,6 @@ static void tick(void)
     int d, l;
     const float pa = fm_clampf(1.0f + 1.3f * arcm, 0.3f, 1.15f);   /* the arc: the pulse fades (never out) */
     const int bar = bar_pos == 0;
-    theme_bar();                                 /* (0.7: a theme's sixteenth; its start on the bar) */
     if (bar) {
         meter_bar();
         en_barno++;
@@ -1656,6 +1668,18 @@ static void tick(void)
         prog_advance();                          /* a progression: its chords on their bars */
     }
     refrain_tick();                              /* (0.8: Dream's refrain on the bells) */
+    if (!prog_on())
+        loop16 = -1;
+    else if (loop16 >= 0) {                      /* (0.8.1) the loop's place, for the screen */
+        int b, tot = 0;
+        for (b = 0; b < prog_n[prog_cur]; b++)
+            tot += prog_bars[prog_cur][b];
+        en_loop_bars = (int16_t)tot;
+        en_loop_bar = (int16_t)(loop16 / en_bar_len);
+    }
+    theme_bar();                                 /* (0.7: a theme's sixteenth; 0.8.1: after the loop's step) */
+    if (loop16 >= 0)
+        loop16++;
     if (sting_pend >= 0 && (bar_pos & 3u) == 0u)
         sting_fire();                            /* a sting: on the beat */
     if ((bar_pos & 3u) == 0u)
@@ -2182,12 +2206,20 @@ static void drain(void)
             else if (!a && bd && !bd_ret)
                 bd_ret = 1;
             break;
-        case C_STING:                            /* on the next beat (now while resting) */
-            if ((unsigned)b < EN_NPIECES && (unsigned)a < EN_NSTING && sting_n[b / EN_NACT][a]) {
-                sting_pend = b / EN_NACT * EN_NSTING + a;
-                sting_act = b % EN_NACT;
-                if (!en_playing)
-                    sting_fire();
+        case C_STING:                            /* on the next beat (now while resting); (0.8.1) a theme: a + 8,
+                                                  * joining the loop now, else from the loop's start */
+            {
+                int join = a >= 8;
+                a &= 7;
+                if ((unsigned)b < EN_NPIECES && (unsigned)a < EN_NSTING && sting_n[b / EN_NACT][a]) {
+                    sting_pend = b / EN_NACT * EN_NSTING + a;
+                    sting_act = b % EN_NACT;
+                    if (sting_theme[b / EN_NACT][a]) {
+                        sting_fire();            /* (read now: it waits for the loop, or joins it) */
+                        th_join = (uint8_t)(join || !en_playing);
+                    } else if (!en_playing)
+                        sting_fire();
+                }
             }
             break;
         case C_PROG:                             /* from the progression's start, on the next bar */
@@ -3386,11 +3418,7 @@ static void theme_fire(const char *t, int mv)    /* read the theme; it starts on
     }
     for (p = 0; p < TH_PARTS; p++)
         th_i[p] = th_on[p] = 0;
-    th_wait = th_end > 0;
-    if (th_wait && prog_on()) {                  /* (0.7: the progression from its start with it, so they agree) */
-        prog_i = -1;
-        prog_left = 1;
-    }
+    th_wait = th_end > 0;                        /* (0.8.1: the loop no longer restarted for it: it waits, or joins) */
 }
 static int theme_busy(void) { return th_wait || th_play; }
 int en_theme_busy(void) { return theme_busy(); }   /* (0.8: the One-shots page lights the one playing) */
@@ -3398,10 +3426,17 @@ int en_theme_busy(void) { return theme_busy(); }   /* (0.8: the One-shots page l
 static void theme_bar(void)                      /* every sixteenth: the theme's notes on time */
 {
     int p;
-    if (th_wait && bar_pos == 0) {               /* (it waits for the bar) */
-        th_wait = 0;
+    if (th_wait && (th_join || (loop16 >= 0 ? loop16 == 0 : bar_pos == 0))) {
+        th_wait = 0;                             /* (the loop's start; or now, where the loop is: its notes from there) */
         th_play = 1;
         th_pos = 0;
+        if (th_join && loop16 > 0 && th_end) {
+            th_pos = (uint16_t)(loop16 % th_end);
+            for (p = 0; p < TH_PARTS; p++)
+                while (th_i[p] < th_n[p] && th_ev[p][th_i[p]].at < th_pos)
+                    th_i[p]++;
+        }
+        th_join = 0;
     }
     if (!th_play)
         return;
