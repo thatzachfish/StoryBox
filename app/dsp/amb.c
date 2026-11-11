@@ -4091,8 +4091,8 @@ static void cloud(float *x, float *y)
         cl_pos[g] += cl_step[g];
         cl_left[g] -= 1.0f;
     }
-    l = tone_run(cl_s[0], l * 1.1f);
-    r = tone_run(cl_s[1], r * 1.1f);
+    l = tone_run(cl_s[0], l * 0.6f);
+    r = tone_run(cl_s[1], r * 0.6f);
     *x = *x * (1.0f - 0.85f * w) + l * w;
     *y = *y * (1.0f - 0.85f * w) + r * w;
 }
@@ -4380,8 +4380,8 @@ static void render_chunk(int32_t *out, uint32_t n, float gain)
             mixl[j] *= 1.0f - thr;
             mixr[j] *= 1.0f - thr;
         }
-        echoes(esend[j] * eg + tw * 0.8f, &el, &er, &xl, &xr);
-        reverb((rsend[j] * rg + (el + er + xl + xr) * 0.35f * fm_maxf(rev_send, 0.3f * thr) + tw * 0.9f) * 0.8f, &wl, &wr);
+        echoes(esend[j] * eg + tw * 0.6f, &el, &er, &xl, &xr);
+        reverb((rsend[j] * rg + (el + er + xl + xr) * 0.35f * fm_maxf(rev_send, 0.3f * thr) + tw * 0.6f) * 0.8f, &wl, &wr);
         l = (mixl[j] + 0.75f * el + 0.3f * xl + 1.3f * wl) * 0.36f;
         r = (mixr[j] + 0.75f * er + 0.3f * xr + 1.3f * wr) * 0.36f;
         fx_sample(&l, &r);                       /* the punch-ins */
