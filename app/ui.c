@@ -2116,82 +2116,82 @@ static void draw_help(void)
  * Each key its letter; the black keys' jobs above their row, the white keys' under it, each in its zone's colour:
  * the acts yellow, the mix in its instruments' colours (muted dim, soloed yellow), the breakdown and the stings pink,
  * the stories blue. Where it is: filled; where it is going: blinking; a spare key: dark */
+/* (0.8.10) the Story page, calmer: rows in the keys' order, centred. Up top the mutes (F#3 G#3 A#3 C#4) and Break
+ * (D#4); the four acts (F3 G3 A3 B3) big; the stories, a row a bank (C4 D4 E4 his; F4 .. B4 the middle; C5 D5 E5 the
+ * house music); the one-shots (C#5 D#5 F#5) at the bottom. The one playing lit, the one coming blinking */
 static void draw_map(void)
 {
-    static const char *const NOTE[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
-    static const uint8_t ROW0[5] = {0, 7, 12, 19, 24};
     static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
     static const char *const TN[4] = {"Pad", "Melody", "Bass", "Drums"};
-    int cur = proj.piece, goal = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : -1, blink = (plat_ms() / 300u) & 1u, r;
+    static const char *const SHORT[EN_NSTORY] = {"Pre-show", "Sleep", "Lighthouse", "Market", "Fast & Slow", "Inside",
+                                                 "Fly", "Intermission", "Post Show", "Riebeck"};
+    static const int8_t BANK[3][4] = {{5, 6, 4, -1}, {2, 3, 9, 1}, {0, 7, 8, -1}};
+    int cur = proj.piece, goal = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : -1, blink = (plat_ms() / 300u) & 1u, k, r;
     int shown = goal >= 0 && goal / EN_NACT != cur / EN_NACT ? goal : cur;   /* the story it is in, or going to */
     int bd_on = en_bd == 1 && ui.bd_asked, bd_wait = en_bd == 2 || (en_bd == 1 && !ui.bd_asked) || (ui.bd_asked && !en_bd);
-    for (r = 0; r < 4; r++) {
-        int a = ROW0[r], b = ROW0[r + 1], k, wi = 0, lead = BLACK_KEY(a);
-        int32_t y0 = r * 36 + 2, ww = lead ? 232 * 2 / 9 : 58, x0 = 4 + (lead ? ww / 2 : 0), xs[8], nw = 0;
-        for (k = a; k < b; k++)                  /* a shorter row, centred */
-            nw += !BLACK_KEY(k);
-        if (!lead)
-            x0 += (232 - nw * ww) / 2;
-        for (k = a; k < b; k++) {                /* where each key sits */
-            if (BLACK_KEY(k)) {
-                xs[k - a] = x0 + wi * ww;
+    {                                            /* the mutes and Break, a row of chips, each as wide as its name */
+        int32_t x = 4 + text_w(&FONT_XS, "MUTE") + 4;
+        cv_text(4, 2, &FONT_XS, "MUTE", K_DIM);
+        for (k = 0; k < 5; k++) {
+            if (k < 4) {
+                const char *n = k == 1 ? "Mel" : TN[k];
+                int solo = ui.solos >> k & 1u, heard = ui.solos ? solo : !(ui.mutes >> k & 1u);
+                int32_t w = text_w(&FONT_XS, n) + 13;
+                cv_round(x, 1, w, 15, 4, solo ? K_ACC : K_PANEL);
+                cv_disc(x + 5, 8, 2, heard ? TC[k] : K_LINE);
+                cv_text(x + 9, 2, &FONT_XS, n, heard ? K_TEXT : K_LINE);
+                x += w + 3;
             } else {
-                xs[k - a] = x0 + wi * ww + ww / 2;
-                wi++;
+                cv_round(x, 1, 236 - x, 15, 4, bd_on ? K_ALERT : bd_wait && blink ? K_ALERT : K_PANEL);
+                text_c(x + (236 - x) / 2, 2, &FONT_XS, "Break", bd_on || (bd_wait && blink) ? K_BG : K_DIM);
             }
         }
-        for (k = a; k < b; k++) {                /* the white keys: their strip, their letter, their job */
-            int v = KEY_ACT[k], here = 0, going = 0;
-            uint16_t c = K_LINE;
-            const char *nm = "";
-            if (BLACK_KEY(k))
-                continue;
-            if (v >= 0 && v < EN_NACT) {
-                int pc = shown / EN_NACT * EN_NACT + v;
-                c = K_ACC, nm = en_act_name(pc), here = pc == cur, going = pc == goal && pc != cur;
-            } else if (v >= 10 && v < 10 + EN_NSTORY) {
-                static const char *const SHORT[EN_NSTORY] = {"Pre-show", "Sleep", "Lighthouse", "Market", "Fast & Slow", "Inside",
-                                                             "Fly", "Intermission", "Post Show", "Riebeck"};
-                c = K_FROST, nm = SHORT[v - 10], here = v - 10 == cur / EN_NACT;
-                going = goal >= 0 && v - 10 == goal / EN_NACT && !here;
-            }
-            cv_round(xs[k - a] - ww / 2 + 1, y0 + 12, ww - 2, 11, 2,
-                     here ? c : going && blink ? mix(K_BG, c, 12) : v >= 0 ? mix(K_BG, c, 5) : K_PANEL);
-            text_c(xs[k - a], y0 + 10, &FONT_XS, NOTE[(5 + k) % 12], here ? K_BG : v >= 0 ? mix(K_BG, c, 13) : K_LINE);
-            {                                     /* a long name on a row's first key leans left, out of its neighbour's way */
-                int32_t w = text_w(&FONT_XS, nm), lx = xs[k - a] - w / 2;
-                if (k == a && w > ww - 4)
-                    lx = xs[k - a] + ww / 2 - 8 - w;
-                else if (k >= b - 1 && w > ww - 4)       /* and on its last, right */
-                    lx = xs[k - a] - ww / 2 + 8;
-                if (lx + w > 238)
-                    lx = 238 - w;
-                cv_text(lx < 2 ? 2 : lx, y0 + 23, &FONT_XS, nm, here ? K_TEXT : going ? (blink ? K_ACC : K_DIM) : c);
+    }
+    for (k = 0; k < EN_NACT; k++) {             /* the acts, big */
+        int32_t x = 6 + k * 58;
+        int pc = shown / EN_NACT * EN_NACT + k, here = pc == cur, going = pc == goal && pc != cur;
+        const char *an = en_act_name(pc);
+        cv_round(x, 20, 54, 24, 6, here ? K_PAD : going && blink ? mix(K_BG, K_PAD, 10) : K_PANEL);
+        {
+            uint16_t c = here ? K_BG : going ? K_PAD : K_TEXT;
+            if (text_w(&FONT_S, an) <= 50)
+                text_c(x + 27, 24, &FONT_S, an, c);
+            else if (text_w(&FONT_XS, an) <= 50)
+                text_c(x + 27, 25, &FONT_XS, an, c);
+            else {                               /* (two words, two lines) */
+                char w1[16];
+                int q = 0;
+                while (an[q] && an[q] != ' ' && q < 15)
+                    w1[q] = an[q], q++;
+                w1[q] = 0;
+                text_c(x + 27, 20, &FONT_XS, w1, c);
+                text_c(x + 27, 31, &FONT_XS, an[q] ? an + q + 1 : "", c);
             }
         }
-        for (k = a; k < b; k++) {                /* the black keys, over the strip; their job above */
-            int v = KEY_ACT[k];
-            uint16_t c = K_LINE, kc;
-            const char *nm = "";
-            int32_t x = xs[k - a] < 14 ? 14 : xs[k - a];
-            if (!BLACK_KEY(k))
-                continue;
-            if (v >= KEY_TRACK) {
-                int l = v - KEY_TRACK, solo = ui.solos >> l & 1u, heard = ui.solos ? solo : !(ui.mutes >> l & 1u);
-                c = solo ? K_ACC : heard ? TC[l] : K_LINE, nm = TN[l];
-            } else if (v == KEY_BREAK) {
-                c = bd_on ? K_ALERT : bd_wait ? (blink ? K_ALERT : K_LINE) : mix(K_BG, K_ALERT, 11), nm = "Break";
-            } else if (v >= KEY_STING && en_sting_len(shown, v - KEY_STING)) {
-                c = K_ALERT, nm = en_sting_name(shown, v - KEY_STING);
-            }
-            kc = c == K_LINE ? K_PANEL : c;
-            cv_round(x - 10, y0 + 10, 20, 13, 2, K_BG);
-            cv_round(x - 9, y0 + 10, 18, 12, 2, kc);
-            text_c(x, y0 + 9, &FONT_XS, NOTE[(5 + k) % 12], kc == K_PANEL ? K_LINE : K_BG);
-            if (*nm) {
-                int32_t w = text_w(&FONT_XS, nm), lx = x - w / 2;
-                cv_text(lx < 2 ? 2 : lx, y0 - 3, &FONT_XS, nm, c);
-            }
+    }
+    for (r = 0; r < 3; r++) {                    /* the stories, a row a bank, centred */
+        int n = BANK[r][3] < 0 ? 3 : 4;
+        int32_t w = n == 3 ? 76 : 58, gap = 2, x0 = (240 - (n * w + (n - 1) * gap)) / 2, y = 49 + r * 21;
+        for (k = 0; k < n; k++) {
+            int st = BANK[r][k], here = st == cur / EN_NACT, going = goal >= 0 && st == goal / EN_NACT && !here;
+            int32_t x = x0 + k * (w + gap);
+            cv_round(x, y, w, 18, 4, here ? K_ACC : going && blink ? mix(K_BG, K_ACC, 10) : K_PANEL);
+            text_c(x + w / 2, y + 2, &FONT_XS, SHORT[st], here ? K_BG : going ? K_ACC : K_TEXT);
+        }
+    }
+    {                                            /* the one-shots, the story's */
+        static const char *const SK[EN_NSTING] = {"C#", "D#", "F#"};
+        int th = en_theme_busy();
+        for (k = 0; k < EN_NSTING; k++) {
+            int32_t x = 6 + k * 77;
+            int has = en_sting_len(shown, k) != 0, me = has && ui.sting_k == k + 1,
+                play = me && (th == 2 || (!th && plat_ms() - ui.sting_t < 2500u)), wait = me && th == 1;
+            const char *n = has ? en_sting_name(shown, k) : "-";
+            cv_round(x, 116, 74, 20, 5, play || wait ? K_ALERT : K_PANEL);
+            if (wait)
+                cv_round(x + 2, 118, 70, 16, 4, K_BG);
+            cv_text(x + 4, 119, &FONT_XS, SK[k], play ? K_BG : K_DIM);
+            cv_text(x + 22, 119, &FONT_XS, n, play ? K_BG : wait || has ? K_ALERT : K_LINE);
         }
     }
 }
@@ -2545,7 +2545,7 @@ static void draw_fx_list(void)
         cv_round(x, y, 112, 66, 8, on ? mix(K_BG, K_ALERT, 5) : K_PANEL);
         if (on)
             cv_round(x, y, 112, 2, 1, K_ALERT);
-        fx_picture(i, x + 10, y + 6, 92, 26, on ? K_ALERT : K_DIM);
+        fx_picture(i, x + 10, y + 6, 92, 26, on ? K_ALERT : mix(K_PANEL, K_ALERT, 9));   /* (0.8.10: pink, softer at rest) */
         cv_text(x + 8, y + 34, &FONT_B, VIEW_NAME[V_REV + i], on ? K_ALERT : K_TEXT);
         cv_text(x + 8, y + 50, &FONT_XS, BTN_LABEL[FX_BTN[i]], K_ACC);
         cv_text(x + 104 - text_w(&FONT_XS, st), y + 50, &FONT_XS, st, on ? K_ALERT : K_DIM);
@@ -2556,7 +2556,7 @@ static void draw_fx_page(void)                   /* one effect: its picture, lar
 {
     int i = ui.view - V_REV, on = ((ui.fx_held | ui.fx_latch) >> i) & 1u, lat = ui.fx_latch >> i & 1u;
     char t[24] = "hold ";
-    fx_picture(i, 30, 14, 180, 64, on ? K_ALERT : K_DIM);
+    fx_picture(i, 30, 14, 180, 64, on ? K_ALERT : mix(K_BG, K_ALERT, 9));
     text_c(120, 90, &FONT_B, VIEW_NAME[ui.view], on ? K_ALERT : K_TEXT);
     caps(t + 5, BTN_LABEL[FX_BTN[i]], sizeof t - 5);
     text_c(120, 110, &FONT_XS, lat ? "LATCHED" : on ? "ON" : t, lat || on ? K_ALERT : K_DIM);
@@ -2701,6 +2701,8 @@ static void draw_main(void)
         h = hash(hash(hash(h, (uint32_t)(tr.pending + 1) << 8 | (uint32_t)tr.on << 16 | (uint32_t)tr.piece << 17),
                       ((plat_ms() / 300u) & 1u) | (uint32_t)(tr.t * 60.0f) << 1),
                  (uint32_t)ui.mutes | (uint32_t)ui.solos << 4 | (uint32_t)en_bd << 8 | (uint32_t)ui.bd_asked << 10);
+        h = hash(h, (uint32_t)ui.sting_k | (uint32_t)en_theme_busy() << 4 | (uint32_t)(plat_ms() - ui.sting_t < 2500u) << 6 |
+                        (uint32_t)proj.piece << 8);   /* (0.8.10: the one-shots on it too) */
         break;
     case 3:
         h = hash(hash(h, (uint32_t)proj.par[P_LSOUND] | (uint32_t)proj.par[P_LOCT] << 8 | (uint32_t)proj.par[P_ROOT] << 16 | lead_pool() << 20),
