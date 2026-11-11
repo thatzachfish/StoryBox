@@ -603,7 +603,7 @@ const char *en_chord_name(const int *pcs, int n, char *buf)
 }
 
 /* ------------------------------------------------------------ commands --- */
-enum { C_SET, C_POOL, C_PLAY, C_NEXT, C_FREEZE, C_SEED, C_PANIC, C_CLOCK, C_REGROW, C_PROG, C_STING, C_MUTE, C_BREAK,
+enum { C_SET, C_POOL, C_PLAY, C_NEXT, C_FREEZE, C_SEED, C_PANIC, C_CLOCK, C_REGROW, C_PROG, C_STING, C_MUTE, C_BREAK, C_DSOLO,
        C_LON, C_LOFF, C_FX, C_ANS };
 #define QN 256u                                   /* (0.5: from 64: a story's change posts some 50 values at once) */
 static uint32_t q[QN];
@@ -634,6 +634,7 @@ void en_answer(int amount) { post(C_ANS, 0, amount < 0 ? 0 : amount > 100 ? 100 
 const char *const EN_MEL_NAME[EN_NMEL] = {"Bells", "Kalimba", "Marimba", "Vibes", "Slide", "Glass", "Music box", "Banjo"};
 const char *const EN_LEAD_NAME[EN_NLEAD] = {"Kalimba", "Bell", "Flute", "Guitar", "Rhodes", "Violin", "Cello", "Slide"};
 void en_breakdown(int on) { post(C_BREAK, on ? 1 : 0, 0); }
+void en_drum_solo(int on) { post(C_DSOLO, on ? 1 : 0, 0); }
 void en_sting(int piece, int k)
 {
     if (!prog_parsed)
@@ -700,6 +701,9 @@ static int rb_held, rb_rec, rb_rec_n, rb_regrab;   /* the punch-ins' ring held; 
                                                     * moment plays (a refresh); rb_regrab: the new one ready, at the seam */
 static float mg[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 static uint8_t bd, bd_req, bd_ret;
+static uint8_t ds, ds_req, ds_ret;               /* (0.8.13) the drum solo: on (from the next bar), asked, coming back
+                                                  * (1 asked, 2 this bar the fill) */
+volatile uint8_t en_ds;                          /* (UI) 0 off, 1 soloing, 2 starting or ending */
 volatile uint8_t en_bd;
 /* StoryBox: a named chord in play (chord_x): its tones and its bass (-1: the root), absolute pitch classes */
 static int chord_x, x_pcs[4], x_n, x_bass = -1;
@@ -1415,8 +1419,8 @@ static void drum_publish(int d)
 
 static int energy_hits(void)                    /* Hits, through Energy */
 {
-    int h = par[P_HITS] + (int)(35.0f * energy);
-    return par[P_HITS] == 0 ? 0 : h < 0 ? 0 : h > 100 ? 100 : h;   /* a story with no pulse keeps none */
+    int h = par[P_HITS] + (int)(35.0f * energy) + (ds ? 40 : 0);   /* (0.8.13: the solo, busier) */
+    return par[P_HITS] == 0 && !ds ? 0 : h < 0 ? 0 : h > 100 ? 100 : h;   /* a story with no pulse keeps none */   /* a story with no pulse keeps none */
 }
 
 static void drums_pattern(void)                 /* Hits: the patterns' home */
@@ -1672,13 +1676,27 @@ static void tick(void)
             drum_hit(0, 1.0f, 0);                /* landing on the one */
         }
         en_bd = (uint8_t)(bd ? (bd_ret ? 2 : 1) : 0);
+        if (ds_req && !ds) {                     /* (0.8.13) the drum solo, on the bar: the rest drop out, the drums busier */
+            ds = 1;
+            ds_ret = 0;
+            pulse_rest = 0;
+            drums_pattern();
+        } else if (!ds_req && ds && !ds_ret) {   /* coming back: this bar a fill */
+            ds_ret = 2;
+        } else if (ds_ret == 2) {                /* and back, on the one */
+            ds = 0;
+            ds_ret = 0;
+            drums_pattern();
+            drum_hit(0, 1.0f, 0);
+        }
+        en_ds = (uint8_t)(ds ? (ds_ret ? 2 : 1) : ds_req ? 2 : 0);
     }
     if (bd_ret == 2 && bar_pos >= en_bar_len - 4) /* the fill: the last beat's sixteenths, rising */
         drum_hit(1, 0.45f + 0.15f * (float)(bar_pos - (en_bar_len - 4)), (int)(sixteenth & 1u));
     if (bar) {                                  /* a bar: Evolve's rests and turns */
         if (pulse_rest > 0)
             pulse_rest--;
-        else if (frand() < evolve * 0.015f * (1.0f - 0.01f * (float)par[P_GROOVE]))
+        else if (!ds && frand() < evolve * 0.015f * (1.0f - 0.01f * (float)par[P_GROOVE]))
             pulse_rest = 2 + irand(3);           /* a short breath: 2 to 4 bars (less with Groove) */
         en_pulse_rest = (uint8_t)(pulse_rest > 0);
         if (frand() < evolve * 0.25f * (1.0f - 0.01f * (float)par[P_GROOVE]))
@@ -1686,8 +1704,9 @@ static void tick(void)
     }
     if (bar)                                    /* StoryBox: a phrase's last bar (of four) may end in a fill: more
                                                  * surely with Structure, more often with Energy */
-        fill_bar = (en_barno & 3u) == 0u && !pulse_rest && !bd && drum_kb[0] > 0 &&
-                   frand() < (0.2f + 0.45f * (float)par[P_GROOVE] * 0.01f) * (0.7f + 0.3f * energy);
+        fill_bar = ds ? ((en_barno & 1u) == 0u && frand() < 0.7f) || ds_ret == 2   /* (0.8.13: the solo, every other bar) */
+                      : (en_barno & 3u) == 0u && !pulse_rest && !bd && drum_kb[0] > 0 &&
+                            frand() < (0.2f + 0.45f * (float)par[P_GROOVE] * 0.01f) * (0.7f + 0.3f * energy);
     if (par[P_KIT] == 3 && en_bar_len == 16 && !pulse_rest && !bd && par[P_PULSE] > 0) {   /* Lounge: the cross-stick */
         int b = bar_pos;
         if (b == 12)
@@ -2283,6 +2302,9 @@ static void drain(void)
             ans_amt = (float)b * 0.01f;
             if (!b)
                 ans_stop();
+            break;
+        case C_DSOLO:                            /* (0.8.13) the drum solo: from the next bar; off: back, with a fill */
+            ds_req = (uint8_t)(a != 0);
             break;
         case C_BREAK:
             if (a && !bd)
@@ -3069,6 +3091,7 @@ static int chord_has(int pc)
  * and at the end, onto the chord, held. When a note sounds (ans_tick), one that should be the chord's and isn't (the
  * chord moved on since) slides to the nearest that is */
 static uint8_t imp_rh[ANS_N], imp_rd[ANS_N], imp_rn;   /* the last phrase's rhythm: its notes' sixteenths and lengths */
+static int8_t imp_dd[ANS_N];                     /* (0.8.13) and its notes, as steps from its first (a sequence's) */
 static int chord_near(int d, const int *sc, int m, int dir)   /* the scale degree nearest d that is the chord's (dir
                                                   * first: 1 up, -1 down, 0 either) */
 {
@@ -3096,7 +3119,8 @@ static void imp_build(void)                      /* a phrase of its own, into re
     }
     bars = 1 + (frand() < 0.4f + 0.3f * e);
     len16 = bars * (int)en_bar_len;
-    again = imp_rn >= 3 && frand() < 0.35f;      /* the last rhythm again (a motif), new notes on it */
+    again = imp_rn >= 3 && frand() < 0.5f;       /* the last rhythm again (a motif), new notes on it, or (0.8.13) its
+                                                  * notes too, a step or two away (a sequence: what a player does) */
     if (again) {
         for (k = 0; k < imp_rn && imp_rh[k] < len16; k++) {
             rh[rn] = imp_rh[k];
@@ -3116,13 +3140,23 @@ static void imp_build(void)                      /* a phrase of its own, into re
         }
     }
     d = chord_near(scale_deg(64 + irand(8), sc, m), sc, m, 0);   /* from about E4, a note of the chord */
+    {
+        const int seq = again && frand() < 0.5f;
+        int d0 = d;
+        if (seq)
+            d0 = d = chord_near(d + (frand() < 0.5f ? -1 : 1) * (1 + irand(2)), sc, m, 0);
     for (k = 0; k < rn && n < ANS_N; k++) {
         int note, firm = (rh[k] % 4) == 0 || rd[k] >= 4;   /* a beat, or a long note: the chord's */
-        if (k) {
+        if (seq && k < imp_rn) {                 /* (the sequence: the last phrase's shape, moved) */
+            d = d0 + imp_dd[k];
+            if (firm && !chord_has(scale_note(d, sc, m)))
+                d = chord_near(d, sc, m, 0);
+        } else if (k) {
             if (back) {                          /* after a leap: a step back */
                 d -= back;
                 back = 0;
-            } else if (frand() < 0.1f + 0.1f * wild) {   /* a leap, a third to a fifth, onto the chord */
+            } else if (frand() < 0.05f + 0.07f * wild) {   /* a leap, a third to a fifth, onto the chord (0.8.13:
+                                                  * rarer: lines move by step) */
                 int dir = frand() < 0.5f ? -1 : 1;
                 d = chord_near(d + dir * (2 + irand(3)), sc, m, dir);
                 back = dir;
@@ -3133,10 +3167,12 @@ static void imp_build(void)                      /* a phrase of its own, into re
         if (firm)
             d = chord_near(d, sc, m, 0);
         note = scale_note(d, sc, m);
-        while (note < 55)
+        while (note < 58)                        /* (0.8.13: a singer's range, not a keyboard's) */
             note += 12, d += m;
-        while (note > 84)
+        while (note > 81)
             note -= 12, d -= m;
+        if (n < ANS_N)
+            imp_dd[n] = (int8_t)(d - d0);
         resp[n].key = (uint8_t)note;
         resp[n].vel = (uint8_t)(firm ? 82 + irand(20) : 66 + irand(18));   /* (the beats a little stronger) */
         resp[n].on = (uint32_t)((float)rh[k] * step_len);
@@ -3144,6 +3180,7 @@ static void imp_build(void)                      /* a phrase of its own, into re
         resp[n].state = 0;
         resp[n].firm = (uint8_t)firm;
         last = n++;
+    }
     }
     if (n) {                                     /* its last note: onto the chord, a little longer */
         resp[last].key = (uint8_t)scale_note(chord_near(scale_deg(resp[last].key, sc, m), sc, m, -1), sc, m);
@@ -4026,6 +4063,8 @@ static void control(uint32_t n)                 /* once a chunk: the slow things
         for (l = 0; l < 4; l++) {
             float t = mute_mask >> l & 1u ? 0.0f : 1.0f;
             if (bd && (l == 2 || (l == 3 && bd_ret != 2)))
+                t = 0.0f;
+            if (ds && l != 3)                    /* (0.8.13) the drum solo: only the drums */
                 t = 0.0f;
             mg[l] += (t - mg[l]) * k;
         }

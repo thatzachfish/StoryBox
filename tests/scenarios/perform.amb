@@ -1,17 +1,17 @@
-# performance: in ACTS, the black keys F#3 G#3 A#3 C#4 are the pad, bells, bass and drums (a tap mutes, a hold solos; a tap while
+# performance: in ACTS, the black keys (0.8.13) F#4 G#4 A#4 C#5 are the pad, bells, bass and drums (a tap mutes, a hold solos; a tap while
 # soloed clears the solos); D#4 the breakdown (the bass and drums out on the next bar; again: back after a fill bar);
 # the Mixer page, its knobs the four levels
 wait 300
 tap HOME
-tapkey 3
+tapkey 15
 expect mutes 2
-tapkey 3
+tapkey 15
 expect mutes 0
-key 8 down
+key 20 down
 wait 600
-key 8 up
+key 20 up
 expect mutes 0x80
-tapkey 1
+tapkey 13
 expect mutes 0
 # the breakdown: on the next bar (Pre-show: 86 bpm, a bar 2.8 s)
 tapkey 10
@@ -29,3 +29,11 @@ turn SELECT 3
 expect view 2
 spin K4 -10
 expect par3 35
+# (0.8.13) the drum solo: C#4, from the next bar the drums alone, busier; again: a fill, back
+listen
+tapkey 8
+said DRUM SOLO NEXT BAR
+wait 8000
+tapkey 8
+said DRUM SOLO COMING BACK
+wait 8000

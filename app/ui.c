@@ -112,7 +112,7 @@ static struct {
     uint8_t bd_asked;                  /* the breakdown asked for (or on) */
     uint8_t timer;                     /* the sleep timer: 0 off, 1..4 a quarter hour each */
     uint8_t dark;                      /* the screen dark: the timer on and nothing touched for 30 s */
-    uint8_t sting_k, sting_dbl, sting_was, act_tap_k;   /* (act_tap: an act key's last tap, for a double) */
+    uint8_t sting_k, sting_dbl, sting_was, act_tap_k, ds_asked;   /* (act_tap: an act key's last tap, for a double) */
     uint32_t act_tap_t, rec_t;                  /* (rec_t: REC's last tap, for a double) */                 /* the sting last fired (1..3), and when: its key's flash */
     uint32_t sting_t;
     uint32_t input_t;                  /* the last touch */
@@ -472,7 +472,9 @@ static void tr_tick(void)
  * Fly, Fast and Slow), F4 .. B4 (Lighthouse, Market, Riebeck, Sleep), C5 D5 E5 the show's (Pre-show, Intermission,
  * Post Show) */
 #define BLACK_KEY(k) ((0x0252A52Au >> (k)) & 1u)   /* F#3 G#3 A#3 C#4 D#4 F#4 G#4 A#4 C#5 D#5 F#5 */
-static const int8_t KEY_ACT[NKEYS] = {0, 50, 1, 51, 2, 52, 3, 15, 53, 16, 40, 14, 12, -1, 13, -1, 19, -1, 11, 10, 30, 17, 31, 18, -1, 32, -1};
+static const int8_t KEY_ACT[NKEYS] = {0, 30, 1, 31, 2, 32, 3, 15, 41, 16, 40, 14, 12, 50, 13, 51, 19, 52, 11, 10, 53, 17, -1, 18, -1, -1, -1};   /* (0.8.13:
+                                                  * the one-shots F#3 G#3 A#3, the drum solo C#4, Break D#4, the mutes
+                                                  * F#4 G#4 A#4 C#5) */
 static const char *const TRACK_NAME[4] = {"PAD", "MELODY", "BASS", "DRUMS"};
 static void mutes_apply(void)                  /* what is heard: the solos if any, else all but the mutes */
 {
@@ -480,6 +482,7 @@ static void mutes_apply(void)                  /* what is heard: the solos if an
 }
 #define KEY_STING 30                          /* C#5 D#5 F#5: the story's stings */
 #define KEY_BREAK 40                          /* D#4: the breakdown */
+#define KEY_SOLO 41                           /* (0.8.13) C#4: the drum solo */
 #define KEY_TRACK 50                          /* F#3 G#3 A#3 C#4: the pad, the melody, the bass, the drums (tap mute, hold solo) */
 static int key_target(int k)
 {
@@ -1261,6 +1264,13 @@ static void input(void)
                 en_breakdown(on);
                 say("BREAKDOWN", on ? "NEXT BAR" : "COMING BACK");
             }
+        } else if (KEY_ACT[i] == KEY_SOLO) {     /* (0.8.13) ACTS: the drum solo, from the next bar; again: a fill, back */
+            if ((ch & keys) >> i & 1u) {
+                int on = !ui.ds_asked;
+                ui.ds_asked = (uint8_t)on;
+                en_drum_solo(on);
+                say("DRUM SOLO", on ? "NEXT BAR" : "COMING BACK");
+            }
         } else if (KEY_ACT[i] >= KEY_STING) {    /* ACTS: a sting, on the next beat (0.8: a tap, on its release; a hold:
                                                   * the One-shots page) */
             if ((ch & keys) >> i & 1u) {
@@ -1796,7 +1806,7 @@ static void meter2(int32_t x, int32_t y, int32_t h, int v, uint16_t off, uint16_
 /* (0.8.11) the one-shots' row and the act tiles, the same on the Acts and Story pages */
 static void draw_oneshots(int cur, int32_t y)
 {
-    static const char *const SK[EN_NSTING] = {"C#", "D#", "F#"};
+    static const char *const SK[EN_NSTING] = {"F#", "G#", "A#"};   /* (0.8.13: their keys now) */
     int k, th = en_theme_busy();
     for (k = 0; k < EN_NSTING; k++) {
         int32_t x = 6 + k * 77;
@@ -1893,9 +1903,9 @@ static void draw_perform(void)
     int cur = tr.on ? tr.piece : proj.piece, next = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : -1;
     int bars = en_loop_bars, bar = en_loop_bar, ns = en_prog_steps();
     if (en_playing)
-        draw_chord_big(8, 0, chord_now(nm));     /* the chord now, big */
+        draw_chord_big(8, 64, chord_now(nm));     /* the chord now, big */
     else
-        cv_text(8, 0, &FONT_L, "-", K_DIM);
+        cv_text(8, 64, &FONT_L, "-", K_DIM);
     if (bar >= 0 && bars > 0) {
         char t[16];
         int n = 0;
@@ -1907,16 +1917,16 @@ static void draw_perform(void)
         t[n++] = 'f';
         t[n++] = ' ';
         itoa_u((uint32_t)bars, t + n);
-        cv_text(230 - text_w(&FONT_XS, "BAR"), 2, &FONT_XS, "BAR", K_DIM);
-        cv_text(230 - text_w(&FONT_B, t), 15, &FONT_B, t, K_TEXT);
+        cv_text(230 - text_w(&FONT_XS, "BAR"), 66, &FONT_XS, "BAR", K_DIM);
+        cv_text(230 - text_w(&FONT_B, t), 79, &FONT_B, t, K_TEXT);
     } else {
-        cv_text(230 - text_w(&FONT_XS, "CHORDS"), 2, &FONT_XS, "CHORDS", K_DIM);
-        cv_text(230 - text_w(&FONT_B, "free"), 15, &FONT_B, "free", K_TEXT);
+        cv_text(230 - text_w(&FONT_XS, "CHORDS"), 66, &FONT_XS, "CHORDS", K_DIM);
+        cv_text(230 - text_w(&FONT_B, "free"), 79, &FONT_B, "free", K_TEXT);
     }
     {                                            /* (0.8.9) the story and act, big, in the middle */
         const char *sn = en_story_name(cur / EN_NACT), *an = en_act_name(cur);
-        text_c(128, 1, &FONT_XS, sn, K_DIM);
-        text_c(128, 14, text_w(&FONT_B, an) <= 96 ? &FONT_B : &FONT_S, an, K_TEXT);
+        text_c(128, 65, &FONT_XS, sn, K_DIM);
+        text_c(128, 78, text_w(&FONT_B, an) <= 96 ? &FONT_B : &FONT_S, an, K_TEXT);
     }
     if (ns == 0 && en_playing) {                 /* (0.8.9) free chords: the last few, the one now filling */
         int k, m = ch_hist_n < CH_HIST ? ch_hist_n : CH_HIST;
@@ -1925,10 +1935,10 @@ static void draw_perform(void)
             const char *c = ch_hist[(ch_hist_n - m + k) % CH_HIST];
             int32_t x = 8 + (k + CH_HIST - m) * (cw + 4);
             int now = k == m - 1;
-            cv_text(x, 38, &FONT_XS, c, now ? K_ACC : K_DIM);
-            cv_round(x, 54, cw, 18, 3, now ? K_PANEL : mix(K_BG, K_ACC, 6));
+            cv_text(x, 102, &FONT_XS, c, now ? K_ACC : K_DIM);
+            cv_round(x, 118, cw, 18, 3, now ? K_PANEL : mix(K_BG, K_ACC, 6));
             if (now)
-                cv_round(x, 54, 3 + (int32_t)((float)(cw - 3) * fm_clampf(en_drift, 0.0f, 1.0f)), 18, 3, K_ACC);
+                cv_round(x, 118, 3 + (int32_t)((float)(cw - 3) * fm_clampf(en_drift, 0.0f, 1.0f)), 18, 3, K_ACC);
         }
     }
     if (ns > 0 && bars > 0 && bar >= 0) {        /* the loop: (0.8.10) a cell a beat, 3 a bar in 3/4, 4 in 4/4; a
@@ -1958,12 +1968,12 @@ static void draw_perform(void)
                     nm[nm[1] == '#' || nm[1] == 'b' ? 2 : 1] = 0;
             }
             if (nm[0])
-                cv_text(x, 38, &FONT_XS, nm, here ? K_ACC : K_DIM);
+                cv_text(x, 102, &FONT_XS, nm, here ? K_ACC : K_DIM);
             for (k = 0; k < nb && b < bars; k++, b++) {
                 int t;
                 for (t = 0; t < bpb; t++, x += cw + 1) {
                     int bt = b * bpb + t;
-                    cv_round(x, 54, cw, 18, cw >= 5 ? 2 : 1,
+                    cv_round(x, 118, cw, 18, cw >= 5 ? 2 : 1,
                              bt == cb ? K_ACC : bt < cb ? mix(K_BG, K_ACC, 6) : here ? mix(K_BG, K_ACC, 4) : K_PANEL);
                 }
                 x += 1;                          /* (a bar's gap) */
@@ -1971,8 +1981,8 @@ static void draw_perform(void)
             x += 2;                              /* (a chord's) */
         }
     }
-    draw_oneshots(cur, 78);
-    draw_act_tiles(cur, cur, next, 102);
+    draw_oneshots(cur, 0);                       /* (0.8.13: up top, the chord and the loop below) */
+    draw_act_tiles(cur, cur, next, 22);
 }
 
 /* how loud each instrument is now (the Mixer's strips are draw_inst_strips, 0.7) */
@@ -2131,34 +2141,34 @@ static void draw_help(void)
 static void draw_map(void)
 {
     static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
-    static const char *const TN[4] = {"Pad", "Melody", "Bass", "Drums"};
     static const char *const SHORT[EN_NSTORY] = {"Pre-show", "Sleep", "Lighthouse", "Market", "Fast & Slow", "Inside",
                                                  "Fly", "Intermission", "Post Show", "Riebeck"};
     static const int8_t BANK[3][4] = {{5, 6, 4, -1}, {2, 3, 9, 1}, {0, 7, 8, -1}};
     int cur = proj.piece, goal = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : -1, blink = (plat_ms() / 300u) & 1u, k, r;
     int shown = goal >= 0 && goal / EN_NACT != cur / EN_NACT ? goal : cur;   /* the story it is in, or going to */
     int bd_on = en_bd == 1 && ui.bd_asked, bd_wait = en_bd == 2 || (en_bd == 1 && !ui.bd_asked) || (ui.bd_asked && !en_bd);
-    {                                            /* the mutes and Break, a row of chips, each as wide as its name */
-        int32_t x = 4 + text_w(&FONT_XS, "MUTE") + 4;
-        cv_text(4, 2, &FONT_XS, "MUTE", K_DIM);
-        for (k = 0; k < 5; k++) {
-            if (k < 4) {
-                const char *n = k == 1 ? "Mel" : TN[k];
-                int solo = ui.solos >> k & 1u, heard = ui.solos ? solo : !(ui.mutes >> k & 1u);
-                int32_t w = text_w(&FONT_XS, n) + 13;
-                cv_round(x, 1, w, 15, 4, solo ? K_ACC : K_PANEL);
-                cv_disc(x + 5, 8, 2, heard ? TC[k] : K_LINE);
-                cv_text(x + 9, 2, &FONT_XS, n, heard ? K_TEXT : K_LINE);
-                x += w + 3;
-            } else {
-                cv_round(x, 1, 236 - x, 15, 4, bd_on ? K_ALERT : bd_wait && blink ? K_ALERT : K_PANEL);
-                text_c(x + (236 - x) / 2, 2, &FONT_XS, "Break", bd_on || (bd_wait && blink) ? K_BG : K_DIM);
-            }
+    {                                            /* the mutes, the drum solo and Break, a row of chips (0.8.13: under the
+                                                  * one-shots and acts) */
+        const int32_t y = 64;
+        int32_t x = 4 + text_w(&FONT_XS, "MUTE") + 4, rest;
+        int ds_on = en_ds == 1 && ui.ds_asked, ds_wait = en_ds == 2 || (ui.ds_asked && !en_ds);
+        cv_text(4, y + 1, &FONT_XS, "MUTE", K_DIM);
+        for (k = 0; k < 4; k++) {                /* (each its colour: lit heard, dark muted, ringed soloed) */
+            int solo = ui.solos >> k & 1u, heard = ui.solos ? solo : !(ui.mutes >> k & 1u);
+            cv_round(x, y, 22, 15, 4, solo ? K_ACC : K_PANEL);
+            cv_disc(x + 11, y + 7, 4, heard ? TC[k] : mix(K_PANEL, TC[k], 4));
+            x += 25;
         }
+        rest = (236 - x - 3) / 2;
+        cv_round(x, y, rest, 15, 4, ds_on ? K_PULSE : ds_wait && blink ? K_PULSE : K_PANEL);
+        text_c(x + rest / 2, y + 1, &FONT_XS, "Solo", ds_on || (ds_wait && blink) ? K_BG : K_DIM);
+        x += rest + 3;
+        cv_round(x, y, 236 - x, 15, 4, bd_on ? K_ALERT : bd_wait && blink ? K_ALERT : K_PANEL);
+        text_c(x + (236 - x) / 2, y + 1, &FONT_XS, "Break", bd_on || (bd_wait && blink) ? K_BG : K_DIM);
     }
     for (r = 0; r < 3; r++) {                    /* the stories, a row a bank, centred */
         int n = BANK[r][3] < 0 ? 3 : 4;
-        int32_t w = n == 3 ? 76 : 58, gap = 2, x0 = (240 - (n * w + (n - 1) * gap)) / 2, y = 19 + r * 19;
+        int32_t w = n == 3 ? 76 : 58, gap = 2, x0 = (240 - (n * w + (n - 1) * gap)) / 2, y = 84 + r * 19;
         for (k = 0; k < n; k++) {
             int st = BANK[r][k], here = st == cur / EN_NACT, going = goal >= 0 && st == goal / EN_NACT && !here;
             int32_t x = x0 + k * (w + gap);
@@ -2167,8 +2177,8 @@ static void draw_map(void)
             text_c(x + w / 2, y + 1, &FONT_XS, SHORT[st], here ? K_BG : going ? K_ACC : K_TEXT);
         }
     }
-    draw_oneshots(shown, 78);                    /* (0.8.11: as on the Acts page, the acts at the bottom) */
-    draw_act_tiles(shown, cur, goal, 102);
+    draw_oneshots(shown, 0);                    /* (0.8.11: as on the Acts page, the acts at the bottom) */
+    draw_act_tiles(shown, cur, goal, 22);
 }
 
 /* EDIT, the lead: a trace of the melody played: the scale's notes as lines across (the root's brighter, named), each
@@ -2675,7 +2685,8 @@ static void draw_main(void)
     case 2:
         h = hash(hash(hash(h, (uint32_t)(tr.pending + 1) << 8 | (uint32_t)tr.on << 16 | (uint32_t)tr.piece << 17),
                       ((plat_ms() / 300u) & 1u) | (uint32_t)(tr.t * 60.0f) << 1),
-                 (uint32_t)ui.mutes | (uint32_t)ui.solos << 4 | (uint32_t)en_bd << 8 | (uint32_t)ui.bd_asked << 10);
+                 (uint32_t)ui.mutes | (uint32_t)ui.solos << 4 | (uint32_t)en_bd << 8 | (uint32_t)ui.bd_asked << 10 |
+                     (uint32_t)en_ds << 12 | (uint32_t)ui.ds_asked << 14);
         h = hash(h, (uint32_t)ui.sting_k | (uint32_t)en_theme_busy() << 4 | (uint32_t)(plat_ms() - ui.sting_t < 2500u) << 6 |
                         (uint32_t)proj.piece << 8);   /* (0.8.10: the one-shots on it too) */
         break;
@@ -2867,6 +2878,8 @@ static void leds(void)
                 int down = en_bd == 1 && ui.bd_asked;
                 int moving = (en_bd == 1 && !ui.bd_asked) || en_bd == 2 || (ui.bd_asked && en_bd == 0);
                 lv = down ? breath() : moving ? (quick ? L_LIT : L_OFF) : L_LIT;
+            } else if (KEY_ACT[i] == KEY_SOLO) {     /* (0.8.13) the drum solo: breathing while on, quick while it turns */
+                lv = en_ds == 1 && ui.ds_asked ? breath() : en_ds == 2 || (ui.ds_asked && !en_ds) ? (quick ? L_LIT : L_OFF) : L_LIT;
             } else if (KEY_ACT[i] >= KEY_STING) {    /* a sting: dim, a flash as it fires */
                 int sn = KEY_ACT[i] - KEY_STING;
                 lv = !en_sting_len(proj.piece, sn) ? L_OFF : ui.sting_k == sn + 1 && plat_ms() - ui.sting_t < 500u ? L_LIT : L_DIM;

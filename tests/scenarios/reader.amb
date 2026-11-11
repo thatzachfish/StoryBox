@@ -54,9 +54,9 @@ release HOME
 wait 300
 said FADE
 # the keys, in ACTS: a black key mutes its track and back
-tapkey b0
+tapkey b5
 said MUTE PAD
-tapkey b0
+tapkey b5
 said UNMUTE PAD
 # the encoders: Energy, the act
 turn ALGO 1

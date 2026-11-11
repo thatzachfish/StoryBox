@@ -8,9 +8,9 @@ expect piece 20
 expect par19 7
 expect par30 1
 shot map.png
-tapkey 20
+tapkey 1
 wait 1000
-tapkey 22
+tapkey 3
 wait 1000
 spin K3 40
 expect par29 40

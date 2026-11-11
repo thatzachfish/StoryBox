@@ -126,6 +126,8 @@ void en_answer(int amount);                     /* StoryBox 0.6: the lead answer
 extern volatile uint8_t en_ans_ring[16];        /* the answer's notes as they sound (key, | 0x80 let go) */
 extern volatile uint8_t en_ans_w;
 void en_breakdown(int on);
+void en_drum_solo(int on);                      /* (0.8.13) the drums alone, busier, from the next bar; off: a fill, back */
+extern volatile uint8_t en_ds;                  /* 0 off, 1 soloing, 2 starting or ending */
 extern volatile uint8_t en_bd;                 /* (UI) 0 off, 1 broken down, 2 coming back (the fill) */                       /* StoryBox: follow piece's progression (none: free), from its start */
 extern volatile int8_t en_prog_step;           /* (UI) the progression's step playing, -1 none */
 extern volatile int16_t en_loop_bar, en_loop_bars, en_loop_beat;   /* (UI, 0.8.1) the bar in the progression's loop (-1: none), of how many */

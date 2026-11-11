@@ -5,9 +5,9 @@ listen
 tapkey 11
 wait 16000
 expect piece 16
-key 25 down
+key 5 down
 wait 700
-key 25 up
+key 5 up
 expect view 13
 said ONE-SHOTS
 spin K1 -20
@@ -16,18 +16,18 @@ spin K4 10
 expect par64 60
 shot oneshots.png
 # a tap plays it, from the loop's start (0.8.1); twice: now, where the loop is
-tapkey 25
+tapkey 5
 said STING Together
 wait 200
-tapkey 20
+tapkey 1
 wait 150
-tapkey 20
+tapkey 1
 said NOW Fast
 wait 3000
 # twice again while it plays: it stops (0.8.2)
-tapkey 20
+tapkey 1
 wait 150
-tapkey 20
+tapkey 1
 said STOP Fast
 shot oneshots-playing.png
 # another act of the story: the same settings

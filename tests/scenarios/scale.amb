@@ -3,10 +3,10 @@
 wait 300
 expect pool 0x6AD
 # key 1 (F#3) is the pad's track: a tap mutes it, the scale stays
-tapkey 1
+tapkey 13
 expect pool 0x6AD
 expect mutes 1
-tapkey 1
+tapkey 13
 expect mutes 0
 # ALGORITHM: Energy (the player's, 50 as the act has it)
 expect par31 50

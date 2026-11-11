@@ -12,6 +12,6 @@ spin K3 2
 expect par32 2
 tap EDIT
 expect view 0
-tapkey 1
+tapkey 13
 expect mutes 1
 expect pool 0x6AD

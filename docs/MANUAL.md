@@ -509,3 +509,9 @@ roaming, 90 seconds down to 10. Pre-show starts roaming at 90 s, Intermission in
 
 (0.8.8) The pages once called Colours and Effects are now Effects and Effects 2; SEL opens Acts. Pausing quiets the
 sea and wind too. Fly's Approach and Devour swapped their music, their names staying.
+
+### The black keys (0.8.13)
+
+F#3 G#3 A#3: the story's one-shots. C#4: the drum solo (from the next bar the drums alone and busier, a fill every
+other bar; again: a fill, and everyone back on the one). D#4: the breakdown. F#4 G#4 A#4 C#5: mute (tap) or solo (hold)
+the pad, melody, bass, drums. On the Story and Acts pages the one-shots and acts are up top.
