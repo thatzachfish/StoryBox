@@ -2,8 +2,8 @@
 # above, more and more often to any other act
 wait 300
 expect piece 0
-# (0.8.3: Pre-show starts wandering, 44, about a minute an act; down to 36 here, 15 phrases)
-turn K4 -8 100
+# (0.8.3: Pre-show starts wandering, 46, about a minute an act; down to 41 here, 15 phrases)
+turn K4 -5 100
 wait 90000
 expect piece 1
 wait 80000

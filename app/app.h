@@ -14,7 +14,7 @@ void ui_splash(void);
 #ifdef APP_VERSION                       /* a release build passes its own (tools/build.py --release) */
 #define EN_VERSION APP_VERSION
 #else
-#define EN_VERSION "0.8.3"               /* StoryBox's version, shown on the System page (the install page's too) */
+#define EN_VERSION "0.8.4"               /* StoryBox's version, shown on the System page (the install page's too) */
 #endif
 
 /* the store: the project at 0xFC000 and the panel calibration at 0xDC000, where AMB-1 0.9 kept them (an update keeps

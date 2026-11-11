@@ -65,7 +65,7 @@ void project_defaults(void)
         proj.par[i] = en_param_info(i)->def;
     take(&proj.slot[0]);
     proj.leds = 1;
-    proj.wander = 44;                   /* (0.8.3: Pre-show's, about a minute an act) */
+    proj.wander = 46;                   /* (0.8.3: Pre-show's, about a minute an act) */
     proj.fade = 0;                       /* (0.8: 5 s) */
     proj.recipes = 6;
 }
@@ -269,7 +269,7 @@ static int from8(const project8_t *o)            /* 0.7's: everything kept, the 
     proj.piece = 0;
     proj.answer = 0;
     proj.par[P_ENERGY] = 50;
-    proj.wander = 44;
+    proj.wander = 46;
     take(&proj.slot[0]);
     return 0;
 }
@@ -301,7 +301,7 @@ int project_load(void)
         proj.piece = 0;                          /* (0.6.10) every start on Pre-show's Doors, not the act last played */
         proj.answer = 0;                         /* (0.7) and the Answer off */
         proj.par[P_ENERGY] = 50;                 /* (0.7.3) and Energy in the middle */
-        proj.wander = 44;                        /* (0.8.3) and Pre-show's Wander: about a minute an act */
+        proj.wander = 46;                        /* (0.8.3) and Pre-show's Wander: about a minute an act */
         take(&proj.slot[0]);
         return 0;
     }

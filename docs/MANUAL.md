@@ -149,7 +149,7 @@ act's loop of chords a bar to a cell with the bar now lit, and the four act keys
 the one coming outlined.
 
 Wander as a story starts (0.8.3): Fast and Slow, Inside and Fly at Perform (the acts wait for you); Pre-show about
-a minute an act, in order; Intermission in order, as long as it goes (about two and a half minutes an act).
+a minute an act, in order; Intermission in order, as long as it goes (about four minutes an act); Post Show about three minutes an act, in order.
 
 On the instrument pages knob 3 is always the sound, shown as a row of boxes; the others are dials. The One-shots
 page's knobs set all of the story's one-shots together, and the story keeps them.

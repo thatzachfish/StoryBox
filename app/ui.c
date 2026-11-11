@@ -280,11 +280,11 @@ static uint32_t fade_ms(void)                  /* Fade 0..100: 5 s .. 2 min, as 
     float f = (float)proj.fade / 100.0f;
     return 5000u + (uint32_t)(115000.0f * f * f);
 }
-static uint32_t wander_phrases(void)           /* in order (1..50): 32 .. 8 phrases; roaming (51..100): 8 .. 2 (at 86 bpm:
-                                                  * 3 min .. 45 s, then 45 s .. 11 s) */
+static uint32_t wander_phrases(void)           /* in order (1..50): 48 .. 8 phrases (0.8.4: was 32 .. 8); roaming (51..100):
+                                                  * 8 .. 2 (at 86 bpm: 4:28 .. 45 s, then 45 s .. 11 s) */
 {
     uint32_t w = proj.wander;
-    return w <= 50u ? 32u - (w - 1u) * 24u / 49u : 8u - (w - 51u) * 6u / 49u;
+    return w <= 50u ? 8u + (50u - w) * 40u / 49u : 8u - (w - 51u) * 6u / 49u;
 }
 static uint32_t phrase_ms(void) { return PHRASE_BARS * en_bar_len * 60000u / ((uint32_t)proj.par[P_TEMPO] * 4u); }
 static int tr_goal(void) { return tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : proj.piece; }   /* where it's going */
@@ -313,8 +313,8 @@ static void tr_start(int piece, uint32_t ms)
 /* to piece i: on the next phrase (slow 0), or now over Fade (slow 1) */
 /* (0.8.3) each story's Wander as it starts: Zach's performance stories (Fast and Slow, Inside, Fly) Perform, the acts
  * waiting for him; the house music: Pre-show about a minute an act, Intermission in order, as long as it goes, Post Show
- * (and the rest) as it was */
-static const int8_t STORY_WANDER[EN_NSTORY] = {44, -1, -1, -1, 0, 0, 0, 1, -1, -1};
+ * about three minutes, in order (the rest as they were) */
+static const int8_t STORY_WANDER[EN_NSTORY] = {46, -1, -1, -1, 0, 0, 0, 1, 18, -1};   /* (0.8.4: Post Show about 3 min) */
 static void story_wander(void)
 {
     int w = STORY_WANDER[proj.piece / EN_NACT % EN_NSTORY];
