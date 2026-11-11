@@ -250,3 +250,9 @@ power-on.
   its four from what we learn: the performance bank's music, his MIDI, the improvising research (chord tones on the
   beats, motifs), his notes on the house music.
 - Keep one of them uptempo, and keep one calm and sleepy, for actually sleeping to (Sleep).
+
+## Queued for the next build (Zach, 2026-11-11)
+
+- Story and Acts pages: move the one-shots and act tiles back to the bottom of
+  the screen (undo the 0.8.13 "up top" swap). Keep them looking the same on
+  both pages, keep dim yellow / dim pink, and the 0.8.13 black-key layout.
