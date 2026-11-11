@@ -1884,16 +1884,20 @@ static void draw_perform(void)
                 cv_round(x, 54, 3 + (int32_t)((float)(cw - 3) * fm_clampf(en_drift, 0.0f, 1.0f)), 18, 3, K_ACC);
         }
     }
-    if (ns > 0 && bars > 0 && bar >= 0) {        /* the loop: a cell a bar, its chords over them */
-        int32_t gaps = ns - 1, cw = (224 - 2 * gaps + 2) / bars - 2, x = 8, b = 0, i;
-        if (cw < 3)
-            cw = 3;
+    if (ns > 0 && bars > 0 && bar >= 0) {        /* the loop: (0.8.10) a cell a beat, 3 a bar in 3/4, 4 in 4/4; a
+                                                  * wider gap between bars, wider still between chords; its chords over */
+        const int bpb = (int)en_bar_len / 4 > 0 ? (int)en_bar_len / 4 : 4, tot = bars * bpb, cb = en_loop_beat;
+        int32_t cw = (224 - (tot - 1) - (bars - 1) - 2 * (ns - 1)) / tot, x = 8, b = 0, i;
+        if (cw < 2)
+            cw = 2;
         for (i = 0; i < ns && b < bars; i++) {
             int nb = en_prog_label(i, nm), k, here;
+            int32_t segw;
             if (nb < 1)
                 nb = 1;
             here = bar >= b && bar < b + nb;
-            if (text_w(&FONT_XS, nm) + 2 > (cw + 2) * nb) {   /* (short: "maj7" as "M7", then the root alone) */
+            segw = nb * bpb * (cw + 1) + nb;
+            if (text_w(&FONT_XS, nm) + 2 > segw) {   /* (short: "maj7" as "M7", then the root alone) */
                 int q, r;
                 for (q = 0; nm[q]; q++)
                     if (nm[q] == 'm' && nm[q + 1] == 'a' && nm[q + 2] == 'j') {
@@ -1903,14 +1907,21 @@ static void draw_perform(void)
                         nm[r] = 0;
                         break;
                     }
-                if (text_w(&FONT_XS, nm) + 2 > (cw + 2) * nb)
+                if (text_w(&FONT_XS, nm) + 2 > segw)
                     nm[nm[1] == '#' || nm[1] == 'b' ? 2 : 1] = 0;
             }
             if (nm[0])
                 cv_text(x, 38, &FONT_XS, nm, here ? K_ACC : K_DIM);
-            for (k = 0; k < nb && b < bars; k++, b++, x += cw + 2)
-                cv_round(x, 54, cw, 18, 3, b == bar ? K_ACC : b < bar ? mix(K_BG, K_ACC, 6) : here ? mix(K_BG, K_ACC, 4) : K_PANEL);
-            x += 2;                              /* (a gap between chords) */
+            for (k = 0; k < nb && b < bars; k++, b++) {
+                int t;
+                for (t = 0; t < bpb; t++, x += cw + 1) {
+                    int bt = b * bpb + t;
+                    cv_round(x, 54, cw, 18, cw >= 5 ? 2 : 1,
+                             bt == cb ? K_ACC : bt < cb ? mix(K_BG, K_ACC, 6) : here ? mix(K_BG, K_ACC, 4) : K_PANEL);
+                }
+                x += 1;                          /* (a bar's gap) */
+            }
+            x += 2;                              /* (a chord's) */
         }
     }
     {                                            /* the one-shots: C#5 D#5 F#5, the one playing lit, one waiting for the
@@ -2735,7 +2746,7 @@ static void draw_main(void)
     case 6:                                      /* (0.8.1, Perform) */
         h = hash(hash(h, (uint32_t)en_chord_root | (uint32_t)en_chord[0] << 4 | (uint32_t)en_chord[1] << 11 |
                              (uint32_t)en_chord[2] << 18 | (uint32_t)en_playing << 25),
-                 (uint32_t)(en_loop_bar + 1) | (uint32_t)en_loop_bars << 8 | (uint32_t)proj.piece << 16 |
+                 (uint32_t)(en_loop_beat + 1) | (uint32_t)en_loop_bars << 8 | (uint32_t)proj.piece << 16 |
                      (uint32_t)(tr.pending + 1) << 22 | (uint32_t)tr.on << 30);
         h = hash(h, (uint32_t)tr.piece | (uint32_t)proj.par[P_ROOT] << 8 | (uint32_t)ui.sting_k << 16 |
                         (uint32_t)en_theme_busy() << 20 | (uint32_t)(plat_ms() - ui.sting_t < 2500u) << 22);

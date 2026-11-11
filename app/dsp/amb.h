@@ -128,7 +128,7 @@ extern volatile uint8_t en_ans_w;
 void en_breakdown(int on);
 extern volatile uint8_t en_bd;                 /* (UI) 0 off, 1 broken down, 2 coming back (the fill) */                       /* StoryBox: follow piece's progression (none: free), from its start */
 extern volatile int8_t en_prog_step;           /* (UI) the progression's step playing, -1 none */
-extern volatile int16_t en_loop_bar, en_loop_bars;   /* (UI, 0.8.1) the bar in the progression's loop (-1: none), of how many */
+extern volatile int16_t en_loop_bar, en_loop_bars, en_loop_beat;   /* (UI, 0.8.1) the bar in the progression's loop (-1: none), of how many */
 int en_prog_len(int piece);                    /* its steps, 0 none */
 /* MIDI clock in (as FoMni): ticks drive the 1/16 grid (6 a step) while they keep coming */
 enum { EN_CLK_TICK, EN_CLK_START, EN_CLK_CONTINUE, EN_CLK_STOP };

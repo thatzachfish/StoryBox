@@ -1134,7 +1134,7 @@ static void bell_voice(int l, int n, float vel, int32_t wait);
 /* (0.8.1) where the progression's loop is: sixteenths since its first chord (-1: no progression), and its length in
  * bars; the Perform page shows it, a one-shot joins it */
 static int32_t loop16 = -1;
-volatile int16_t en_loop_bar = -1, en_loop_bars;
+volatile int16_t en_loop_bar = -1, en_loop_bars, en_loop_beat = -1;
 static int16_t rf_t = -1;                        /* sixteenths since it began (-1: none) */
 static const struct { uint8_t piece, step, n; int8_t ev[12][2]; } REFRAIN = {
     4 * EN_NACT + 1, 0, 10,
@@ -1753,6 +1753,7 @@ static void tick(void)
     if (!prog_on()) {
         loop16 = -1;
         en_loop_bar = -1;                        /* (0.8.9: none to show) */
+        en_loop_beat = -1;
     }
     else if (loop16 >= 0) {                      /* (0.8.1) the loop's place, for the screen */
         int b, tot = 0;
@@ -1760,6 +1761,7 @@ static void tick(void)
             tot += prog_bars[prog_cur][b];
         en_loop_bars = (int16_t)tot;
         en_loop_bar = (int16_t)(loop16 / en_bar_len);
+        en_loop_beat = (int16_t)(loop16 / 4);    /* (0.8.10: a beat a cell) */
     }
     theme_bar();                                 /* (0.7: a theme's sixteenth; 0.8.1: after the loop's step) */
     if (loop16 >= 0)
