@@ -148,8 +148,8 @@ The Acts page (0.8.1, the Feel page's place, just after Story; One-shots just af
 act's loop of chords a bar to a cell with the bar now lit, and the four act keys (F G A B) big, the one playing lit and
 the one coming outlined.
 
-Wander as a story starts (0.8.3): Fast and Slow, Inside and Fly at Perform (the acts wait for you); Pre-show about
-a minute an act, in order; Intermission in order, as long as it goes (about four minutes an act); Post Show about three minutes an act, in order.
+Wander as a story starts (0.8.3): Fast and Slow, Inside and Fly at Perform (the acts wait for you); Pre-show roaming at its
+longest (about 45 s an act, any act next; 0.8.6); Intermission in order, as long as it goes (about four minutes an act); Post Show about three minutes an act, in order.
 
 On the instrument pages knob 3 is always the sound, shown as a row of boxes; the others are dials. The One-shots
 page's knobs set all of the story's one-shots together, and the story keeps them.

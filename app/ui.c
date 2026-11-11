@@ -312,9 +312,9 @@ static void tr_start(int piece, uint32_t ms)
 
 /* to piece i: on the next phrase (slow 0), or now over Fade (slow 1) */
 /* (0.8.3) each story's Wander as it starts: Zach's performance stories (Fast and Slow, Inside, Fly) Perform, the acts
- * waiting for him; the house music: Pre-show about a minute an act, Intermission in order, as long as it goes, Post Show
+ * waiting for him; the house music: Pre-show roaming, its longest (about 45 s an act; 0.8.6), Intermission in order, as long as it goes, Post Show
  * about three minutes, in order (the rest as they were) */
-static const int8_t STORY_WANDER[EN_NSTORY] = {46, -1, -1, -1, 0, 0, 0, 1, 18, -1};   /* (0.8.4: Post Show about 3 min) */
+static const int8_t STORY_WANDER[EN_NSTORY] = {51, -1, -1, -1, 0, 0, 0, 1, 18, -1};   /* (0.8.4: Post Show about 3 min) */
 static void story_wander(void)
 {
     int w = STORY_WANDER[proj.piece / EN_NACT % EN_NSTORY];

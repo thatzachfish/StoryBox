@@ -3,7 +3,7 @@
 wait 200
 listen
 wait 100
-said Story page: Tempo 86, Structure 70, Tension 0, Wander 1:01. Piece Pre-show, D minor
+said Story page: Tempo 86, Structure 70, Tension 0, Wander 45s. Piece Pre-show, D minor
 # (the rings follow, queued: the chord, how far to the next, the scale from the root up)
 listen
 where
@@ -115,4 +115,4 @@ wait 1000
 said Tempo 86
 # WHERE: everything again
 where
-said Story page: Tempo 86, Structure 70, Tension 0, Wander 1:01. Piece Pre-show
+said Story page: Tempo 86, Structure 70, Tension 0, Wander 45s. Piece Pre-show
