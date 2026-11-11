@@ -1793,6 +1793,54 @@ static void meter2(int32_t x, int32_t y, int32_t h, int v, uint16_t off, uint16_
 /* (0.8.1) the Perform page (the Feel page's knobs): the chord now, big; the progression's loop, a cell a bar, its chords
  * over them and the bar now lit; and the act keys, big: F G A B and their acts, the one playing lit, the one coming
  * outlined */
+/* (0.8.11) the one-shots' row and the act tiles, the same on the Acts and Story pages */
+static void draw_oneshots(int cur, int32_t y)
+{
+    static const char *const SK[EN_NSTING] = {"C#", "D#", "F#"};
+    int k, th = en_theme_busy();
+    for (k = 0; k < EN_NSTING; k++) {
+        int32_t x = 6 + k * 77;
+        int has = en_sting_len(cur, k) != 0, me = has && ui.sting_k == k + 1,
+            play = me && (th == 2 || (!th && plat_ms() - ui.sting_t < 2500u)), wait = me && th == 1;
+        const char *n = has ? en_sting_name(cur, k) : "-";
+        cv_round(x, y, 74, 20, 5, play || wait ? K_ALERT : K_PANEL);
+        if (wait)
+            cv_round(x + 2, y + 2, 70, 16, 4, K_BG);
+        cv_text(x + 4, y + 3, &FONT_XS, SK[k], play ? K_BG : K_DIM);
+        cv_text(x + 22, text_w(&FONT_S, n) <= 50 ? y + 2 : y + 4, text_w(&FONT_S, n) <= 50 ? &FONT_S : &FONT_XS, n,
+                play ? K_BG : wait ? K_ALERT : has ? K_TEXT : K_LINE);
+    }
+}
+static void draw_act_tiles(int base, int cur, int next, int32_t y)   /* base: a piece of the story shown; cur: the act
+                                                  * playing; next: the one coming */
+{
+    static const char *const KN[4] = {"F", "G", "A", "B"};
+    int a;
+    for (a = 0; a < EN_NACT; a++) {
+        int32_t x = 6 + a * 58;
+        int pc = base / EN_NACT * EN_NACT + a, on = pc == cur, nx = pc == next && next != cur;
+        cv_round(x, y, 54, 40, 8, on ? K_PAD : nx ? K_ACC : K_PANEL);
+        if (!on)
+            cv_round(x + 2, y + 2, 50, 36, 6, nx ? K_BG : K_PANEL);
+        text_c(x + 27, y + 2, &FONT_B, KN[a], on ? K_BG : nx ? K_ACC : K_TEXT);
+        {
+            const char *an = en_act_name(pc);
+            uint16_t c = on ? K_BG : nx ? K_ACC : K_DIM;
+            if (text_w(&FONT_XS, an) <= 50) {
+                text_c(x + 27, y + 22, &FONT_XS, an, c);
+            } else {                             /* (two words, two lines: "Lights / Down") */
+                char w1[16];
+                int k = 0;
+                while (an[k] && an[k] != ' ' && k < 15)
+                    w1[k] = an[k], k++;
+                w1[k] = 0;
+                text_c(x + 27, y + 16, &FONT_XS, w1, c);
+                text_c(x + 27, y + 27, &FONT_XS, an[k] ? an + k + 1 : "", c);
+            }
+        }
+    }
+}
+
 static void draw_chord_big(int32_t x, int32_t y, const char *nm)   /* (0.8.6) a lead sheet's chord: the root big
                                                   * (FONT_L, capitals), its sharp or flat and its kind beside it */
 {
@@ -1841,9 +1889,8 @@ static void chord_hist_tick(void)
 }
 static void draw_perform(void)
 {
-    static const char *const KN[4] = {"F", "G", "A", "B"};
     char nm[16];
-    int cur = tr.on ? tr.piece : proj.piece, next = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : -1, a;
+    int cur = tr.on ? tr.piece : proj.piece, next = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : -1;
     int bars = en_loop_bars, bar = en_loop_bar, ns = en_prog_steps();
     if (en_playing)
         draw_chord_big(8, 0, chord_now(nm));     /* the chord now, big */
@@ -1924,46 +1971,8 @@ static void draw_perform(void)
             x += 2;                              /* (a chord's) */
         }
     }
-    {                                            /* the one-shots: C#5 D#5 F#5, the one playing lit, one waiting for the
-                                                  * loop's start outlined */
-        static const char *const SK[EN_NSTING] = {"C#", "D#", "F#"};
-        int k, th = en_theme_busy();
-        for (k = 0; k < EN_NSTING; k++) {
-            int32_t x = 6 + k * 77;
-            int has = en_sting_len(cur, k) != 0, me = has && ui.sting_k == k + 1,
-                play = me && (th == 2 || (!th && plat_ms() - ui.sting_t < 2500u)), wait = me && th == 1;
-            const char *n = has ? en_sting_name(cur, k) : "-";
-            cv_round(x, 78, 74, 20, 5, play ? K_ALERT : wait ? K_ALERT : K_PANEL);
-            if (wait)
-                cv_round(x + 2, 80, 70, 16, 4, K_BG);
-            cv_text(x + 4, 81, &FONT_XS, SK[k], play ? K_BG : K_DIM);
-            cv_text(x + 22, text_w(&FONT_S, n) <= 50 ? 80 : 82, text_w(&FONT_S, n) <= 50 ? &FONT_S : &FONT_XS, n,
-                    play ? K_BG : wait ? K_ALERT : has ? K_TEXT : K_LINE);
-        }
-    }
-    for (a = 0; a < EN_NACT; a++) {              /* the act keys, big */
-        int32_t x = 6 + a * 58;
-        int pc = cur / EN_NACT * EN_NACT + a, on = pc == cur, nx = pc == next && next != cur;
-        cv_round(x, 102, 54, 40, 8, on ? K_PAD : nx ? K_ACC : K_PANEL);
-        if (!on)
-            cv_round(x + 2, 104, 50, 36, 6, nx ? K_BG : K_PANEL);
-        text_c(x + 27, 104, &FONT_B, KN[a], on ? K_BG : nx ? K_ACC : K_TEXT);
-        {
-            const char *an = en_act_name(pc);
-            uint16_t c = on ? K_BG : nx ? K_ACC : K_DIM;
-            if (text_w(&FONT_XS, an) <= 50) {
-                text_c(x + 27, 124, &FONT_XS, an, c);
-            } else {                             /* (two words, two lines: "Lights / Down") */
-                char w1[16];
-                int k = 0;
-                while (an[k] && an[k] != ' ' && k < 15)
-                    w1[k] = an[k], k++;
-                w1[k] = 0;
-                text_c(x + 27, 118, &FONT_XS, w1, c);
-                text_c(x + 27, 129, &FONT_XS, an[k] ? an + k + 1 : "", c);
-            }
-        }
-    }
+    draw_oneshots(cur, 78);
+    draw_act_tiles(cur, cur, next, 102);
 }
 
 /* how loud each instrument is now (the Mixer's strips are draw_inst_strips, 0.7) */
@@ -2147,53 +2156,18 @@ static void draw_map(void)
             }
         }
     }
-    for (k = 0; k < EN_NACT; k++) {             /* the acts, big */
-        int32_t x = 6 + k * 58;
-        int pc = shown / EN_NACT * EN_NACT + k, here = pc == cur, going = pc == goal && pc != cur;
-        const char *an = en_act_name(pc);
-        cv_round(x, 20, 54, 24, 6, here ? K_PAD : going && blink ? mix(K_BG, K_PAD, 10) : K_PANEL);
-        {
-            uint16_t c = here ? K_BG : going ? K_PAD : K_TEXT;
-            if (text_w(&FONT_S, an) <= 50)
-                text_c(x + 27, 24, &FONT_S, an, c);
-            else if (text_w(&FONT_XS, an) <= 50)
-                text_c(x + 27, 25, &FONT_XS, an, c);
-            else {                               /* (two words, two lines) */
-                char w1[16];
-                int q = 0;
-                while (an[q] && an[q] != ' ' && q < 15)
-                    w1[q] = an[q], q++;
-                w1[q] = 0;
-                text_c(x + 27, 20, &FONT_XS, w1, c);
-                text_c(x + 27, 31, &FONT_XS, an[q] ? an + q + 1 : "", c);
-            }
-        }
-    }
     for (r = 0; r < 3; r++) {                    /* the stories, a row a bank, centred */
         int n = BANK[r][3] < 0 ? 3 : 4;
-        int32_t w = n == 3 ? 76 : 58, gap = 2, x0 = (240 - (n * w + (n - 1) * gap)) / 2, y = 49 + r * 21;
+        int32_t w = n == 3 ? 76 : 58, gap = 2, x0 = (240 - (n * w + (n - 1) * gap)) / 2, y = 19 + r * 19;
         for (k = 0; k < n; k++) {
             int st = BANK[r][k], here = st == cur / EN_NACT, going = goal >= 0 && st == goal / EN_NACT && !here;
             int32_t x = x0 + k * (w + gap);
-            cv_round(x, y, w, 18, 4, here ? K_ACC : going && blink ? mix(K_BG, K_ACC, 10) : K_PANEL);
-            text_c(x + w / 2, y + 2, &FONT_XS, SHORT[st], here ? K_BG : going ? K_ACC : K_TEXT);
+            cv_round(x, y, w, 17, 4, here ? K_ACC : going && blink ? mix(K_BG, K_ACC, 10) : K_PANEL);
+            text_c(x + w / 2, y + 1, &FONT_XS, SHORT[st], here ? K_BG : going ? K_ACC : K_TEXT);
         }
     }
-    {                                            /* the one-shots, the story's */
-        static const char *const SK[EN_NSTING] = {"C#", "D#", "F#"};
-        int th = en_theme_busy();
-        for (k = 0; k < EN_NSTING; k++) {
-            int32_t x = 6 + k * 77;
-            int has = en_sting_len(shown, k) != 0, me = has && ui.sting_k == k + 1,
-                play = me && (th == 2 || (!th && plat_ms() - ui.sting_t < 2500u)), wait = me && th == 1;
-            const char *n = has ? en_sting_name(shown, k) : "-";
-            cv_round(x, 116, 74, 20, 5, play || wait ? K_ALERT : K_PANEL);
-            if (wait)
-                cv_round(x + 2, 118, 70, 16, 4, K_BG);
-            cv_text(x + 4, 119, &FONT_XS, SK[k], play ? K_BG : K_DIM);
-            cv_text(x + 22, 119, &FONT_XS, n, play ? K_BG : wait || has ? K_ALERT : K_LINE);
-        }
-    }
+    draw_oneshots(shown, 78);                    /* (0.8.11: as on the Acts page, the acts at the bottom) */
+    draw_act_tiles(shown, cur, goal, 102);
 }
 
 /* EDIT, the lead: a trace of the melody played: the scale's notes as lines across (the root's brighter, named), each
