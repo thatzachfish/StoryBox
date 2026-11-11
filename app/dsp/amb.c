@@ -130,11 +130,11 @@ static const struct {
      * Devour: heavier, the backbeat, Tension. Good-bye: no drums, the bass and the pad heavy, an ocean rushing in */
     {"Fly", {"Entry", "Approach", "Devour", "Good-bye"}, {
         {50, 50, 48, 40, 25, 20, 30, 35, 45, 2, 62, 82, 45, 45, 35, 30, 0, 1, 80, 9, 5, 0, 0, 0, 10, 25, 0, 30, 10, 0, 1, 50, 7, 60, 45, 55, 0, 90, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {50, 55, 50, 45, 45, 40, 30, 40, 50, 2, 65, 85, 45, 45, 40, 50, 0, 1, 84, 9, 5, 0, 2, 0, 20, 30, 0, 40, 15, 12, 1, 50, 7, 65, 50, 60, 0, 85, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
         {60, 55, 65, 60, 50, 50, 25, 60, 45, 2, 60, 80, 50, 35, 55, 70, 0, 1, 88, 9, 5, 0, 2, -1, 15, 40, 0, 60, 15, 32, 1, 50, 7, 70, 60, 50, 0, 80, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {50, 55, 50, 45, 45, 40, 30, 40, 50, 2, 65, 85, 45, 45, 40, 50, 0, 1, 84, 9, 5, 0, 2, 0, 20, 30, 0, 40, 15, 12, 1, 50, 7, 65, 50, 60, 0, 85, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
         {75, 20, 70, 0, 15, 20, 70, 0, 35, 4, 72, 92, 20, 85, 20, 40, 0, 1, 60, 9, 5, -1, 1, -1, 40, 20, 0, 0, 30, 40, 1, 50, 7, 50, 35, 70, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 70}},
-        {"Am:2 C:2 Am:2 Em:2", "Am:2 Em:2 F:2 E7:2", "Am:2 F:2 Dm:2 E7:2", "Am:4 Em:4 Fmaj7:4 Em:4"},
-        9, {"~A3", "A2 E3 A3 C4 B3 A3"}, {"Buzz", "The web"}},
+        {"Am:2 C:2 Am:2 Em:2", "Am:2 F:2 Dm:2 E7:2", "Am:2 Em:2 F:2 E7:2", "Am:4 Em:4 Fmaj7:4 Em:4"},
+        9, {"~A3", "A3 E4 A4 C5 B4 A4"}, {"Buzz", "The web"}},
     /* Intermission: a head-nodding boom-bap groove in C minor (Dorian), 90 bpm, swung; the backbeat kit, Structure
      * up (the beat locked in), the kick on the off-beats, ghost snares and fills; a Rhodes, vibes, a bass leaning on
      * the fifth. Lights Up, Lobby, Snack Bar (busier), Last Call (calling everyone back) */
@@ -3881,8 +3881,9 @@ static void render_surf(uint32_t n)
 {
     uint32_t j;
     int c;
-    const float want = (float)par[P_SURF] * 0.01f;
-    surf_lvl += (want - surf_lvl) * fm_minf((float)n / (3.0f * EN_SR), 1.0f);   /* (in and out over seconds) */
+    const float want = en_playing ? (float)par[P_SURF] * 0.01f : 0.0f;   /* (0.8.8: and it rests with the music) */
+    surf_lvl += (want - surf_lvl) * fm_minf((float)n / ((en_playing ? 3.0f : 0.8f) * EN_SR), 1.0f);   /* (in and out over
+                                                  * seconds; out quicker at a pause) */
     if (surf_lvl < 0.0005f)
         return;
     surf_ph += (float)n * (1.0f / (9.3f * EN_SR));

@@ -39,7 +39,7 @@ wait 300
 tap HOME
 turn SELECT 5
 wait 300
-said Effects page: Reverb 50, Echo 40, Echo time 1/2., Surf 0
+said Effects 2 page: Reverb 50, Echo 40, Echo time 1/2., Surf 0
 spin K3 -1
 wait 300
 said Echo time 1/2

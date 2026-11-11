@@ -506,3 +506,6 @@ Hügelton Instruments.
 Wander sets how long an act lasts, whatever the tempo: in order, 5 minutes (just above Perform) to 2 minutes; then
 roaming, 90 seconds down to 10. Pre-show starts roaming at 90 s, Intermission in order at 5 min, Post Show in order at
 3 min. The lead starts at level 40.
+
+(0.8.8) The pages once called Colours and Effects are now Effects and Effects 2; SEL opens Acts. Pausing quiets the
+sea and wind too. Fly's Approach and Devour swapped their music, their names staying.

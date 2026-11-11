@@ -31,7 +31,7 @@ static int page_pos(int v)
     return -1;
 }
 #define NOBTN 0xFF
-static const char *const VIEW_NAME[NVIEWS] = {"Story", "Acts", "Mixer", "Colours", "Effects", "Pad", "Melody", "Bass",
+static const char *const VIEW_NAME[NVIEWS] = {"Story", "Acts", "Mixer", "Effects", "Effects 2", "Pad", "Melody", "Bass",
                                               "Drums", "Lead", "Setup", "System", "Bluetooth", "One-shots", "Harmony", "Stutter", "Filter", "Sparkle"};
 static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, B_SEL, NOBTN, B_FX, NOBTN, NOBTN, NOBTN, NOBTN, NOBTN, B_EDIT, B_GLO, NOBTN,
                                          NOBTN, NOBTN, B_ENV, B_LFO, B_ARP, B_SEQ};
@@ -2000,8 +2000,8 @@ static int help_lines(int b, const char *l[HELP_LINES])
     int n = 0;
 #define L(t) (l[n++] = (t))
     switch (b) {
-    case B_SEL: L("ACTS"); L("THE CHORD, THE LOOP, THE ONE-SHOTS,"); L("THE ACTS (EFFECTS: SELECT)"); break;
-    case B_FX: L("COLOURS"); L("EACH INSTRUMENT'S OWN:"); L("SHIMMER, ECHO, DRIVE, PUNCH"); break;
+    case B_SEL: L("ACTS"); L("THE CHORD, THE LOOP, THE ONE-SHOTS,"); L("THE ACTS (EFFECTS 2: SELECT)"); break;
+    case B_FX: L("EFFECTS"); L("EACH INSTRUMENT'S OWN:"); L("SHIMMER, ECHO, DRIVE, PUNCH"); break;
     case B_GLO: L("SETUP"); L("ROOT, TEMPO, SLEEP, FADE"); break;
     case B_EDIT: L("LEAD: THE KEYS PLAY A LEAD"); L("IN THE SCALE. KNOB 4: ITS OCTAVE"); L("AGAIN: BACK TO THE ACTS"); break;
     case B_REC: L("FREEZE: THE CHORD HOLDS"); L(" AND THE REVERB RINGS ON"); L("AGAIN: THAW"); L("TWICE: KEYS LEAD / ACTS"); break;
@@ -2018,7 +2018,7 @@ static int help_lines(int b, const char *l[HELP_LINES])
             L(" BACK TO ITS RECIPE");
         }
         break;
-    case B_HOME: L("HOME STORY, FX COLOURS, SEL ACTS,"); L(" ENV HARMONY, LFO STUTTER, EDIT LEAD, GLO SETUP,");
+    case B_HOME: L("HOME STORY, FX EFFECTS, SEL ACTS,"); L(" ENV HARMONY, LFO STUTTER, EDIT LEAD, GLO SETUP,");
         L(" SAVE, ARP FILTER, SEQ SPARKLE,"); L(" PLAY, REC FREEZE"); break;
     default: break;
     }
@@ -2764,7 +2764,7 @@ static void draw_knobs(void)
         int32_t x = (int32_t)i * 60, cx = x + 30;
         char t[16];
         static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
-        uint16_t own = ui.view == V_MIX || ui.view == V_COLR ? TC[i] : ui.view == V_PAD ? K_PAD : ui.view == V_BELLS ? K_BELL :
+        uint16_t own = ui.view == V_MIX || ui.view == V_COLR || ui.view == V_SPACE ? TC[i] : ui.view == V_PAD ? K_PAD : ui.view == V_BELLS ? K_BELL :
                        ui.view == V_BASS ? K_BASS : ui.view == V_PULSE ? K_PULSE : K_PAD;   /* (an instrument's: its colour) */
         uint16_t bg = hot ? K_PANEL : K_BG, fill = hot ? K_ACC : own;
         if (k == K_NONE)
