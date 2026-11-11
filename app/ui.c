@@ -32,10 +32,10 @@ static int page_pos(int v)
 }
 #define NOBTN 0xFF
 static const char *const VIEW_NAME[NVIEWS] = {"Story", "Acts", "Mixer", "Effects", "Effects 2", "Pad", "Melody", "Bass",
-                                              "Drums", "Lead", "Setup", "System", "Bluetooth", "One-shots", "Harmony", "Stutter", "Filter", "Sparkle"};
+                                              "Drums", "Lead", "Setup", "System", "Bluetooth", "One-shots", "Harmony", "Repeat", "Throw/Cloud", "Glitch/Shuffle"};
 static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, B_SEL, NOBTN, B_FX, NOBTN, NOBTN, NOBTN, NOBTN, NOBTN, B_EDIT, B_GLO, NOBTN,
                                          NOBTN, NOBTN, B_ENV, B_LFO, B_ARP, B_SEQ};
-/* the punch-ins: ENV Harmony (0.7, Reverse's place), LFO Stutter, ARP Filter, SEQ Sparkle (held; a double tap latches one on) */
+/* the punch-ins: ENV Harmony (0.7, Reverse's place), LFO Repeat, ARP Throw / Cloud, SEQ Glitch / Shuffle (0.8.14) (held; a double tap latches one on) */
 static const uint8_t FX_BTN[EN_NFX] = {B_ENV, B_LFO, B_ARP, B_SEQ};
 /* the four knobs of each page: a parameter, or one of these; and what the knob is called there */
 enum { K_LEDS = 100, K_CPU, K_NONE, K_PLAYMODE, K_WANDER, K_FADE, K_ACT, K_TIMER, K_ANSWER, K_BTDEV, K_BTOUT, K_BTON, K_BTRANGE };
@@ -56,8 +56,8 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_OSLEVEL, P_OSSPACE, P_OSECHO, P_OSTONE},   /* (0.8) the one-shots, all together, the story's */
     {P_RVLEN, P_RVMIX, P_HVSHIM, P_HVWIDTH},     /* (0.8: the punch-ins' knobs 3 and 4) */
     {P_STRATE, P_STMIX, P_STLEN, P_STPITCH},
-    {P_FLCUT, P_FLRES, P_FLSWEEP, P_FLTYPE},
-    {P_SCSIZE, P_SCMIX, P_SCPITCH, P_SCSPREAD},
+    {P_FLTYPE, P_FLRES, P_FLCUT, P_FLSWEEP},     /* (0.8.14) Throw / Cloud: Type, Amount, Tone, Time */
+    {P_SCSIZE, P_SCMIX, P_SCPITCH, P_SCSPREAD},  /* (0.8.14) Glitch / Shuffle: Type, Amount, Size, Vary */
 };
 static const char *const KNOB_LABEL[NVIEWS][4] = {
     {"Tempo", "Structure", "Tension", "Wander"},
@@ -76,8 +76,8 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
     {"Level", "Space", "Echo", "Tone"},
     {"Interval", "Mix", "Shimmer", "Width"},
     {"Rate", "Mix", "Length", "Pitch"},
-    {"Cutoff", "Resonance", "Sweep", "Type"},
-    {"Size", "Mix", "Pitch", "Spread"},
+    {"Type", "Amount", "Tone", "Time"},
+    {"Type", "Amount", "Size", "Vary"},
 };
 
 /* the screen's colours: the cover of Ambient 1: Music for Airports (1978), as the web app and the site.
@@ -273,13 +273,19 @@ static int global_p(int p)                     /* the player's: Root and the lea
 static int switch_p(int p)
 {
     return p == P_MODE || p == P_PADTONE || p == P_ETIME || p == P_BOCT || p == P_BSOUND || p == P_ROOT || p == P_METER ||
-           p == P_LSOUND || p == P_LOCT;
+           p == P_LSOUND || p == P_LOCT || p == P_RVLEN || p == P_STRATE || p == P_FLTYPE || p == P_SCSIZE || p == P_SCPITCH;
 }
-static uint32_t fade_ms(void)                  /* Fade 0..100: 5 s .. 2 min, as a curve */
+/* (0.8.14) Fade: a detent a step, 1 s .. 2 min, the short ones each a second */
+static const char *fx_name(int i)               /* (0.8.14) a punch-in's name: ARP's and SEQ's by their Type */
 {
-    float f = (float)proj.fade / 100.0f;
-    return 5000u + (uint32_t)(115000.0f * f * f);
+    if (i == 2)
+        return proj.par[P_FLTYPE] ? "Cloud" : "Throw";
+    if (i == 3)
+        return proj.par[P_SCSIZE] ? "Shuffle" : "Glitch";
+    return VIEW_NAME[V_REV + i];
 }
+
+static uint32_t fade_ms(void) { return 1000u * proj_fade_s[proj.fade < NFADE ? proj.fade : NFADE - 1]; }
 static uint32_t phrase_ms(void) { return PHRASE_BARS * en_bar_len * 60000u / ((uint32_t)proj.par[P_TEMPO] * 4u); }
 static uint32_t wander_phrases(void)           /* (0.8.7) by time, whatever the tempo: in order (1..50) 5 min .. 2 min an
                                                   * act; roaming (51..100) 90 s .. 10 s; in whole phrases */
@@ -469,7 +475,7 @@ static void tr_tick(void)
 /* StoryBox 0.5's keyboard, one zone a job: the acts F3 G3 A3 B3, the mix on the black keys around them (F#3 Pad,
  * G#3 Melody, A#3 Bass, C#4 Drums, D#4 the breakdown); the stories on the white keys from middle C (C4 .. E5); the
  * stings on the top black keys (C#5 D#5 F#5); F#4 G#4 A#4, F5 G5 spare. The stories by whose: C4 D4 E4 Zach's (Inside,
- * Fly, Fast and Slow), F4 .. B4 (Lighthouse, Market, Riebeck, Sleep), C5 D5 E5 the show's (Pre-show, Intermission,
+ * Fly, Fast and Slow), F4 .. B4 (Warehouse, Market, Rooftop, Sleep), C5 D5 E5 the show's (Pre-show, Intermission,
  * Post Show) */
 #define BLACK_KEY(k) ((0x0252A52Au >> (k)) & 1u)   /* F#3 G#3 A#3 C#4 D#4 F#4 G#4 A#4 C#5 D#5 F#5 */
 static const int8_t KEY_ACT[NKEYS] = {0, 30, 1, 31, 2, 32, 3, 15, 41, 16, 40, 14, 12, 50, 13, 51, 19, 52, 11, 10, 53, 17, -1, 18, -1, -1, -1};   /* (0.8.13:
@@ -751,7 +757,7 @@ static void knob_range(int k, int *lo, int *hi)
         *hi = en_param_info(k)->hi;
     } else {
         *lo = 0;
-        *hi = k == K_LEDS ? 2 : k == K_CPU || k == K_WANDER || k == K_FADE ? 100 : k == K_PLAYMODE ? 1 :
+        *hi = k == K_LEDS ? 2 : k == K_FADE ? NFADE - 1 : k == K_CPU || k == K_WANDER ? 100 : k == K_PLAYMODE ? 1 :
               k == K_ACT ? EN_NACT - 1 : k == K_TIMER ? 4 : k == K_ANSWER ? 100 : k == K_BTDEV ? (bt.n ? bt.n - 1 : 0) :
               k == K_BTOUT || k == K_BTON ? 1 : k == K_BTRANGE ? 2 : 0;
     }
@@ -1179,10 +1185,10 @@ static void input(void)
             if ((ui.fx_latch >> i & 1u) && plat_ms() - ui.fx_up_t[i] < 300u) {   /* a latched one, double-tapped: off */
                 ui.fx_latch &= (uint8_t)~(1u << i);
                 ui.fx_up_t[i] = 0;
-                say(VIEW_NAME[V_REV + i], "OFF");
+                say(fx_name(i), "OFF");
             } else if (ui.fx_latch >> i & 1u) {  /* tapped: its page, to turn its knobs */
                 set_view(V_REV + (int)i);
-                say(VIEW_NAME[V_REV + i], "LATCHED");
+                say(fx_name(i), "LATCHED");
             } else {
                 ui.fx_held |= (uint8_t)(1u << i);
                 if (!ui.fx_back)
@@ -1190,9 +1196,9 @@ static void input(void)
                 set_view(V_REV + (int)i);
                 if (plat_ms() - ui.fx_up_t[i] < 300u) {
                     ui.fx_latch |= (uint8_t)(1u << i);
-                    say(VIEW_NAME[V_REV + i], "LATCHED");
+                    say(fx_name(i), "LATCHED");
                 } else {
-                    say(VIEW_NAME[V_REV + i], "ON");
+                    say(fx_name(i), "ON");
                 }
             }
         } else {
@@ -1903,9 +1909,9 @@ static void draw_perform(void)
     int cur = tr.on ? tr.piece : proj.piece, next = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : -1;
     int bars = en_loop_bars, bar = en_loop_bar, ns = en_prog_steps();
     if (en_playing)
-        draw_chord_big(8, 64, chord_now(nm));     /* the chord now, big */
+        draw_chord_big(8, 0, chord_now(nm));     /* the chord now, big */
     else
-        cv_text(8, 64, &FONT_L, "-", K_DIM);
+        cv_text(8, 0, &FONT_L, "-", K_DIM);
     if (bar >= 0 && bars > 0) {
         char t[16];
         int n = 0;
@@ -1917,16 +1923,16 @@ static void draw_perform(void)
         t[n++] = 'f';
         t[n++] = ' ';
         itoa_u((uint32_t)bars, t + n);
-        cv_text(230 - text_w(&FONT_XS, "BAR"), 66, &FONT_XS, "BAR", K_DIM);
-        cv_text(230 - text_w(&FONT_B, t), 79, &FONT_B, t, K_TEXT);
+        cv_text(230 - text_w(&FONT_XS, "BAR"), 2, &FONT_XS, "BAR", K_DIM);
+        cv_text(230 - text_w(&FONT_B, t), 15, &FONT_B, t, K_TEXT);
     } else {
-        cv_text(230 - text_w(&FONT_XS, "CHORDS"), 66, &FONT_XS, "CHORDS", K_DIM);
-        cv_text(230 - text_w(&FONT_B, "free"), 79, &FONT_B, "free", K_TEXT);
+        cv_text(230 - text_w(&FONT_XS, "CHORDS"), 2, &FONT_XS, "CHORDS", K_DIM);
+        cv_text(230 - text_w(&FONT_B, "free"), 15, &FONT_B, "free", K_TEXT);
     }
     {                                            /* (0.8.9) the story and act, big, in the middle */
         const char *sn = en_story_name(cur / EN_NACT), *an = en_act_name(cur);
-        text_c(128, 65, &FONT_XS, sn, K_DIM);
-        text_c(128, 78, text_w(&FONT_B, an) <= 96 ? &FONT_B : &FONT_S, an, K_TEXT);
+        text_c(128, 1, &FONT_XS, sn, K_DIM);
+        text_c(128, 14, text_w(&FONT_B, an) <= 96 ? &FONT_B : &FONT_S, an, K_TEXT);
     }
     if (ns == 0 && en_playing) {                 /* (0.8.9) free chords: the last few, the one now filling */
         int k, m = ch_hist_n < CH_HIST ? ch_hist_n : CH_HIST;
@@ -1935,10 +1941,10 @@ static void draw_perform(void)
             const char *c = ch_hist[(ch_hist_n - m + k) % CH_HIST];
             int32_t x = 8 + (k + CH_HIST - m) * (cw + 4);
             int now = k == m - 1;
-            cv_text(x, 102, &FONT_XS, c, now ? K_ACC : K_DIM);
-            cv_round(x, 118, cw, 18, 3, now ? K_PANEL : mix(K_BG, K_ACC, 6));
+            cv_text(x, 38, &FONT_XS, c, now ? K_ACC : K_DIM);
+            cv_round(x, 54, cw, 18, 3, now ? K_PANEL : mix(K_BG, K_ACC, 6));
             if (now)
-                cv_round(x, 118, 3 + (int32_t)((float)(cw - 3) * fm_clampf(en_drift, 0.0f, 1.0f)), 18, 3, K_ACC);
+                cv_round(x, 54, 3 + (int32_t)((float)(cw - 3) * fm_clampf(en_drift, 0.0f, 1.0f)), 18, 3, K_ACC);
         }
     }
     if (ns > 0 && bars > 0 && bar >= 0) {        /* the loop: (0.8.10) a cell a beat, 3 a bar in 3/4, 4 in 4/4; a
@@ -1968,12 +1974,12 @@ static void draw_perform(void)
                     nm[nm[1] == '#' || nm[1] == 'b' ? 2 : 1] = 0;
             }
             if (nm[0])
-                cv_text(x, 102, &FONT_XS, nm, here ? K_ACC : K_DIM);
+                cv_text(x, 38, &FONT_XS, nm, here ? K_ACC : K_DIM);
             for (k = 0; k < nb && b < bars; k++, b++) {
                 int t;
                 for (t = 0; t < bpb; t++, x += cw + 1) {
                     int bt = b * bpb + t;
-                    cv_round(x, 118, cw, 18, cw >= 5 ? 2 : 1,
+                    cv_round(x, 54, cw, 18, cw >= 5 ? 2 : 1,
                              bt == cb ? K_ACC : bt < cb ? mix(K_BG, K_ACC, 6) : here ? mix(K_BG, K_ACC, 4) : K_PANEL);
                 }
                 x += 1;                          /* (a bar's gap) */
@@ -1981,8 +1987,8 @@ static void draw_perform(void)
             x += 2;                              /* (a chord's) */
         }
     }
-    draw_oneshots(cur, 0);                       /* (0.8.13: up top, the chord and the loop below) */
-    draw_act_tiles(cur, cur, next, 22);
+    draw_oneshots(cur, 78);                      /* (0.8.14: back at the bottom, as in 0.8.12) */
+    draw_act_tiles(cur, cur, next, 102);
 }
 
 /* how loud each instrument is now (the Mixer's strips are draw_inst_strips, 0.7) */
@@ -2065,8 +2071,8 @@ static void draw_colours(void)
 #define HELP_LINES 4
 static const char *const BTN_LABEL[NB] = {"FX", "SEL", "ENV", "LFO", "EDIT", "GLO", "HOME", "SAVE", "ARP", "SEQ",
                                           "PLAY", "REC", "OCT-", "OCT+"};
-static const char *const BTN_DOES[12] = {"Colours", "Effects", "Harmony", "Stutter", "Lead", "Setup",
-                                         "Story", "Save", "Filter", "Sparkle", "Play", "Freeze"};
+static const char *const BTN_DOES[12] = {"Colours", "Effects", "Harmony", "Repeat", "Lead", "Setup",
+                                         "Story", "Save", "Throw/Cloud", "Glitch", "Play", "Freeze"};
 static int help_lines(int b, const char *l[HELP_LINES])
 {
     int n = 0;
@@ -2090,8 +2096,8 @@ static int help_lines(int b, const char *l[HELP_LINES])
             L(" BACK TO ITS RECIPE");
         }
         break;
-    case B_HOME: L("HOME STORY, FX EFFECTS, SEL ACTS,"); L(" ENV HARMONY, LFO STUTTER, EDIT LEAD, GLO SETUP,");
-        L(" SAVE, ARP FILTER, SEQ SPARKLE,"); L(" PLAY, REC FREEZE"); break;
+    case B_HOME: L("HOME STORY, FX EFFECTS, SEL ACTS,"); L(" ENV HARMONY, LFO REPEAT, EDIT LEAD, GLO SETUP,");
+        L(" SAVE, ARP THROW, SEQ GLITCH,"); L(" PLAY, REC FREEZE"); break;
     default: break;
     }
 #undef L
@@ -2141,15 +2147,15 @@ static void draw_help(void)
 static void draw_map(void)
 {
     static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
-    static const char *const SHORT[EN_NSTORY] = {"Pre-show", "Sleep", "Lighthouse", "Market", "Fast & Slow", "Inside",
-                                                 "Fly", "Intermission", "Post Show", "Riebeck"};
+    static const char *const SHORT[EN_NSTORY] = {"Pre-show", "Sleep", "Warehouse", "Market", "Fast & Slow", "Inside",
+                                                 "Fly", "Intermission", "Post Show", "Rooftop"};
     static const int8_t BANK[3][4] = {{5, 6, 4, -1}, {2, 3, 9, 1}, {0, 7, 8, -1}};
     int cur = proj.piece, goal = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : -1, blink = (plat_ms() / 300u) & 1u, k, r;
     int shown = goal >= 0 && goal / EN_NACT != cur / EN_NACT ? goal : cur;   /* the story it is in, or going to */
     int bd_on = en_bd == 1 && ui.bd_asked, bd_wait = en_bd == 2 || (en_bd == 1 && !ui.bd_asked) || (ui.bd_asked && !en_bd);
     {                                            /* the mutes, the drum solo and Break, a row of chips (0.8.13: under the
                                                   * one-shots and acts) */
-        const int32_t y = 64;
+        const int32_t y = 0;
         int32_t x = 4 + text_w(&FONT_XS, "MUTE") + 4, rest;
         int ds_on = en_ds == 1 && ui.ds_asked, ds_wait = en_ds == 2 || (ui.ds_asked && !en_ds);
         cv_text(4, y + 1, &FONT_XS, "MUTE", K_DIM);
@@ -2168,7 +2174,7 @@ static void draw_map(void)
     }
     for (r = 0; r < 3; r++) {                    /* the stories, a row a bank, centred */
         int n = BANK[r][3] < 0 ? 3 : 4;
-        int32_t w = n == 3 ? 76 : 58, gap = 2, x0 = (240 - (n * w + (n - 1) * gap)) / 2, y = 84 + r * 19;
+        int32_t w = n == 3 ? 76 : 58, gap = 2, x0 = (240 - (n * w + (n - 1) * gap)) / 2, y = 19 + r * 19;
         for (k = 0; k < n; k++) {
             int st = BANK[r][k], here = st == cur / EN_NACT, going = goal >= 0 && st == goal / EN_NACT && !here;
             int32_t x = x0 + k * (w + gap);
@@ -2177,8 +2183,8 @@ static void draw_map(void)
             text_c(x + w / 2, y + 1, &FONT_XS, SHORT[st], here ? K_BG : going ? K_ACC : K_TEXT);
         }
     }
-    draw_oneshots(shown, 0);                    /* (0.8.11: as on the Acts page, the acts at the bottom) */
-    draw_act_tiles(shown, cur, goal, 22);
+    draw_oneshots(shown, 78);                   /* (0.8.11: as on the Acts page, the acts at the bottom) */
+    draw_act_tiles(shown, cur, goal, 102);
 }
 
 /* EDIT, the lead: a trace of the melody played: the scale's notes as lines across (the root's brighter, named), each
@@ -2491,18 +2497,29 @@ static void fx_picture(int i, int32_t x0, int32_t y0, int32_t w, int32_t h, uint
         }
         break;
     }
-    case 2: {
-        int32_t px = x0, py = y0 + 6, fc = x0 + 10 + proj.par[P_FLCUT] * (w - 30) / 100, q = proj.par[P_FLRES] * (h / 3) / 100;
-        for (k = x0; k <= x0 + w; k += 3) {
-            int32_t y = k < fc - 10 ? y0 + 6 + q : k < fc ? y0 + 6 + q - q * (k - (fc - 10)) / 10 : y0 + 6 + (k - fc) * 2;
-            if (y > y0 + h - 2)
-                y = y0 + h - 2;
-            cv_line(px, py, k, y, c);
-            px = k, py = y;
+    case 2:                                      /* (0.8.14) Throw: a wave dissolving into echoes; Cloud: grains, overlapping */
+        if (!proj.par[P_FLTYPE]) {
+            int32_t py = my;
+            for (k = 0; k <= w; k += 2) {
+                float a = 1.0f - (float)k / (float)w;
+                int32_t y = my - (int32_t)((float)h * 0.4f * a * fm_sinf((float)k * 0.25f));
+                if (k && k < w / 2)
+                    cv_line(x0 + k - 2, py, x0 + k, y, c);
+                else if (k >= w / 2 && (k / 2) % (2 + k * 4 / w) == 0)
+                    cv_rect(x0 + k, y, 2, 2, c);
+                py = y;
+            }
+        } else {
+            for (k = 0; k < 7; k++) {
+                int32_t cx = x0 + 8 + k * (w - 16) / 6, bh = h / 3 + (k * 37 % 5) * h / 12, j;
+                for (j = -9; j <= 9; j += 3) {
+                    int32_t hh = bh * (81 - j * j) / 81;
+                    cv_rect(cx + j, my - hh / 2, 2, hh > 1 ? hh : 1, c);
+                }
+            }
         }
         break;
-    }
-    default: {                                   /* Scatter: slices out of order, some backwards, some high */
+    default: {                                   /* Glitch / Shuffle: slices out of order, some backwards, some high */
         static const int8_t SL[6] = {2, -4, 1, 5, -2, 3};   /* (which slice; negative: backwards) */
         int32_t sw = w / 6;
         for (k = 0; k < 6; k++) {
@@ -2531,7 +2548,7 @@ static void draw_fx_list(void)
         if (on)
             cv_round(x, y, 112, 2, 1, K_ALERT);
         fx_picture(i, x + 10, y + 6, 92, 26, on ? K_ALERT : mix(K_PANEL, K_ALERT, 9));   /* (0.8.10: pink, softer at rest) */
-        cv_text(x + 8, y + 34, &FONT_B, VIEW_NAME[V_REV + i], on ? K_ALERT : K_TEXT);
+        cv_text(x + 8, y + 34, &FONT_B, fx_name(i), on ? K_ALERT : K_TEXT);
         cv_text(x + 8, y + 50, &FONT_XS, BTN_LABEL[FX_BTN[i]], K_ACC);
         cv_text(x + 104 - text_w(&FONT_XS, st), y + 50, &FONT_XS, st, on ? K_ALERT : K_DIM);
     }
@@ -2542,7 +2559,7 @@ static void draw_fx_page(void)                   /* one effect: its picture, lar
     int i = ui.view - V_REV, on = ((ui.fx_held | ui.fx_latch) >> i) & 1u, lat = ui.fx_latch >> i & 1u;
     char t[24] = "hold ";
     fx_picture(i, 30, 14, 180, 64, on ? K_ALERT : mix(K_BG, K_ALERT, 9));
-    text_c(120, 90, &FONT_B, VIEW_NAME[ui.view], on ? K_ALERT : K_TEXT);
+    text_c(120, 90, &FONT_B, fx_name(i), on ? K_ALERT : K_TEXT);
     caps(t + 5, BTN_LABEL[FX_BTN[i]], sizeof t - 5);
     text_c(120, 110, &FONT_XS, lat ? "LATCHED" : on ? "ON" : t, lat || on ? K_ALERT : K_DIM);
     if (lat)

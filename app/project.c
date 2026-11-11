@@ -66,8 +66,8 @@ void project_defaults(void)
     take(&proj.slot[0]);
     proj.leds = 1;
     proj.wander = 51;                   /* (0.8.3: Pre-show's, about a minute an act) */
-    proj.fade = 0;                       /* (0.8: 5 s) */
-    proj.recipes = 8;
+    proj.fade = 4;                       /* (0.8: 5 s; 0.8.14: a step a detent, 4 is 5 s) */
+    proj.recipes = 9;
 }
 
 static int pool_ok(uint32_t p)                   /* the root and at least two more notes */
@@ -118,6 +118,8 @@ static void clamp_pars(void)                    /* (0.5) a value out of range (a
     }
 }
 
+const uint8_t proj_fade_s[NFADE] = {1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 60, 75, 90, 105, 120};
+
 static void recipes_update(void)                /* (0.7) a saved act still on a kit its recipe changed: the new one */
 {
     static const struct { uint8_t piece, was; } KIT_WAS[] = {
@@ -167,8 +169,42 @@ static void recipes_update(void)                /* (0.7) a saved act still on a 
         if (proj.piece == 6 * EN_NACT + 1 || proj.piece == 6 * EN_NACT + 2)
             take(&proj.slot[proj.piece]);
     }
+    if (proj.recipes < 9) {                      /* (9, 0.8.14: Fade a step a detent from 1 s; Harmony's thirds before its
+                                                  * fifth; ARP Throw / Cloud and SEQ Glitch / Shuffle in Filter's and
+                                                  * Sparkle's places, their knobs their defaults; Lighthouse acid house,
+                                                  * Riebeck hip hop, from their recipes) */
+        static const uint8_t NEWP[8] = {P_FLCUT, P_FLRES, P_FLSWEEP, P_FLTYPE, P_SCSIZE, P_SCMIX, P_SCPITCH, P_SCSPREAD};
+        float f = (float)(proj.fade > 100 ? 100 : proj.fade) * 0.01f, sec = 5.0f + 115.0f * f * f, bd = 1e9f;
+        int j, s, q;
+        for (j = 0; j < NFADE; j++) {
+            float d = (float)proj_fade_s[j] - sec;
+            d = d < 0.0f ? -d : d;
+            if (d < bd)
+                bd = d, proj.fade = (uint8_t)j;
+        }
+        for (s = -1; s < NPIECES; s++) {
+            int16_t v;
+            if (s < 0) {
+                v = proj.par[P_RVLEN];
+                proj.par[P_RVLEN] = (int16_t)(v < 0 ? 1 : v > 2 ? 3 : v + 1);
+                for (q = 0; q < 8; q++)
+                    proj.par[NEWP[q]] = (int16_t)en_param_info(NEWP[q])->def;
+            } else {
+                v = proj.slot[s].par[P_RVLEN];
+                proj.slot[s].par[P_RVLEN] = (int8_t)(v < 0 ? 1 : v > 2 ? 3 : v + 1);
+                for (q = 0; q < 8; q++)
+                    proj.slot[s].par[NEWP[q]] = (int8_t)en_param_info(NEWP[q])->def;
+            }
+        }
+        for (s = 0; s < EN_NACT; s++) {
+            recipe(2 * EN_NACT + s, &proj.slot[2 * EN_NACT + s]);
+            recipe(9 * EN_NACT + s, &proj.slot[9 * EN_NACT + s]);
+        }
+        if (proj.piece / EN_NACT == 2 || proj.piece / EN_NACT == 9)
+            take(&proj.slot[proj.piece]);
+    }
     if (proj.recipes >= 2) {                     /* (1: 0.6.3's kits; 2: and Bows) */
-        proj.recipes = 8;
+        proj.recipes = 9;
         return;
     }
     for (i = 0; i < sizeof KIT_WAS / sizeof KIT_WAS[0]; i++) {
@@ -181,7 +217,7 @@ static void recipes_update(void)                /* (0.7) a saved act still on a 
         if (pc == proj.piece)
             proj.par[P_KIT] = r.par[P_KIT];
     }
-    proj.recipes = 8;
+    proj.recipes = 9;
 }
 
 static int project_valid(void)                  /* an older format: the recipes again */
@@ -232,6 +268,7 @@ static int from7(const project7_t *o)            /* 0.3's: its pieces kept (Fly'
     proj.piece = o->piece < N7 ? o->piece : 0;
     proj.wander = o->wander;
     proj.fade = o->fade;
+    proj.recipes = 8;                            /* (0.8.14: the old Fade, and the rest of 9's, brought in) */
     for (i = 0; i < N7; i++) {
         if (i / EN_NACT == 6)                    /* (Fly: 0.4 reworks it) */
             continue;

@@ -14,7 +14,7 @@ void ui_splash(void);
 #ifdef APP_VERSION                       /* a release build passes its own (tools/build.py --release) */
 #define EN_VERSION APP_VERSION
 #else
-#define EN_VERSION "0.8.13"               /* StoryBox's version, shown on the System page (the install page's too) */
+#define EN_VERSION "0.8.14"               /* StoryBox's version, shown on the System page (the install page's too) */
 #endif
 
 /* the store: the project at 0xFC000 and the panel calibration at 0xDC000, where AMB-1 0.9 kept them (an update keeps
@@ -29,6 +29,8 @@ enum { OBJ_PROJ, OBJ_PANEL, OBJ_BLE, OBJ_NOBJ };
                                           * recipes); 9 (0.8): the punch-ins' knobs 3 and 4, the one-shots'
                                           * (8 read: kept, the new values their defaults) */
 #define NPIECES EN_NPIECES
+#define NFADE 20                         /* (0.8.14) Fade's steps, 1 s .. 2 min */
+extern const uint8_t proj_fade_s[NFADE];
 
 typedef struct {                         /* (every value fits a byte: Tempo up to 120, Tune down to -50) */
     int8_t par[P_NPARAMS];

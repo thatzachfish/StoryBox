@@ -1,4 +1,4 @@
-# the punch-ins: ENV Reverse, LFO Stutter, ARP Filter, SEQ Phaser; held: on, the knobs theirs (their page), back on
+# the punch-ins: ENV Harmony, LFO Repeat, ARP Throw / Cloud, SEQ Glitch / Shuffle (0.8.14); held: on, the knobs theirs (their page), back on
 # letting go; a double tap latches one; a tap then shows its page, another turns it off
 wait 3000
 tap HOME
@@ -6,8 +6,8 @@ press ARP
 wait 300
 expect fx 4
 expect view 16
-spin K1 10
-expect par43 35
+spin K3 10
+expect par43 60
 release ARP
 wait 300
 expect fx 0

@@ -60,10 +60,10 @@ spin K4 -20
 expect par54 30
 wait 2000
 release ENV
-# Filter's Type
+# (0.8.14) Throw / Cloud's Type: Cloud
 press ARP
 wait 100
-spin K4 1
+spin K1 1
 expect par58 1
 wait 1500
 release ARP

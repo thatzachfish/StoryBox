@@ -40,13 +40,13 @@ press SAVE
 wait 1700
 release SAVE
 expect par1 55
-# the stories: the white key F4 is Lighthouse, from its first act
+# the stories: the white key F4 is Warehouse (0.8.14), from its first act
 tapkey 12
 wait 15000
 expect piece 8
-expect par18 66
-shot lighthouse.png
-# PRESETS: the next act (Lighthouse's second)
+expect par18 120
+shot warehouse.png
+# PRESETS: the next act (Warehouse's second)
 turn PRESET 1
 wait 15000
 expect piece 9

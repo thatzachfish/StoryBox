@@ -270,3 +270,7 @@ power-on.
   MPL-2.0): Tape Stop (with the knob as a hand on the record), Freeze (the last
   eighth as slow grains), Throw (the dry sound pushed into reverb/delay, rising
   over two bars), Glitch, Shuffle, Repeat 1/8 1/16 1/32. Waiting on Zach's pick.
+
+Built in 0.8.14: the bottom layout again, Fade 1 s .. 2 min, Harmony's thirds and All, the punch-ins (Repeat, Throw /
+Cloud with Tone, Glitch / Shuffle), Warehouse (acid house) and Rooftop (lo-fi hip hop). Ideas for later: vinyl crackle
+for Rooftop; a dusty hip hop kit of its own.

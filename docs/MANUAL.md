@@ -121,7 +121,7 @@ A key, a knob or another button puts the card away, and letting go does nothing 
 | REC | Freeze. (0.8.3) Twice: the keys switch between LEAD and ACTS, the page staying. |
 | An act key (F3 G3 A3 B3) | A tap: on the next phrase. Twice (0.8.2), or held: now, over Fade. |
 | ALGORITHM | Energy. It starts at 50 at power-on. |
-| SELECT | The pages. HOME held + SELECT: Fade (5 s at first). |
+| SELECT | The pages. HOME held + SELECT: Fade, a step a click: 1, 2, 3, 4, 5 s ... 2 min (5 s at first; 0.8.14). |
 | SEL | (0.8.7) The Acts page. Effects: by SELECT. |
 | OCT− / OCT+ | Answer in five steps; both together: off. |
 | A one-shot key (C#5, D#5, F#5) | (0.8.1) A tap plays it from the start of the loop (the act's chords from the top); a double tap starts it now, from where the loop is, so you can play just its second half; (0.8.2) a double tap while it plays stops it. A hold opens the One-shots page. |
@@ -140,10 +140,23 @@ The four knobs, page by page:
 | Setup | Root | Tempo | Sleep | Fade |
 | System | Tune | Lights | MIDI out | (free) |
 | One-shots | Level | Space | Echo | Tone |
-| Harmony | Interval | Mix | Shimmer | Width |
-| Stutter | Rate | Mix | Length | Pitch |
-| Filter | Cutoff | Resonance | Sweep | Type |
-| Sparkle | Size | Mix | Pitch | Spread |
+| Harmony (ENV) | Interval | Mix | Shimmer | Width |
+| Repeat (LFO) | Rate | Mix | Length | Pitch |
+| Throw / Cloud (ARP) | Type | Amount | Tone | Time |
+| Glitch / Shuffle (SEQ) | Type | Amount | Size | Vary |
+
+The punch-ins (0.8.14; hold the button, or double-tap to latch):
+
+- **Harmony**: the whole sound again above itself. Interval: Third (major or minor, following the chord), Fifth,
+  Octave, 5th + 8ve, All.
+- **Repeat**: from the next sixteenth, a slice (Rate: 1/4, 1/8, 1/16, 1/32) recorded and played again and again.
+  Length gates it; Pitch moves each repeat up or down.
+- **Throw**: the sound thrown into the reverb and echo, rising over Time (a beat to four bars); let go, it comes back
+  in a beat. **Cloud**: the moment just gone held as slow, overlapping grains (Time: their length). Tone, for both:
+  left of the middle darker (a low-pass), right of it thinner (a high-pass). Amount: how much.
+- **Glitch**: from the next sixteenth, slices (Size: 1/32, 1/16, 1/8) cut now and then: rolled, backwards, gated,
+  crushed, or skipping like a CD. **Shuffle**: slices swapped for one of the last few, now and then at half speed or
+  backwards. Amount: how many; Vary: another pattern (each repeats every two bars, so it grooves).
 
 The Acts page (0.8.1, the Feel page's place, just after Story; One-shots just after it) shows the chord now, the
 act's loop of chords a bar to a cell with the bar now lit, and the four act keys (F G A B) big, the one playing lit and
@@ -514,4 +527,12 @@ sea and wind too. Fly's Approach and Devour swapped their music, their names sta
 
 F#3 G#3 A#3: the story's one-shots. C#4: the drum solo (from the next bar the drums alone and busier, a fill every
 other bar; again: a fill, and everyone back on the one). D#4: the breakdown. F#4 G#4 A#4 C#5: mute (tap) or solo (hold)
-the pad, melody, bass, drums. On the Story and Acts pages the one-shots and acts are up top.
+the pad, melody, bass, drums. (0.8.14: on the Story and Acts pages the one-shots and acts are at the bottom again.)
+
+### The middle bank (0.8.14)
+
+F4 **Warehouse** (Lighthouse's place): acid house in A minor at 120, four on the floor, the new **Acid** bass (a
+303-style line: sixteenths, accents and slides over the chord's root, its filter squelching up and down over a few
+minutes and with Energy). Doors, Squelch, Strobe, Sunrise. A4 **Rooftop** (Riebeck's place): lo-fi hip hop in F minor
+at 80, swung, a Rhodes, a sub bass, vibes and a kalimba. Dusk, Cypher, Rain, Late Night. The Bass page's Sound has
+Acid for any story.
