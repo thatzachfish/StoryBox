@@ -1,0 +1,58 @@
+# 0.8: a one-shot key held opens the One-shots page (a tap plays it); its knobs set all three, kept with the story;
+# OCT+ / OCT- step Answer, both held turn it off; the punch-ins' knobs 3 and 4
+wait 300
+listen
+tapkey 11
+wait 16000
+expect piece 16
+key 25 down
+wait 700
+key 25 up
+expect view 13
+said ONE-SHOTS
+spin K1 -20
+expect par61 50
+spin K4 10
+expect par64 60
+shot oneshots.png
+# a tap plays it
+tapkey 25
+wait 3000
+shot oneshots-playing.png
+# another act of the story: the same settings
+turn PRESET 1
+wait 20000
+expect piece 17
+expect par61 50
+# Answer on the OCT buttons
+tap OCT+
+said ANSWER SHORT ANSWER
+tap OCT+
+tap OCT+
+tap OCT+
+said ANSWER FULL IMPROV
+expect answer 100
+press OCT-
+press OCT+
+wait 100
+release OCT-
+release OCT+
+said ANSWER OFF
+expect answer 0
+# the punch-ins' new knobs: Harmony's Shimmer, Width
+press ENV
+wait 100
+expect view 14
+spin K3 30
+expect par53 30
+spin K4 -20
+expect par54 30
+wait 2000
+release ENV
+# Filter's Type
+press ARP
+wait 100
+spin K4 1
+expect par58 1
+wait 1500
+release ARP

@@ -17,19 +17,19 @@
 /* StoryBox 0.5's pages, left to right as SELECT steps through them; then the punch-ins' (while one is held, or a
  * latched one tapped). HOME: Story (and the keys back to the acts); FX: Colours; SEL: Effects; EDIT: Lead; GLO: Setup */
 enum { V_STORY, V_GARDEN, V_MIX, V_COLR, V_SPACE, V_PAD, V_BELLS, V_BASS, V_PULSE, V_LEAD, V_SETUP, V_SYSTEM, V_BT,
-       V_REV, V_STUT, V_FILT, V_SCAT, NVIEWS };
+       V_SHOTS, V_REV, V_STUT, V_FILT, V_SCAT, NVIEWS };
 #define NPAGES V_REV
 #define NOBTN 0xFF
 static const char *const VIEW_NAME[NVIEWS] = {"Story", "Feel", "Mixer", "Colours", "Effects", "Pad", "Melody", "Bass",
-                                              "Drums", "Lead", "Setup", "System", "Bluetooth", "Harmony", "Stutter", "Filter", "Sparkle"};
+                                              "Drums", "Lead", "Setup", "System", "Bluetooth", "One-shots", "Harmony", "Stutter", "Filter", "Sparkle"};
 static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, NOBTN, NOBTN, B_FX, B_SEL, NOBTN, NOBTN, NOBTN, NOBTN, B_EDIT, B_GLO, NOBTN,
-                                         NOBTN, B_ENV, B_LFO, B_ARP, B_SEQ};
+                                         NOBTN, NOBTN, B_ENV, B_LFO, B_ARP, B_SEQ};
 /* the punch-ins: ENV Harmony (0.7, Reverse's place), LFO Stutter, ARP Filter, SEQ Sparkle (held; a double tap latches one on) */
 static const uint8_t FX_BTN[EN_NFX] = {B_ENV, B_LFO, B_ARP, B_SEQ};
 /* the four knobs of each page: a parameter, or one of these; and what the knob is called there */
 enum { K_LEDS = 100, K_CPU, K_NONE, K_PLAYMODE, K_WANDER, K_FADE, K_ACT, K_TIMER, K_ANSWER, K_BTDEV, K_BTOUT, K_BTON, K_BTRANGE };
 static const uint8_t VIEW_KNOB[NVIEWS][4] = {
-    {K_ACT, P_GROOVE, P_TENSION, K_WANDER},
+    {P_TEMPO, P_GROOVE, P_TENSION, K_WANDER},    /* (0.8: Tempo in Act's place: PRESETS is the act) */
     {P_EVOLVE, P_FREEDOM, P_DRIFT, P_MOTION},
     {P_PAD, P_BELLS, P_BASS, P_PULSE},
     {P_SHIMMER, P_MECHO, P_DRIVE, P_CRUSH},
@@ -38,17 +38,18 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_BELLS, P_DENSITY, P_MSOUND, P_BOCT},
     {P_BASS, P_FIFTH, P_BSOUND, P_GLIDE},
     {P_PULSE, P_HITS, P_KIT, P_SWING},
-    {P_LLEVEL, P_LGLIDE, P_LSOUND, K_ANSWER},   /* (0.7: Answer in Tone's place) */
+    {P_LLEVEL, P_LGLIDE, P_LSOUND, P_LOCT},     /* (0.8: Octave; Answer on OCT- / OCT+) */
     {P_ROOT, P_TEMPO, K_TIMER, K_FADE},
-    {P_TUNE, K_LEDS, P_MIDI, K_CPU},
+    {P_TUNE, K_LEDS, P_MIDI, K_NONE},            /* (0.8: the CPU in words on the page) */
     {K_NONE, K_BTDEV, K_BTOUT, K_BTON},   /* (0.7: to the right, knob 1 free) */
-    {P_RVLEN, P_RVMIX, K_NONE, K_NONE},
-    {P_STRATE, P_STMIX, K_NONE, K_NONE},
-    {P_FLCUT, P_FLRES, K_NONE, K_NONE},
-    {P_SCSIZE, P_SCMIX, K_NONE, K_NONE},
+    {P_OSLEVEL, P_OSSPACE, P_OSECHO, P_OSTONE},   /* (0.8) the one-shots, all together, the story's */
+    {P_RVLEN, P_RVMIX, P_HVSHIM, P_HVWIDTH},     /* (0.8: the punch-ins' knobs 3 and 4) */
+    {P_STRATE, P_STMIX, P_STLEN, P_STPITCH},
+    {P_FLCUT, P_FLRES, P_FLSWEEP, P_FLTYPE},
+    {P_SCSIZE, P_SCMIX, P_SCPITCH, P_SCSPREAD},
 };
 static const char *const KNOB_LABEL[NVIEWS][4] = {
-    {"Act", "Structure", "Tension", "Wander"},
+    {"Tempo", "Structure", "Tension", "Wander"},
     {"Evolve", "Freedom", "Drift", "Motion"},
     {"Pad", "Melody", "Bass", "Drums"},
     {"Shimmer", "Echo", "Drive", "Punch"},
@@ -57,14 +58,15 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
     {"Level", "Density", "Sound", "Octave"},
     {"Level", "Fifth", "Sound", "Glide"},
     {"Level", "Density", "Kit", "Swing"},
-    {"Level", "Glide", "Sound", "Answer"},
+    {"Level", "Glide", "Sound", "Octave"},
     {"Root", "Tempo", "Sleep", "Fade"},
-    {"Tune", "Lights", "MIDI out", "CPU"},
+    {"Tune", "Lights", "MIDI out", ""},
     {"", "Pick", "Play on", "Bluetooth"},
-    {"Interval", "Mix", "", ""},
-    {"Rate", "Mix", "", ""},
-    {"Cutoff", "Resonance", "", ""},
-    {"Size", "Mix", "", ""},
+    {"Level", "Space", "Echo", "Tone"},
+    {"Interval", "Mix", "Shimmer", "Width"},
+    {"Rate", "Mix", "Length", "Pitch"},
+    {"Cutoff", "Resonance", "Sweep", "Type"},
+    {"Size", "Mix", "Pitch", "Spread"},
 };
 
 /* the screen's colours: the cover of Ambient 1: Music for Airports (1978), as the web app and the site.
@@ -252,8 +254,9 @@ static struct {
 
 static int global_p(int p)                     /* the player's: Root and the lead only within a story (a new story brings its own) */
 {
-    return p == P_TUNE || p == P_MIDI || p == P_ENERGY || (p >= P_RVLEN && p <= P_SCMIX) ||
-           ((p == P_ROOT || (p >= P_LSOUND && p <= P_LOCT)) && tr.piece / EN_NACT == proj.piece / EN_NACT);
+    return p == P_TUNE || p == P_MIDI || p == P_ENERGY || (p >= P_RVLEN && p <= P_SCMIX) || (p >= P_HVSHIM && p <= P_SCSPREAD) ||
+           ((p == P_ROOT || (p >= P_LSOUND && p <= P_LOCT) || (p >= P_OSLEVEL && p <= P_OSTONE)) &&
+            tr.piece / EN_NACT == proj.piece / EN_NACT);
 }
 static int switch_p(int p)
 {
@@ -846,6 +849,26 @@ static void knob_set(int k, int v)
     mark_dirty();
 }
 
+/* (0.8) Answer in five steps, on OCT- / OCT+: Off, a short answer (to the last few notes), a long one (the whole
+ * phrase), sparse improvising, full improvising */
+static const uint8_t ANS_V[5] = {0, 25, 50, 70, 100};
+static const char *const ANS_N[5] = {"OFF", "SHORT ANSWER", "LONG ANSWER", "SPARSE IMPROV", "FULL IMPROV"};
+static int ans_cur(void)
+{
+    int i, b = 0;
+    for (i = 1; i < 5; i++)
+        if (proj.answer >= ANS_V[i] - 10)
+            b = i;
+    return b;
+}
+static void ans_step(int i)
+{
+    i = i < 0 ? 0 : i > 4 ? 4 : i;
+    proj.answer = ANS_V[i];
+    en_answer(ANS_V[i]);
+    say("ANSWER", ANS_N[i]);
+}
+
 /* knob acceleration by speed (X0X's): a few clicks are one step each however quick, so small
  * corrections stay exact; a longer quick turn speeds up to 8 a detent, so half a turn sweeps 0-100.
  * Small ranges never accelerate. */
@@ -967,20 +990,8 @@ static void button(int b)
         say("FREEZE", en_frozen ? "OFF" : "ON");
         en_freeze(!en_frozen);                   /* the engine takes it at its next block */
         break;
-    case B_OCTDN: case B_OCTUP:
-        if (ui.lead) {                           /* Lead: its octave */
-            char t[8];
-            knob_set(P_LOCT, proj.par[P_LOCT] + (b == B_OCTUP ? 1 : -1));
-            en_param_text(P_LOCT, proj.par[P_LOCT], t);
-            say("LEAD OCTAVE", t);
-            break;
-        }
-        knob_set(P_BOCT, proj.par[P_BOCT] + (b == B_OCTUP ? 1 : -1));
-        {
-            char t[8];
-            en_param_text(P_BOCT, proj.par[P_BOCT], t);
-            say("BELL OCTAVE", t);
-        }
+    case B_OCTDN: case B_OCTUP:                  /* (0.8) Answer, from any page: five steps (both held: off, above) */
+        ans_step(ans_cur() + (b == B_OCTUP ? 1 : -1));
         break;
     case B_SAVE:
         if (ui.view == V_BT) {                   /* the Bluetooth page: connect, or let go */
@@ -1129,6 +1140,10 @@ static void input(void)
                 ui.reset_done = 0;
             if (i == B_PLAY)                   /* transport on the press */
                 button((int)i);
+            if ((i == B_OCTDN || i == B_OCTUP) && (btn >> B_OCTDN & 1u) && (btn >> B_OCTUP & 1u)) {
+                ui.btn_used |= 1u << B_OCTDN | 1u << B_OCTUP;   /* (0.8) both: Answer off (and nothing when let go) */
+                ans_step(0);
+            }
         } else if (!(ui.btn_used & m) && i != B_PLAY) {
             button((int)i);
         }
@@ -1172,8 +1187,16 @@ static void input(void)
                 en_breakdown(on);
                 say("BREAKDOWN", on ? "NEXT BAR" : "COMING BACK");
             }
-        } else if (KEY_ACT[i] >= KEY_STING) {    /* ACTS: a sting, on the next beat */
+        } else if (KEY_ACT[i] >= KEY_STING) {    /* ACTS: a sting, on the next beat (0.8: a tap, on its release; a hold:
+                                                  * the One-shots page) */
             if ((ch & keys) >> i & 1u) {
+                ui.key_t[i] = plat_ms();
+                ui.key_held &= ~(1u << i);
+            } else if ((keys >> i & 1u) && !(ui.key_held >> i & 1u) && plat_ms() - ui.key_t[i] >= KEY_HOLD) {
+                ui.key_held |= 1u << i;
+                set_view(V_SHOTS);
+                say("ONE-SHOTS", 0);
+            } else if ((ch >> i & 1u) && !(keys >> i & 1u) && !(ui.key_held >> i & 1u)) {
                 int cur = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : proj.piece;
                 if (en_sting_len(cur, KEY_ACT[i] - KEY_STING)) {
                     ui.sting_k = (uint8_t)(KEY_ACT[i] - KEY_STING + 1);
@@ -1198,16 +1221,16 @@ static void input(void)
         ui.act_t = plat_ms();
     midi_in();
     if ((e = enc_in(EN_SELECT)) != 0) {        /* SELECT: the pages; with HOME held, the tempo */
-        if (btn >> B_HOME & 1u) {
-            turn(EN_SELECT, P_TEMPO, e);
+        if (btn >> B_HOME & 1u) {                /* (0.8: Fade; Tempo is the Story page's knob 1) */
+            turn(EN_SELECT, K_FADE, e);
             ui.btn_used |= 1u << B_HOME;
-            if (ui.view == V_SETUP) {            /* Tempo is Setup's second knob */
-                ui.touched = 1;
+            if (ui.view == V_SETUP) {            /* Fade is Setup's fourth knob */
+                ui.touched = 3;
                 ui.touch_until = plat_ms() + 1200u;
             } else {
                 char t[8];
-                itoa_u((uint32_t)proj.par[P_TEMPO], t);
-                say("TEMPO", t);
+                knob_text(K_FADE, t);
+                say("FADE", t);
             }
         } else if (ui.view >= V_REV) {           /* from an effect's page: back to Effects */
             set_view(V_SPACE);
@@ -1228,6 +1251,7 @@ static void input(void)
         int g = tr_goal(), a = g % EN_NACT;
         a = ((a + (e > 0 ? 1 : -1)) % EN_NACT + EN_NACT) % EN_NACT;
         tr_queue(g / EN_NACT * EN_NACT + a, 0);
+        say("ACT", en_act_name(g / EN_NACT * EN_NACT + a));   /* (0.8: no Act knob to say it) */
         ui.turn_t = plat_ms();
     }
     if (!(btn >> B_EDIT & 1u))
@@ -1781,12 +1805,12 @@ static int help_lines(int b, const char *l[HELP_LINES])
 #define L(t) (l[n++] = (t))
     switch (b) {
     case B_SEL: L("EFFECTS"); L("REVERB, ECHO, ECHO TIME,"); L("SURF"); break;
-    case B_FX: L("COLOURS"); L("EACH INSTRUMENT'S OWN:"); L("SHIMMER, ECHO, DRIVE, CRUSH"); break;
+    case B_FX: L("COLOURS"); L("EACH INSTRUMENT'S OWN:"); L("SHIMMER, ECHO, DRIVE, PUNCH"); break;
     case B_GLO: L("SETUP"); L("ROOT, TEMPO, SLEEP, FADE"); break;
-    case B_EDIT: L("LEAD: THE KEYS PLAY A LEAD"); L("IN THE SCALE. OCT: ITS OCTAVE"); L("AGAIN: BACK TO THE ACTS"); break;
+    case B_EDIT: L("LEAD: THE KEYS PLAY A LEAD"); L("IN THE SCALE. KNOB 4: ITS OCTAVE"); L("AGAIN: BACK TO THE ACTS"); break;
     case B_REC: L("FREEZE: THE CHORD HOLDS"); L(" AND THE REVERB RINGS ON"); L("AGAIN: THAW"); break;
-    case B_OCTDN: L("THE BELLS AN OCTAVE DOWN"); L("WITH OCT+, 5 S: UPDATE MODE"); break;
-    case B_OCTUP: L("THE BELLS AN OCTAVE UP"); L("WITH OCT-, 5 S: UPDATE MODE"); break;
+    case B_OCTDN: L("ANSWER: A STEP DOWN"); L("BOTH: ANSWER OFF"); break;
+    case B_OCTUP: L("ANSWER: A STEP UP, TO IMPROVISING"); L("BOTH: ANSWER OFF"); break;
     case B_SAVE:
         if (ui.view == V_BT) {
             L("CONNECTS THE SPEAKER");
@@ -1819,7 +1843,7 @@ static void draw_buttons(void)                   /* HOME held: what each button 
             text_c(x + 19 + sh, y + 23, &FONT_XS, BTN_DOES[i], K_TEXT);
         }
     text_c(120, 116, &FONT_XS, "SELECT: pages   PRESETS: act", K_DIM);
-    text_c(120, 130, &FONT_XS, "ALGORITHM: energy", K_DIM);
+    text_c(120, 130, &FONT_XS, "ALGORITHM: energy   HOME+SELECT: fade", K_DIM);
 }
 
 static void draw_help(void)
@@ -2077,6 +2101,27 @@ static void draw_setup(void)
 
 /* Bluetooth (0.6): what it is doing, in words; the speakers, known and found, the one picked outlined, the one
  * connected green; how to work it */
+/* (0.8) the One-shots page: the story's three, the one playing lit; its knobs set all of them, kept with the story */
+static void draw_shots(void)
+{
+    int k, cur = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : proj.piece;
+    static const char *const KEYN[EN_NSTING] = {"C#5", "D#5", "F#5"};
+    cv_text(8, 2, &FONT_B, en_story_name(cur / EN_NACT), K_TEXT);
+    for (k = 0; k < EN_NSTING; k++) {
+        int32_t y = 26 + k * 26;
+        int has = en_sting_len(cur, k) != 0,
+            on = has && ui.sting_k == k + 1 && (en_theme_busy() || plat_ms() - ui.sting_t < 2500u);
+        cv_round(6, y, 228, 22, 5, on ? K_ALERT : K_PANEL);
+        cv_round(8, y + 2, 224, 18, 4, on ? K_ALERT : K_PANEL);
+        cv_text(14, y + 4, &FONT_XS, KEYN[k], on ? K_BG : K_DIM);
+        cv_text(48, y + 3, &FONT_B, has ? en_sting_name(cur, k) : "-", on ? K_BG : has ? K_TEXT : K_LINE);
+        if (on)
+            cv_text(226 - text_w(&FONT_XS, "playing"), y + 4, &FONT_XS, "playing", K_BG);
+    }
+    cv_text(8, 112, &FONT_XS, "Tap a key: play it. The knobs:", K_LINE);
+    cv_text(8, 126, &FONT_XS, "all three, kept with the story", K_LINE);
+}
+
 static void draw_bt(void)
 {
     int st = plat_bta_state(), busy = bt_busy(st), i, first, rows = 5, dots = (int)(plat_ms() / 400u % 4u);
@@ -2382,7 +2427,7 @@ static void draw_main(void)
     uint32_t h, i;
     int what = ui.help ? 1 : ui.view == V_STORY ? 2 : ui.view == V_LEAD ? 3 : ui.view == V_SPACE ? 4 : ui.view >= V_REV ? 5 :
                ui.view == V_GARDEN ? 6 : ui.view == V_SETUP ? 7 : ui.view == V_SYSTEM ? 8 : ui.view == V_MIX ? 9 :
-               ui.view == V_COLR ? 10 : ui.view == V_BT ? 11 : 0;
+               ui.view == V_COLR ? 10 : ui.view == V_BT ? 11 : ui.view == V_SHOTS ? 12 : 0;
     lead_trace_tick();
     mix_meter_tick();
     if (ui.frame % 3u)                           /* 20 frames a second is plenty */
@@ -2443,6 +2488,11 @@ static void draw_main(void)
                                   (uint32_t)plat_bta_out_device() << 12 | (uint32_t)proj.bt_off << 13),
                       plat_ms() / 400u), (uint32_t)bt.name[bt.sel][0] | (uint32_t)bt.conn[0] << 8 | (uint32_t)bt.name[0][1] << 16);
         break;
+    case 12:
+        h = hash(hash(h, (uint32_t)ui.sting_k | (uint32_t)en_theme_busy() << 4 | (uint32_t)(plat_ms() - ui.sting_t < 2500u) << 5),
+                 (uint32_t)proj.par[P_OSLEVEL] | (uint32_t)proj.par[P_OSSPACE] << 8 | (uint32_t)proj.par[P_OSECHO] << 16 |
+                     (uint32_t)proj.par[P_OSTONE] << 24);
+        break;
     case 6:
         h = hash(hash(h, (uint32_t)proj.par[P_ENERGY] | (uint32_t)proj.par[P_TENSION] << 8 | (uint32_t)(en_drift * 40.0f) << 16),
                  (uint32_t)(en_arc * 100.0f + 100.0f));
@@ -2482,6 +2532,7 @@ static void draw_main(void)
     case 9: draw_inst_strips(-1); break;
     case 10: draw_colours(); break;
     case 11: draw_bt(); break;
+    case 12: draw_shots(); break;
     default:
         if (ring_focus() >= 0)                   /* (0.7: an instrument's page, every instrument's strips, its own bright) */
             draw_inst_strips(ring_focus());
@@ -2523,8 +2574,14 @@ static void draw_knobs(void)
         v = knob_get(k);
         if (k == P_TENSION && v > 60)            /* a lot of Tension: an alert */
             fill = K_ALERT;
-        if (k != K_CPU && hi - lo < 6) {         /* a switch: its positions as pips */
-            int n = hi - lo + 1, j, pw = n > 4 ? 6 : 9, gap = 3, w0 = n * (pw + gap) - gap;
+        if (k != K_CPU && (ui.view >= V_PAD && ui.view <= V_LEAD ? i == 2 : hi - lo < 6)) {   /* a switch: its positions
+                                                  * as pips (0.8: an instrument's page, only its sound, knob 3) */
+            int n = hi - lo + 1, j, gap = n > 6 ? 2 : 3, pw = n > 4 ? (54 + gap) / n - gap : 9, w0;
+            if (pw > 9)
+                pw = 9;
+            if (pw < 3)
+                pw = 3;
+            w0 = n * (pw + gap) - gap;
             for (j = 0; j < n; j++)
                 cv_round(cx - w0 / 2 + j * (pw + gap), 11, pw, 8, 2, j == v - lo ? fill : K_LINE);
         } else if (k != K_CPU) {

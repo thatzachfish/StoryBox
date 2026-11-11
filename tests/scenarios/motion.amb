@@ -13,7 +13,10 @@ press EDIT
 wait 700
 release EDIT
 wait 4000
-tap OCT+
+tap GLO
+turn SELECT -4
+expect view 6
+spin K4 1
 expect par21 1
 tap GLO
 turn SELECT -5

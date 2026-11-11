@@ -39,9 +39,9 @@ tap SEL
 turn K2 1 80
 wait 100
 shot space_turning.png
-# HOME + SELECT: the tempo, from any page
+# HOME + SELECT: the fade (0.8), from any page
 press HOME
 turn SELECT 3 100
 release HOME
-expect par18 89
+expect view 4
 expect view 4

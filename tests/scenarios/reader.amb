@@ -3,7 +3,7 @@
 wait 200
 listen
 wait 100
-said Story page: Act Doors, Structure 70, Tension 0, Wander Perform. Piece Pre-show, D minor
+said Story page: Tempo 86, Structure 70, Tension 0, Wander Perform. Piece Pre-show, D minor
 # (the rings follow, queued: the chord, how far to the next, the scale from the root up)
 listen
 where
@@ -15,7 +15,7 @@ wait 300
 said Pad page: Level 50, Swell 45, Sound Rhodes, Bright 45
 tap GLO
 wait 300
-said Setup page: Root D, Tempo 86, Sleep Off, Fade 19s
+said Setup page: Root D, Tempo 86, Sleep Off, Fade 5s
 # the sleep timer: a quarter hour
 spin K3 1
 wait 300
@@ -46,12 +46,12 @@ said Echo time 1/2
 tap HOME
 wait 300
 said ACTS ON THE KEYS
-# HOME + SELECT: the tempo
+# HOME + SELECT: the fade (0.8)
 press HOME
 turn SELECT 2 200
 release HOME
 wait 300
-said TEMPO 88
+said FADE
 # the keys, in ACTS: a black key mutes its track and back
 tapkey b0
 said MUTE PAD
@@ -64,11 +64,11 @@ turn ALGO -1
 said ENERGY 50
 turn PRESET 1
 wait 300
-said Act Warm Up
+said ACT Warm Up
 unsaid Level
 turn PRESET -1
 wait 300
-said Act Doors
+said ACT Doors
 # the buttons' messages, said once
 tap REC
 said FREEZE ON
@@ -83,9 +83,9 @@ said GROWING
 wait 300
 unsaid RESTING
 tap OCT+
-said BELL OCTAVE +1
+said ANSWER SHORT ANSWER
 tap OCT-
-said BELL OCTAVE 0
+said ANSWER OFF
 press EDIT
 wait 700
 release EDIT
@@ -111,7 +111,7 @@ midi FC 00 00
 wait 300
 said RESTING
 wait 1000
-said Tempo 88
+said Tempo 86
 # WHERE: everything again
 where
-said Story page: Act Doors, Structure 70, Tension 0, Wander Perform. Piece Pre-show
+said Story page: Tempo 86, Structure 70, Tension 0, Wander Perform. Piece Pre-show

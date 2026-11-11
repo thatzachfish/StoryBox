@@ -102,7 +102,7 @@ The drawing at the top shows every control. Here they are in more detail.
 | ALGORITHM | Picks the mode: Ionian, Dorian, Phrygian, Lydian, Mixolydian, Aeolian, or pentatonic major or minor. It loads the mode's scale. Once you change the scale with the keys, it's Custom. |
 | PRESETS | The next or previous act of the story, on the next phrase (StoryBox 0.6.1). |
 | KNOB 1–4 | Set the four values on the screen. A few clicks always move one step at a time, and a quick turn speeds up, so half a turn sweeps the whole range. |
-| OCT− / OCT+ | Move the bells down or up an octave, up to two either way, from any page. |
+| OCT− / OCT+ | (StoryBox 0.8) Answer, from any page, a step at a time: Off, Short answer, Long answer, Sparse improv, Full improv. Both together: Off. |
 | MASTER | Sets the volume. |
 | SAVE | Saves all eight pieces. Hold it for 1.5 s to put the piece back to its recipe. |
 
@@ -112,6 +112,44 @@ A key, a knob or another button puts the card away, and letting go does nothing 
 ![SAVE's card over the Pad page: SAVES ALL EIGHT PIECES. KEEP HOLDING: THE PIECE BACK TO ITS RECIPE](img/screen-help.png "SAVE's card")
 
 ---
+
+### StoryBox 0.8: the controls at a glance
+
+| Control | What it does |
+|---|---|
+| PRESETS | The act (on the next phrase). |
+| ALGORITHM | Energy. It starts at 50 at power-on. |
+| SELECT | The pages. HOME held + SELECT: Fade (5 s at first). |
+| OCT− / OCT+ | Answer in five steps; both together: off. |
+| A one-shot key (C#5, D#5, F#5) | A tap plays it on the next beat; a hold opens the One-shots page. |
+
+The four knobs, page by page:
+
+| Page | 1 | 2 | 3 | 4 |
+|---|---|---|---|---|
+| Story | Tempo | Structure | Tension | Wander |
+| Feel | Evolve | Freedom | Drift | Motion |
+| Pad | Level | Swell | Sound | Bright |
+| Melody | Level | Density | Sound | Octave |
+| Bass | Level | Fifth | Sound | Glide |
+| Drums | Level | Density | Kit | Swing |
+| Lead | Level | Glide | Sound | Octave |
+| Setup | Root | Tempo | Sleep | Fade |
+| System | Tune | Lights | MIDI out | (free) |
+| One-shots | Level | Space | Echo | Tone |
+| Harmony | Interval | Mix | Shimmer | Width |
+| Stutter | Rate | Mix | Length | Pitch |
+| Filter | Cutoff | Resonance | Sweep | Type |
+| Sparkle | Size | Mix | Pitch | Spread |
+
+On the instrument pages knob 3 is always the sound, shown as a row of boxes; the others are dials. The One-shots
+page's knobs set all of the story's one-shots together, and the story keeps them.
+
+- **Evolve**: how restless the band is: low, everyone plays steadily; high, parts take turns resting.
+- **Freedom**: how closely it keeps to the act's chords: 0 exactly as written, 100 its own from the scale.
+- **Drift**: how long a chord lasts when it picks its own.
+- **Motion**: how much the sound itself moves: swells, notes swinging side to side, a slight wobble, the echo wandering.
+- **Energy**: the overall dial: 50 the act as written; lower calmer, sparser, darker; higher fuller, busier, brighter.
 
 ## 4. The screen
 

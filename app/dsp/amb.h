@@ -77,6 +77,13 @@ enum {
     P_SHIMMER, P_MECHO, P_DRIVE, P_CRUSH,             /* the act's: each instrument's own effect: the pad's shimmer (an
                                                        * octave up in the reverb), the melody's echo, the bass's drive,
                                                        * the drums' crush (fewer bits, a lower rate) */
+    P_HVSHIM, P_HVWIDTH, P_STLEN, P_STPITCH,          /* 0.8: the punch-ins' knobs 3 and 4: Harmony's shimmer (its voices
+                                                       * fed back, climbing) and width; Stutter's length (a slice's share
+                                                       * of its rate) and pitch (-50 a tape slowing .. 50 rising); */
+    P_FLSWEEP, P_FLTYPE, P_SCPITCH, P_SCSPREAD,       /* Filter's sweep (by itself, 0 off) and type (low, high, band);
+                                                       * Sparkle's pitch (0 as is .. 100 an octave up) and spread */
+    P_OSLEVEL, P_OSSPACE, P_OSECHO, P_OSTONE,         /* 0.8: the one-shots' (the themes'), all together, the story's:
+                                                       * level, their own reverb, echo, and tone (dark .. bright) */
     P_NPARAMS
 };
 typedef struct {
@@ -173,6 +180,7 @@ int en_story_key(int s);                       /* the key its chords and stings 
 /* StoryBox stings: two one-shots a story (a note or a chord on bells, ringing long), on the next beat */
 #define EN_NSTING 3                             /* (0.7: a third, for Fast and Slow's themes together) */
 int en_sting_len(int piece, int k);            /* its notes, 0 none */
+int en_theme_busy(void);                        /* a one-shot theme waiting for its bar or playing */
 const char *en_sting_name(int piece, int k);
 void en_sting(int piece, int k);
 const char *en_act_name(int piece);

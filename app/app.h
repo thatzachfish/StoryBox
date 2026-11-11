@@ -14,7 +14,7 @@ void ui_splash(void);
 #ifdef APP_VERSION                       /* a release build passes its own (tools/build.py --release) */
 #define EN_VERSION APP_VERSION
 #else
-#define EN_VERSION "0.7.4"               /* StoryBox's version, shown on the System page (the install page's too) */
+#define EN_VERSION "0.8"               /* StoryBox's version, shown on the System page (the install page's too) */
 #endif
 
 /* the store: the project at 0xFC000 and the panel calibration at 0xDC000, where AMB-1 0.9 kept them (an update keeps
@@ -23,10 +23,11 @@ enum { OBJ_PROJ, OBJ_PANEL, OBJ_BLE, OBJ_NOBJ };
 #define APP_STORE_MAP {0xFC000u, 0xDC000u, 0xDE000u}   /* (0.6: OBJ_BLE, the radio's address and the speakers known) */
 #define APP_BLE_AT_BOOT (proj.bt_off == 0)  /* Bluetooth at power-on unless the Bluetooth page turned it off */
 #define PROJ_MAGIC 0x31425453u           /* StoryBox: "STB1" (AMB-1's "ENO1" at the same place is not read: defaults) */
-#define PROJ_FORMAT 8u                   /* 2: Freedom; 3: Tension, Meter, Energy; 4: the lead; 5: Groove; 6: punch-ins;
+#define PROJ_FORMAT 9u                   /* 2: Freedom; 3: Tension, Meter, Energy; 4: the lead; 5: Groove; 6: punch-ins;
                                           * 7: Fly, Intermission, Surf, Melody; 8: the slots in bytes, Post Show, the
                                           * instruments' effects (7 read: kept, Fly's acts and the new ones from their
-                                          * recipes) */
+                                          * recipes); 9 (0.8): the punch-ins' knobs 3 and 4, the one-shots'
+                                          * (8 read: kept, the new values their defaults) */
 #define NPIECES EN_NPIECES
 
 typedef struct {                         /* (every value fits a byte: Tempo up to 120, Tune down to -50) */
