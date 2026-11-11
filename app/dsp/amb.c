@@ -1750,8 +1750,10 @@ static void tick(void)
         prog_advance();                          /* a progression: its chords on their bars */
     }
     refrain_tick();                              /* (0.8: Dream's refrain on the bells) */
-    if (!prog_on())
+    if (!prog_on()) {
         loop16 = -1;
+        en_loop_bar = -1;                        /* (0.8.9: none to show) */
+    }
     else if (loop16 >= 0) {                      /* (0.8.1) the loop's place, for the screen */
         int b, tot = 0;
         for (b = 0; b < prog_n[prog_cur]; b++)

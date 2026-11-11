@@ -315,7 +315,8 @@ static void tr_start(int piece, uint32_t ms)
 /* (0.8.3) each story's Wander as it starts: Zach's performance stories (Fast and Slow, Inside, Fly) Perform, the acts
  * waiting for him; the house music: Pre-show roaming, its longest (about 45 s an act; 0.8.6), Intermission in order, as long as it goes, Post Show
  * about three minutes, in order (the rest as they were) */
-static const int8_t STORY_WANDER[EN_NSTORY] = {51, -1, -1, -1, 0, 0, 0, 1, 34, -1};   /* (0.8.7: Pre-show roaming 90 s,
+static const int8_t STORY_WANDER[EN_NSTORY] = {51, 51, 51, 51, 0, 0, 0, 1, 34, 51};   /* (0.8.9: the middle bank
+                                                  * roaming its longest, 90 s) */   /* (0.8.7: Pre-show roaming 90 s,
                                                   * Intermission in order 5 min, Post Show in order 3 min) */
 static void story_wander(void)
 {
@@ -372,6 +373,7 @@ static void timer_tick(void)                   /* the sleep timer: the last thre
 /* (0.8.3) full improv: now and then (about a minute, on a new phrase) another of the lead's sounds, the player's lead
  * too (Lead's Sound), never the same one twice running */
 static void knob_set(int k, int v);
+static void chord_hist_tick(void);
 static void imp_sound_tick(void)
 {
     static uint32_t t0;
@@ -399,6 +401,7 @@ static void tr_tick(void)
 {
     timer_tick();
     imp_sound_tick();
+    chord_hist_tick();
     uint32_t now = plat_ms(), phrase = en_barno / PHRASE_BARS;
     int p;
     if (phrase != tr.last_phrase) {             /* a new phrase: a queued act starts, Vibe counts */
@@ -1817,6 +1820,25 @@ static void draw_chord_big(int32_t x, int32_t y, const char *nm)   /* (0.8.6) a 
     }
     cv_text(x, y + 14, &FONT_B, q, K_ACC);
 }
+/* (0.8.9) without a written progression (the chords free): the last few chords, the one now lit and filling toward the
+ * next (Drift); kept as they come */
+#define CH_HIST 6
+static char ch_hist[CH_HIST][12];
+static int ch_hist_n;
+static void chord_hist_tick(void)
+{
+    char nm[16];
+    int k;
+    if (!en_playing)
+        return;
+    chord_now(nm);
+    if (ch_hist_n && bt_eq(ch_hist[(ch_hist_n - 1) % CH_HIST], nm))
+        return;
+    for (k = 0; k < 11 && nm[k]; k++)
+        ch_hist[ch_hist_n % CH_HIST][k] = nm[k];
+    ch_hist[ch_hist_n % CH_HIST][k] = 0;
+    ch_hist_n++;
+}
 static void draw_perform(void)
 {
     static const char *const KN[4] = {"F", "G", "A", "B"};
@@ -1840,8 +1862,28 @@ static void draw_perform(void)
         itoa_u((uint32_t)bars, t + n);
         cv_text(230 - text_w(&FONT_XS, "BAR"), 2, &FONT_XS, "BAR", K_DIM);
         cv_text(230 - text_w(&FONT_B, t), 15, &FONT_B, t, K_TEXT);
-    } else
-        cv_text(230 - text_w(&FONT_XS, "chords: free"), 15, &FONT_XS, "chords: free", K_DIM);
+    } else {
+        cv_text(230 - text_w(&FONT_XS, "CHORDS"), 2, &FONT_XS, "CHORDS", K_DIM);
+        cv_text(230 - text_w(&FONT_B, "free"), 15, &FONT_B, "free", K_TEXT);
+    }
+    {                                            /* (0.8.9) the story and act, big, in the middle */
+        const char *sn = en_story_name(cur / EN_NACT), *an = en_act_name(cur);
+        text_c(128, 1, &FONT_XS, sn, K_DIM);
+        text_c(128, 14, text_w(&FONT_B, an) <= 96 ? &FONT_B : &FONT_S, an, K_TEXT);
+    }
+    if (ns == 0 && en_playing) {                 /* (0.8.9) free chords: the last few, the one now filling */
+        int k, m = ch_hist_n < CH_HIST ? ch_hist_n : CH_HIST;
+        int32_t cw = 34;
+        for (k = 0; k < m; k++) {
+            const char *c = ch_hist[(ch_hist_n - m + k) % CH_HIST];
+            int32_t x = 8 + (k + CH_HIST - m) * (cw + 4);
+            int now = k == m - 1;
+            cv_text(x, 38, &FONT_XS, c, now ? K_ACC : K_DIM);
+            cv_round(x, 54, cw, 18, 3, now ? K_PANEL : mix(K_BG, K_ACC, 6));
+            if (now)
+                cv_round(x, 54, 3 + (int32_t)((float)(cw - 3) * fm_clampf(en_drift, 0.0f, 1.0f)), 18, 3, K_ACC);
+        }
+    }
     if (ns > 0 && bars > 0 && bar >= 0) {        /* the loop: a cell a bar, its chords over them */
         int32_t gaps = ns - 1, cw = (224 - 2 * gaps + 2) / bars - 2, x = 8, b = 0, i;
         if (cw < 3)
@@ -2697,6 +2739,7 @@ static void draw_main(void)
                      (uint32_t)(tr.pending + 1) << 22 | (uint32_t)tr.on << 30);
         h = hash(h, (uint32_t)tr.piece | (uint32_t)proj.par[P_ROOT] << 8 | (uint32_t)ui.sting_k << 16 |
                         (uint32_t)en_theme_busy() << 20 | (uint32_t)(plat_ms() - ui.sting_t < 2500u) << 22);
+        h = hash(h, (uint32_t)ch_hist_n | (uint32_t)(en_drift * 30.0f) << 16);
         break;
     default:
         if (ring_focus() >= 0) {
