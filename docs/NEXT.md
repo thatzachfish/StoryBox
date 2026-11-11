@@ -256,3 +256,6 @@ power-on.
 - Story and Acts pages: move the one-shots and act tiles back to the bottom of
   the screen (undo the 0.8.13 "up top" swap). Keep them looking the same on
   both pages, keep dim yellow / dim pink, and the 0.8.13 black-key layout.
+- Fade range: 1 s .. 2 min (was 5 s .. 2 min). Zach uses 1 s, 3 s and 5 s
+  often, so make those easy to land on near the bottom of the knob. Keep the
+  default at 5 s (bump saved projects' fade so their time doesn't change).
