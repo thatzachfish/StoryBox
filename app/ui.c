@@ -367,9 +367,36 @@ static void timer_tick(void)                   /* the sleep timer: the last thre
     en_fade = f * f;                           /* (heard as an even fade) */
 }
 
+/* (0.8.3) full improv: now and then (about a minute, on a new phrase) another of the lead's sounds, the player's lead
+ * too (Lead's Sound), never the same one twice running */
+static void knob_set(int k, int v);
+static void imp_sound_tick(void)
+{
+    static uint32_t t0;
+    static uint32_t last_phrase;
+    uint32_t now = plat_ms(), phrase = en_barno / PHRASE_BARS;
+    if (proj.answer < 100 || !en_playing || ui.lead) {
+        t0 = now;
+        return;
+    }
+    if (phrase == last_phrase)
+        return;
+    last_phrase = phrase;
+    if (now - t0 >= 55000u + (uint32_t)(phrase % 3u) * 5000u) {
+        static const uint8_t PICK[6] = {LEAD_KALIMBA, LEAD_FLUTE, LEAD_RHODES, LEAD_VIOLIN, LEAD_CELLO, LEAD_BELL};
+        int k = (int)((now / 7u + phrase) % 6u);
+        if (PICK[k] == proj.par[P_LSOUND])
+            k = (k + 1) % 6;
+        t0 = now;
+        knob_set(P_LSOUND, PICK[k]);
+        say("IMPROV", EN_LEAD_NAME[PICK[k]]);
+    }
+}
+
 static void tr_tick(void)
 {
     timer_tick();
+    imp_sound_tick();
     uint32_t now = plat_ms(), phrase = en_barno / PHRASE_BARS;
     int p;
     if (phrase != tr.last_phrase) {             /* a new phrase: a queued act starts, Vibe counts */
