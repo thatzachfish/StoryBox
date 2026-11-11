@@ -1822,11 +1822,27 @@ static void draw_perform(void)
     for (a = 0; a < EN_NACT; a++) {              /* the act keys, big */
         int32_t x = 6 + a * 58;
         int pc = cur / EN_NACT * EN_NACT + a, on = pc == cur, nx = pc == next && next != cur;
-        cv_round(x, 80, 54, 56, 8, on ? K_PAD : nx ? K_ACC : K_PANEL);
+        cv_round(x, 78, 54, 40, 8, on ? K_PAD : nx ? K_ACC : K_PANEL);
         if (!on)
-            cv_round(x + 2, 82, 50, 52, 6, nx ? K_BG : K_PANEL);
-        text_c(x + 27, 84, &FONT_B, KN[a], on ? K_BG : nx ? K_ACC : K_TEXT);
-        text_c(x + 27, 112, &FONT_XS, en_act_name(pc), on ? K_BG : nx ? K_ACC : K_DIM);
+            cv_round(x + 2, 80, 50, 36, 6, nx ? K_BG : K_PANEL);
+        text_c(x + 27, 80, &FONT_B, KN[a], on ? K_BG : nx ? K_ACC : K_TEXT);
+        text_c(x + 27, 102, &FONT_XS, en_act_name(pc), on ? K_BG : nx ? K_ACC : K_DIM);
+    }
+    {                                            /* the one-shots: C#5 D#5 F#5, the one playing lit, one waiting for the
+                                                  * loop's start outlined */
+        static const char *const SK[EN_NSTING] = {"C#", "D#", "F#"};
+        int k, th = en_theme_busy();
+        for (k = 0; k < EN_NSTING; k++) {
+            int32_t x = 6 + k * 77;
+            int has = en_sting_len(cur, k) != 0, me = has && ui.sting_k == k + 1,
+                play = me && (th == 2 || (!th && plat_ms() - ui.sting_t < 2500u)), wait = me && th == 1;
+            const char *n = has ? en_sting_name(cur, k) : "-";
+            cv_round(x, 122, 74, 18, 5, play ? K_ALERT : wait ? K_ALERT : K_PANEL);
+            if (wait)
+                cv_round(x + 2, 124, 70, 14, 4, K_BG);
+            cv_text(x + 4, 125, &FONT_XS, SK[k], play ? K_BG : K_DIM);
+            cv_text(x + 22, 125, &FONT_XS, n, play ? K_BG : wait ? K_ALERT : has ? K_TEXT : K_LINE);
+        }
     }
 }
 
@@ -2222,14 +2238,15 @@ static void draw_shots(void)
     cv_text(8, 2, &FONT_B, en_story_name(cur / EN_NACT), K_TEXT);
     for (k = 0; k < EN_NSTING; k++) {
         int32_t y = 26 + k * 26;
-        int has = en_sting_len(cur, k) != 0,
-            on = has && ui.sting_k == k + 1 && (en_theme_busy() || plat_ms() - ui.sting_t < 2500u);
-        cv_round(6, y, 228, 22, 5, on ? K_ALERT : K_PANEL);
-        cv_round(8, y + 2, 224, 18, 4, on ? K_ALERT : K_PANEL);
+        int th = en_theme_busy(), has = en_sting_len(cur, k) != 0, me = has && ui.sting_k == k + 1,
+            on = me && (th == 2 || (!th && plat_ms() - ui.sting_t < 2500u)), wt = me && th == 1;
+        cv_round(6, y, 228, 22, 5, on || wt ? K_ALERT : K_PANEL);
+        cv_round(8, y + 2, 224, 18, 4, on ? K_ALERT : wt ? K_BG : K_PANEL);
         cv_text(14, y + 4, &FONT_XS, KEYN[k], on ? K_BG : K_DIM);
-        cv_text(48, y + 3, &FONT_B, has ? en_sting_name(cur, k) : "-", on ? K_BG : has ? K_TEXT : K_LINE);
-        if (on)
-            cv_text(226 - text_w(&FONT_XS, "playing"), y + 4, &FONT_XS, "playing", K_BG);
+        cv_text(48, y + 3, &FONT_B, has ? en_sting_name(cur, k) : "-", on ? K_BG : wt ? K_ALERT : has ? K_TEXT : K_LINE);
+        if (on || wt)                            /* (0.8.1: waiting for the loop's start) */
+            cv_text(226 - text_w(&FONT_XS, on ? "playing" : "at the loop"), y + 4, &FONT_XS, on ? "playing" : "at the loop",
+                    on ? K_BG : K_ALERT);
     }
     cv_text(8, 112, &FONT_XS, "Tap: from the loop's start", K_LINE);
     cv_text(8, 126, &FONT_XS, "Tap twice: now, where the loop is", K_LINE);
@@ -2611,7 +2628,8 @@ static void draw_main(void)
                              (uint32_t)en_chord[2] << 18 | (uint32_t)en_playing << 25),
                  (uint32_t)(en_loop_bar + 1) | (uint32_t)en_loop_bars << 8 | (uint32_t)proj.piece << 16 |
                      (uint32_t)(tr.pending + 1) << 22 | (uint32_t)tr.on << 30);
-        h = hash(h, (uint32_t)tr.piece | (uint32_t)proj.par[P_ROOT] << 8);
+        h = hash(h, (uint32_t)tr.piece | (uint32_t)proj.par[P_ROOT] << 8 | (uint32_t)ui.sting_k << 16 |
+                        (uint32_t)en_theme_busy() << 20 | (uint32_t)(plat_ms() - ui.sting_t < 2500u) << 22);
         break;
     default:
         if (ring_focus() >= 0) {

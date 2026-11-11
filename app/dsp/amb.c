@@ -3421,7 +3421,7 @@ static void theme_fire(const char *t, int mv)    /* read the theme; it starts on
     th_wait = th_end > 0;                        /* (0.8.1: the loop no longer restarted for it: it waits, or joins) */
 }
 static int theme_busy(void) { return th_wait || th_play; }
-int en_theme_busy(void) { return theme_busy(); }   /* (0.8: the One-shots page lights the one playing) */
+int en_theme_busy(void) { return th_play ? 2 : th_wait ? 1 : 0; }   /* (0.8.1: 1 waiting, 2 playing) */   /* (0.8: the One-shots page lights the one playing) */
 
 static void theme_bar(void)                      /* every sixteenth: the theme's notes on time */
 {

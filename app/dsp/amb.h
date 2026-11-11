@@ -181,7 +181,7 @@ int en_story_key(int s);                       /* the key its chords and stings 
 /* StoryBox stings: two one-shots a story (a note or a chord on bells, ringing long), on the next beat */
 #define EN_NSTING 3                             /* (0.7: a third, for Fast and Slow's themes together) */
 int en_sting_len(int piece, int k);            /* its notes, 0 none */
-int en_theme_busy(void);                        /* a one-shot theme waiting for its bar or playing */
+int en_theme_busy(void);                        /* a one-shot theme: 0 none, 1 waiting for the loop, 2 playing */
 const char *en_prog_text(int piece);            /* an act's progression as written ("G:2 Em:2"), or 0 */
 const char *en_sting_name(int piece, int k);
 void en_sting(int piece, int k);
