@@ -263,3 +263,10 @@ power-on.
   Fifth + Octave (today's "Both"), All (third + fifth + octave). The third
   follows the chord: major over a major chord, minor over a minor one. Needs a
   third read head; map saved Fifth/Octave/Both to their new places.
+- Middle bank genres (Zach, 2026-11-11): vary them. He'd like an acid house
+  story (a 303-style squelchy resonant bass) and a hip hop one (boom bap). Sleep
+  stays calm. Which stories turn into which is his call.
+- Punch-in ideas from JAZZY (GPL-3.0, so ideas only, our own code; StoryBox is
+  MPL-2.0): Tape Stop (with the knob as a hand on the record), Freeze (the last
+  eighth as slow grains), Throw (the dry sound pushed into reverb/delay, rising
+  over two bars), Glitch, Shuffle, Repeat 1/8 1/16 1/32. Waiting on Zach's pick.
