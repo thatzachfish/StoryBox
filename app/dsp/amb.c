@@ -1436,9 +1436,41 @@ static void drum_fire(int d, float vel)
     midi(0x89, v->note, 0);
 }
 
+/* (0.8.5) the feel: each kit's hits a little off the grid, as players are. Hip-hop and lo-fi lay the snare back
+ * behind the beat and let the hats drag (J Dilla's "drunk" time); jazz brushes and the ride breathe; the dance kit stays
+ * tight. And every hit a few milliseconds loose (Magenta's GrooVAE, learned from drummers, shows the timing and the
+ * loudness of each hit are much of a groove), less so with Structure (Groove). In ms: kick, hat, open hat, snare (late);
+ * then the looseness either way */
+static const int8_t FEEL_MS[5][5] = {
+    {0, 2, 2, 0, 4},                             /* 0, the thump: barely */
+    {0, 7, 5, 22, 6},                            /* 1, backbeat (boom-bap, lo-fi): the snare well back, the hats dragging */
+    {0, 6, 8, 12, 8},                            /* 2, brushes: loose */
+    {0, 4, 4, 14, 5},                            /* 3, Lounge: the ride a hair late, the cross-stick back */
+    {0, 0, 0, 3, 2},                             /* 4, Bright: four on the floor, tight */
+};
+static int32_t feel_wait(int d)                  /* d 0..2 the drums, 3 the snare: samples late */
+{
+    const int k = par[P_KIT] >= 0 && par[P_KIT] <= 4 ? par[P_KIT] : 0;
+    float ms = (float)FEEL_MS[k][d] + (frand() - 0.5f) * 2.0f * (float)FEEL_MS[k][4] * (1.0f - (float)par[P_GROOVE] / 150.0f);
+    return ms > 0.0f ? (int32_t)(ms * (EN_SR / 1000.0f)) : 0;
+}
+static int32_t sn_wait;                          /* (0.8.5) the snare's own wait, and its velocity */
+static float sn_pend;
+static void snare_fire(float vel);
+static void snare_hit(float vel)                 /* the snare, with its feel */
+{
+    int32_t w = feel_wait(3);
+    if (w > 0) {
+        sn_wait = w;
+        sn_pend = vel;
+    } else
+        snare_fire(vel);
+}
+
 static void drum_hit(int d, float vel, int off)  /* off: an off sixteenth, which Swing delays */
 {
-    int32_t w = off ? (int32_t)(swing * step_len) : 0;
+    int32_t w = (off ? (int32_t)(swing * step_len) : 0) + (d ? feel_wait(d) : 0);   /* (0.8.5: and the feel; the kick
+                                                  * stays on the grid, the anchor) */
     if (w > 0) {
         drum[d].wait = w;
         drum[d].pend = vel;
@@ -1454,6 +1486,8 @@ static int32_t drums_wait(void)                 /* samples to the next hit that 
     for (d = 0; d < EN_NDRUM; d++)
         if (drum[d].wait > 0 && (!m || drum[d].wait < m))
             m = drum[d].wait;
+    if (sn_wait > 0 && (!m || sn_wait < m))
+        m = sn_wait;
     return m;
 }
 
@@ -1465,6 +1499,10 @@ static void drums_wait_step(int32_t k)          /* k samples went by: hits whose
             drum[d].wait = 0;
             drum_fire(d, drum[d].pend);
         }
+    if (sn_wait > 0 && (sn_wait -= k) <= 0) {
+        sn_wait = 0;
+        snare_fire(sn_pend);
+    }
 }
 
 /* the grid: one call a sixteenth (MIDI clock: 6 ticks) */
@@ -1612,22 +1650,25 @@ static void tick(void)
     if (par[P_KIT] == 3 && en_bar_len == 16 && !pulse_rest && !bd && par[P_PULSE] > 0) {   /* Lounge: the cross-stick */
         int b = bar_pos;
         if (b == 12)
-            snare_fire((0.55f + 0.15f * frand()) * pa);
+            snare_hit((0.55f + 0.15f * frand()) * pa);
         else if ((b == 6 || b == 14) && frand() < 0.08f + 0.15f * (energy + 1.0f) * 0.5f)
-            snare_fire(0.2f * pa);
+            snare_hit(0.2f * pa);
     } else if (par[P_KIT] && en_bar_len == 16 && !pulse_rest && !bd && par[P_PULSE] > 0) {   /* the backbeat kit (and
                                                                                      * Bright's: a clap on two, four) */
         int b = bar_pos;
         if (b == 4 || b == 12)
-            snare_fire((0.75f + 0.2f * frand()) * pa);
+            snare_hit((0.75f + 0.2f * frand()) * pa);
         else if ((b == 7 || b == 15) && frand() < 0.15f + 0.3f * (energy + 1.0f) * 0.5f)
-            snare_fire(0.18f * pa);              /* a ghost */
+            snare_hit((0.13f + 0.08f * frand()) * pa);   /* a ghost (0.8.5: each its own weight) */
+        else if (par[P_KIT] == 1 && (b == 3 || b == 10) && frand() < 0.06f + 0.2f * (energy + 1.0f) * 0.5f)
+            snare_hit((0.1f + 0.06f * frand()) * pa);    /* (0.8.5) hip-hop's ghosts: the "a" before the backbeat, the
+                                                          * "and" of three */
     } else if (par[P_KIT] && en_bar_len == 12 && !pulse_rest && !bd && par[P_PULSE] > 0) {   /* a waltz's: pah, pah */
         int b = bar_pos;
         if (b == 4 || b == 8)
-            snare_fire((0.38f + 0.12f * frand() + (b == 8 ? 0.08f : 0.0f)) * pa);
+            snare_hit((0.38f + 0.12f * frand() + (b == 8 ? 0.08f : 0.0f)) * pa);
         else if (b == 11 && frand() < 0.1f + 0.2f * (energy + 1.0f) * 0.5f)
-            snare_fire(0.15f * pa);
+            snare_hit(0.15f * pa);
     }
     if (!pulse_rest && !bd && drum_kb[0] > 0 && !fill_bar && bar_pos == en_bar_len - 2 &&
         !(drum_pat[0] >> drum_pos[0] & 1u) && frand() < 0.08f + 0.1f * (energy + 1.0f))

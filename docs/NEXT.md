@@ -242,3 +242,11 @@ power-on.
 - One-shots page (Zach, 2026-11-10): hold a one-shot key (C#5 D#5 F#5) to open it (a tap still plays). Four knobs
   for all the one-shots together: Level, Space (their own reverb), Echo, Tone (dark .. bright). Kept with each story.
   The page shows the three one-shots' names, the one playing lit.
+
+## The middle bank (Zach, 2026-11-10) — standing direction
+- The banks: C4 D4 E4 his performance stories (Inside, Fly, Fast and Slow); F4 .. B4 the middle bank (Lighthouse,
+  Market Day, Riebeck, Sleep); C5 D5 E5 the house music (Pre-show, Intermission, Post Show).
+- He'll decide later what the middle bank becomes (more of his own stories over time). Meanwhile: now and then refine
+  its four from what we learn: the performance bank's music, his MIDI, the improvising research (chord tones on the
+  beats, motifs), his notes on the house music.
+- Keep one of them uptempo, and keep one calm and sleepy, for actually sleeping to (Sleep).
