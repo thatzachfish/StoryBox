@@ -74,3 +74,18 @@ tapkey 4
 said NOW Flower
 wait 8000
 expect piece 18
+# REC twice: the keys lead, the page as it was (0.8.3); twice again: the acts
+tap HOME
+wait 600
+tap REC
+wait 100
+tap REC
+said LEAD
+expect view 0
+expect frozen 0
+wait 600
+tap REC
+wait 100
+tap REC
+said ACTS ON THE KEYS
+expect frozen 0

@@ -118,6 +118,7 @@ A key, a knob or another button puts the card away, and letting go does nothing 
 | Control | What it does |
 |---|---|
 | PRESETS | The act (on the next phrase). |
+| REC | Freeze. (0.8.3) Twice: the keys switch between LEAD and ACTS, the page staying. |
 | An act key (F3 G3 A3 B3) | A tap: on the next phrase. Twice (0.8.2), or held: now, over Fade. |
 | ALGORITHM | Energy. It starts at 50 at power-on. |
 | SELECT | The pages. HOME held + SELECT: Fade (5 s at first). |
@@ -146,6 +147,9 @@ The four knobs, page by page:
 The Acts page (0.8.1, the Feel page's place, just after Story; One-shots just after it) shows the chord now, the
 act's loop of chords a bar to a cell with the bar now lit, and the four act keys (F G A B) big, the one playing lit and
 the one coming outlined.
+
+Wander as a story starts (0.8.3): Fast and Slow, Inside and Fly at Perform (the acts wait for you); Pre-show about
+a minute an act, in order; Intermission in order, as long as it goes (about two and a half minutes an act).
 
 On the instrument pages knob 3 is always the sound, shown as a row of boxes; the others are dials. The One-shots
 page's knobs set all of the story's one-shots together, and the story keeps them.

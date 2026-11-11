@@ -65,9 +65,9 @@ void project_defaults(void)
         proj.par[i] = en_param_info(i)->def;
     take(&proj.slot[0]);
     proj.leds = 1;
-    proj.wander = 0;
+    proj.wander = 44;                   /* (0.8.3: Pre-show's, about a minute an act) */
     proj.fade = 0;                       /* (0.8: 5 s) */
-    proj.recipes = 5;
+    proj.recipes = 6;
 }
 
 static int pool_ok(uint32_t p)                   /* the root and at least two more notes */
@@ -138,8 +138,22 @@ static void recipes_update(void)                /* (0.7) a saved act still on a 
             proj.par[P_RVMIX] = 60;
         }
     }
+    if (proj.recipes < 6) {                      /* (6, 0.8.3: the house music, Pre-show, Intermission, Post Show, more
+                                                  * Evolve and Freedom: 20 more each, as saved) */
+        static const uint8_t HOUSE[3] = {0, 7, 8};
+        int h, a;
+        for (h = 0; h < 3; h++)
+            for (a = 0; a < EN_NACT; a++) {
+                int8_t *v = proj.slot[HOUSE[h] * EN_NACT + a].par;
+                v[P_EVOLVE] = (int8_t)(v[P_EVOLVE] + 20 > 85 ? (v[P_EVOLVE] > 85 ? v[P_EVOLVE] : 85) : v[P_EVOLVE] + 20);
+                if (v[P_FREEDOM] < 100)
+                    v[P_FREEDOM] = (int8_t)(v[P_FREEDOM] + 20 > 75 ? (v[P_FREEDOM] > 75 ? v[P_FREEDOM] : 75) : v[P_FREEDOM] + 20);
+            }
+        if (proj.piece / EN_NACT == 0 || proj.piece / EN_NACT == 7 || proj.piece / EN_NACT == 8)
+            take(&proj.slot[proj.piece]);
+    }
     if (proj.recipes >= 2) {                     /* (1: 0.6.3's kits; 2: and Bows) */
-        proj.recipes = 5;
+        proj.recipes = 6;
         return;
     }
     for (i = 0; i < sizeof KIT_WAS / sizeof KIT_WAS[0]; i++) {
@@ -152,7 +166,7 @@ static void recipes_update(void)                /* (0.7) a saved act still on a 
         if (pc == proj.piece)
             proj.par[P_KIT] = r.par[P_KIT];
     }
-    proj.recipes = 5;
+    proj.recipes = 6;
 }
 
 static int project_valid(void)                  /* an older format: the recipes again */
@@ -255,6 +269,7 @@ static int from8(const project8_t *o)            /* 0.7's: everything kept, the 
     proj.piece = 0;
     proj.answer = 0;
     proj.par[P_ENERGY] = 50;
+    proj.wander = 44;
     take(&proj.slot[0]);
     return 0;
 }
@@ -286,6 +301,7 @@ int project_load(void)
         proj.piece = 0;                          /* (0.6.10) every start on Pre-show's Doors, not the act last played */
         proj.answer = 0;                         /* (0.7) and the Answer off */
         proj.par[P_ENERGY] = 50;                 /* (0.7.3) and Energy in the middle */
+        proj.wander = 44;                        /* (0.8.3) and Pre-show's Wander: about a minute an act */
         take(&proj.slot[0]);
         return 0;
     }

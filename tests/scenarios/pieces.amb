@@ -4,6 +4,8 @@ wait 500
 expect piece 0
 expect view 0
 tap HOME
+# (0.8.3: Pre-show starts wandering: Perform here, the acts by hand)
+spin K4 -60
 expect view 0
 # a tap on G3 (act 2, Warm Up): it waits for the next phrase, then glides over one
 tapkey 2

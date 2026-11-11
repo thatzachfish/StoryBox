@@ -76,10 +76,10 @@ static const struct {
 } STORIES[EN_NSTORY] = {
     /* Pre-show (0.7: its drums the Lounge kit, a ride's swing and a cross-stick on four; Lights Down brushed) */
     {"Pre-show", {"Doors", "Warm Up", "Lounge", "Lights Down"}, {
-        {50, 40, 50, 45, 30, 30, 30, 45, 40, 2, 50, 65, 45, 45, 55, 40, 0, 1, 86, 2, 1, 0, 0, 0, 15, 30, 70, 55, 30, 0, 0, 50, 0, 60, 45, 15, 0, 70, 3},
-        {55, 55, 60, 62, 45, 40, 25, 62, 40, 2, 45, 60, 55, 40, 60, 50, 0, 1, 88, 2, 1, 0, 0, 0, 10, 40, 70, 65, 15, 0, 0, 50, 0, 60, 45, 15, 0, 70, 3},
-        {55, 70, 55, 58, 55, 50, 25, 58, 50, 1, 50, 65, 60, 45, 70, 55, 0, 1, 88, 2, 4, 0, 0, 0, 15, 40, 65, 70, 40, 0, 0, 50, 0, 60, 45, 15, 0, 70, 3},
-        {50, 35, 40, 40, 25, 30, 35, 40, 50, 3, 60, 75, 35, 55, 45, 40, 0, 1, 80, 2, 1, 0, 0, 0, 20, 30, 70, 45, 100, 0, 0, 50, 0, 60, 45, 15, 0, 70, 2}},
+        {50, 40, 50, 45, 30, 50, 30, 45, 40, 2, 50, 65, 45, 45, 55, 40, 0, 1, 86, 2, 1, 0, 0, 0, 15, 30, 70, 55, 50, 0, 0, 50, 0, 60, 45, 15, 0, 70, 3},
+        {55, 55, 60, 62, 45, 60, 25, 62, 40, 2, 45, 60, 55, 40, 60, 50, 0, 1, 88, 2, 1, 0, 0, 0, 10, 40, 70, 65, 35, 0, 0, 50, 0, 60, 45, 15, 0, 70, 3},
+        {55, 70, 55, 58, 55, 70, 25, 58, 50, 1, 50, 65, 60, 45, 70, 55, 0, 1, 88, 2, 4, 0, 0, 0, 15, 40, 65, 70, 60, 0, 0, 50, 0, 60, 45, 15, 0, 70, 3},
+        {50, 35, 40, 40, 25, 50, 35, 40, 50, 3, 60, 75, 35, 55, 45, 40, 0, 1, 80, 2, 1, 0, 0, 0, 20, 30, 70, 45, 100, 0, 0, 50, 0, 60, 45, 15, 0, 70, 2}},
         {"1:2 4:2", "1:2 4:2 7:2 3:2", "1:2 7:2 4:2 1:2", 0}, 2, {0}, {0}},
     {"Sleep", {"Dusk", "Drifting", "Deep", "Stillness"}, {
         {50, 45, 30, 0, 30, 30, 55, 0, 40, 4, 55, 85, 35, 70, 30, 45, 0, 1, 56, 2, 6, 0, 0, 0, 40, 25, 0, 40, 100, 0, 0, 50, 2, 50, 30, 40, 0, 0, 0},
@@ -137,10 +137,10 @@ static const struct {
      * up (the beat locked in), the kick on the off-beats, ghost snares and fills; a Rhodes, vibes, a bass leaning on
      * the fifth. Lights Up, Lobby, Snack Bar (busier), Last Call (calling everyone back) */
     {"Intermission", {"Lights Up", "Lobby", "Snack Bar", "Last Call"}, {
-        {45, 30, 55, 55, 30, 25, 30, 55, 35, 1, 40, 55, 45, 40, 50, 35, 0, 1, 90, 0, 1, 0, 0, 0, 10, 45, 40, 60, 10, 0, 0, 50, 4, 60, 45, 15, 0, 85, 1},
-        {50, 50, 60, 62, 45, 35, 25, 65, 40, 1, 40, 55, 55, 40, 60, 45, 0, 1, 90, 0, 1, 0, 0, 0, 10, 50, 40, 65, 10, 0, 0, 50, 4, 60, 45, 15, 0, 85, 1},
-        {50, 55, 65, 68, 55, 45, 20, 75, 45, 1, 40, 55, 60, 35, 65, 55, 0, 1, 92, 0, 1, 0, 0, 0, 10, 55, 45, 70, 15, 10, 0, 50, 4, 60, 50, 15, 0, 75, 1},
-        {55, 45, 45, 40, 30, 30, 35, 40, 50, 2, 50, 65, 45, 50, 50, 40, 0, 1, 88, 0, 1, 0, 0, 0, 15, 40, 35, 50, 10, 0, 0, 50, 4, 55, 45, 15, 0, 85, 1}},
+        {45, 30, 55, 55, 30, 45, 30, 55, 35, 1, 40, 55, 45, 40, 50, 35, 0, 1, 90, 0, 1, 0, 0, 0, 10, 45, 40, 60, 30, 0, 0, 50, 4, 60, 45, 15, 0, 85, 1},
+        {50, 50, 60, 62, 45, 55, 25, 65, 40, 1, 40, 55, 55, 40, 60, 45, 0, 1, 90, 0, 1, 0, 0, 0, 10, 50, 40, 65, 30, 0, 0, 50, 4, 60, 45, 15, 0, 85, 1},
+        {50, 55, 65, 68, 55, 65, 20, 75, 45, 1, 40, 55, 60, 35, 65, 55, 0, 1, 92, 0, 1, 0, 0, 0, 10, 55, 45, 70, 35, 10, 0, 50, 4, 60, 50, 15, 0, 75, 1},
+        {55, 45, 45, 40, 30, 50, 35, 40, 50, 2, 50, 65, 45, 50, 50, 40, 0, 1, 88, 0, 1, 0, 0, 0, 15, 40, 35, 50, 30, 0, 0, 50, 4, 55, 45, 15, 0, 85, 1}},
         {"Cm7:2 Fm7:2", "Cm7:2 Fm7:2 Abmaj7:2 G7:2", "Fm7:2 Bb7:2 Ebmaj7:2 Abmaj7:1 G7:1", "Abmaj7:2 G7:2"},
         0, {"C6 G5", "C3 C3 Eb4 G4 Bb4"}, {"Chime", "Curtain"}},
     /* Post Show: Intermission's family, jazzy and bright (0.5: major sevenths, nothing scary): F major, swung; a Rhodes,
@@ -148,10 +148,10 @@ static const struct {
      * the hats between: not Intermission's boom-bap), Walk Home soft. (0.7: Bows plain and glad, F Bb F C, no
      * sevenths; its brushes were too tense) */
     {"Post Show", {"Bows", "Encore", "Stage Door", "Walk Home"}, {
-        {50, 45, 55, 55, 40, 30, 25, 45, 35, 1, 40, 55, 60, 35, 60, 40, 0, 1, 90, 5, 0, 0, 0, 0, 10, 45, 30, 50, 10, 0, 0, 55, 4, 60, 50, 15, 0, 85, 4},
-        {55, 55, 65, 66, 50, 40, 20, 65, 40, 1, 40, 55, 65, 35, 65, 50, 0, 1, 92, 5, 0, 0, 2, 0, 10, 55, 40, 60, 10, 0, 0, 60, 4, 60, 50, 15, 0, 85, 4},
-        {55, 55, 68, 70, 55, 45, 20, 82, 45, 1, 40, 55, 65, 30, 70, 55, 0, 1, 96, 5, 0, 0, 3, 0, 10, 60, 25, 80, 15, 0, 0, 65, 4, 65, 55, 15, 0, 60, 4},
-        {55, 45, 50, 40, 35, 30, 30, 35, 50, 2, 50, 65, 50, 45, 55, 40, 0, 1, 88, 5, 0, 0, 0, 0, 15, 40, 45, 40, 10, 0, 0, 50, 4, 55, 45, 15, 0, 90, 0}},
+        {50, 45, 55, 55, 40, 50, 25, 45, 35, 1, 40, 55, 60, 35, 60, 40, 0, 1, 90, 5, 0, 0, 0, 0, 10, 45, 30, 50, 30, 0, 0, 55, 4, 60, 50, 15, 0, 85, 4},
+        {55, 55, 65, 66, 50, 60, 20, 65, 40, 1, 40, 55, 65, 35, 65, 50, 0, 1, 92, 5, 0, 0, 2, 0, 10, 55, 40, 60, 30, 0, 0, 60, 4, 60, 50, 15, 0, 85, 4},
+        {55, 55, 68, 70, 55, 65, 20, 82, 45, 1, 40, 55, 65, 30, 70, 55, 0, 1, 96, 5, 0, 0, 3, 0, 10, 60, 25, 80, 35, 0, 0, 65, 4, 65, 55, 15, 0, 60, 4},
+        {55, 45, 50, 40, 35, 50, 30, 35, 50, 2, 50, 65, 50, 45, 55, 40, 0, 1, 88, 5, 0, 0, 0, 0, 15, 40, 45, 40, 30, 0, 0, 50, 4, 55, 45, 15, 0, 90, 0}},
         {"F:2 Bb:2 F:2 C:2", "Fmaj7:2 Am7:2 Bbmaj7:2 C7:2", "Bbmaj7:2 Ebmaj7:2 Fmaj7:2 Dbmaj7:1 C7:1",
          "Fmaj7:2 Bbmaj7:2 Gm7:2 C7:2"},
         5, {"F5 A5 C6", "F3 C4 F4 A4 C5"}, {"Fanfare", "Bow"}},
@@ -2812,7 +2812,8 @@ static void lead_note_off(int key)
  * listens again. */
 #define ANS_N 16
 static struct {
-    uint8_t key, vel, state;                     /* (resp: 0 waiting, 1 sounding, 2 done) */
+    uint8_t key, vel, state, firm;               /* (resp: 0 waiting, 1 sounding, 2 done; firm (0.8.3): on a beat or
+                                                  * long, so a note of the chord when it sounds) */
     uint32_t on, off;
 } call[ANS_N], resp[ANS_N];
 static int call_n, call_held, resp_n, ans_state;   /* ans_state: 0 listening, 1 waiting for the beat, 2 answering */
@@ -2946,6 +2947,7 @@ static void ans_build(void)                      /* the call, changed, into resp
         resp[n].on = call[i].on - t0;
         resp[n].off = (call[i].off > call[i].on ? call[i].off : call[i].on + (uint32_t)(step_len * 2.0f)) - t0;
         resp[n].state = 0;
+        resp[n].firm = 0;
         n++;
     }
     resp_n = n;
@@ -2974,59 +2976,97 @@ static int chord_has(int pc)
             return 1;
     return 0;
 }
+/* (0.8.3) the improviser, after the way jazz players and the programs that learn from them build a line (Bob Keller's
+ * Impro-Visor sorts a solo's notes as chord tones, colour, approach and scale tones; Al Biles's GenJam keeps and varies
+ * its own phrases): on the beats and the long notes, a note of the chord; between, steps through the scale, passing; a
+ * leap lands on the chord and steps back the other way; now and then the last phrase's rhythm again, new notes on it;
+ * and at the end, onto the chord, held. When a note sounds (ans_tick), one that should be the chord's and isn't (the
+ * chord moved on since) slides to the nearest that is */
+static uint8_t imp_rh[ANS_N], imp_rd[ANS_N], imp_rn;   /* the last phrase's rhythm: its notes' sixteenths and lengths */
+static int chord_near(int d, const int *sc, int m, int dir)   /* the scale degree nearest d that is the chord's (dir
+                                                  * first: 1 up, -1 down, 0 either) */
+{
+    int j;
+    for (j = 0; j <= 3; j++) {
+        int a = dir < 0 ? d - j : d + j, b = dir < 0 ? d + j : d - j;
+        if (chord_has(scale_note(a, sc, m)))
+            return a;
+        if (chord_has(scale_note(b, sc, m)))
+            return b;
+    }
+    return d;
+}
 static void imp_build(void)                      /* a phrase of its own, into resp */
 {
-    int sc[12], m = en_scale(pool, sc), n = 0, d, k, bars, len16, slot, last = 0;
+    int sc[12], m = en_scale(pool, sc), n = 0, d, k, bars, len16, slot, last = 0, back = 0, again;
     const float e = fm_clampf((energy + 1.0f) * 0.5f, 0.0f, 1.0f), wild = fm_clampf((ans_amt - 0.5f) * 2.0f, 0.0f, 1.0f);
     const float fill = (0.22f + 0.45f * e + 0.15f * wild) * (0.55f + 0.45f * wild);   /* how many of the eighths sound
                                                   * (0.8: Sparse improv, fewer) */
+    uint8_t rh[ANS_N], rd[ANS_N];
+    int rn = 0;
     if (m < 3) {
         resp_n = 0;
         return;
     }
     bars = 1 + (frand() < 0.4f + 0.3f * e);
     len16 = bars * (int)en_bar_len;
-    d = scale_deg(64 + irand(8), sc, m);         /* from about E4, onto a note of the chord */
-    for (k = 0; k < 3 && !chord_has(scale_note(d, sc, m)); k++)
-        d++;
-    for (slot = 0; slot < len16 && n < ANS_N; slot += 2) {
-        int dur, note;
-        if (slot && frand() > fill)
-            continue;
-        dur = 2;                                 /* an eighth, or longer where the next eighths rest */
-        while (slot + dur < len16 && dur < 8 && frand() > fill + 0.2f)
-            dur += 2;
-        if (frand() < 0.12f + 0.1f * wild)       /* a leap */
-            d += (frand() < 0.5f ? -1 : 1) * (2 + irand(2));
-        else if (slot)
-            d += frand() < 0.5f ? -1 : 1;
+    again = imp_rn >= 3 && frand() < 0.35f;      /* the last rhythm again (a motif), new notes on it */
+    if (again) {
+        for (k = 0; k < imp_rn && imp_rh[k] < len16; k++) {
+            rh[rn] = imp_rh[k];
+            rd[rn] = (uint8_t)(imp_rh[k] + imp_rd[k] > len16 ? len16 - imp_rh[k] : imp_rd[k]);
+            rn++;
+        }
+    } else {
+        for (slot = 0; slot < len16 && rn < ANS_N; slot += 2) {
+            int dur = 2;
+            if (slot && frand() > fill)
+                continue;
+            while (slot + dur < len16 && dur < 8 && frand() > fill + 0.2f)   /* an eighth, or longer */
+                dur += 2;
+            rh[rn] = (uint8_t)slot;
+            rd[rn++] = (uint8_t)dur;
+            slot += dur - 2;
+        }
+    }
+    d = chord_near(scale_deg(64 + irand(8), sc, m), sc, m, 0);   /* from about E4, a note of the chord */
+    for (k = 0; k < rn && n < ANS_N; k++) {
+        int note, firm = (rh[k] % 4) == 0 || rd[k] >= 4;   /* a beat, or a long note: the chord's */
+        if (k) {
+            if (back) {                          /* after a leap: a step back */
+                d -= back;
+                back = 0;
+            } else if (frand() < 0.1f + 0.1f * wild) {   /* a leap, a third to a fifth, onto the chord */
+                int dir = frand() < 0.5f ? -1 : 1;
+                d = chord_near(d + dir * (2 + irand(3)), sc, m, dir);
+                back = dir;
+                firm = 1;
+            } else
+                d += frand() < 0.55f ? -1 : 1;   /* a step (a little more often down: lines fall) */
+        }
+        if (firm)
+            d = chord_near(d, sc, m, 0);
         note = scale_note(d, sc, m);
         while (note < 55)
             note += 12, d += m;
         while (note > 84)
             note -= 12, d -= m;
         resp[n].key = (uint8_t)note;
-        resp[n].vel = (uint8_t)(70 + irand(30));
-        resp[n].on = (uint32_t)((float)slot * step_len);
-        resp[n].off = (uint32_t)((float)(slot + dur) * step_len * 0.92f);
+        resp[n].vel = (uint8_t)(firm ? 82 + irand(20) : 66 + irand(18));   /* (the beats a little stronger) */
+        resp[n].on = (uint32_t)((float)rh[k] * step_len);
+        resp[n].off = (uint32_t)((float)(rh[k] + rd[k]) * step_len * 0.92f);
         resp[n].state = 0;
+        resp[n].firm = (uint8_t)firm;
         last = n++;
-        slot += dur - 2;
     }
     if (n) {                                     /* its last note: onto the chord, a little longer */
-        int dd = scale_deg(resp[last].key, sc, m), j;
-        for (j = 0; j < 3; j++) {
-            if (chord_has(scale_note(dd - j, sc, m))) {
-                resp[last].key = (uint8_t)scale_note(dd - j, sc, m);
-                break;
-            }
-            if (chord_has(scale_note(dd + j, sc, m))) {
-                resp[last].key = (uint8_t)scale_note(dd + j, sc, m);
-                break;
-            }
-        }
+        resp[last].key = (uint8_t)scale_note(chord_near(scale_deg(resp[last].key, sc, m), sc, m, -1), sc, m);
+        resp[last].firm = 1;
         resp[last].off += (uint32_t)(step_len * 2.0f);
     }
+    for (k = 0; k < rn; k++)                     /* (its rhythm, for next time) */
+        imp_rh[k] = rh[k], imp_rd[k] = rd[k];
+    imp_rn = (uint8_t)rn;
     resp_n = n;
 }
 
@@ -3076,6 +3116,15 @@ static void ans_tick(uint32_t n)                 /* each chunk: is the call over
                     ans_note(resp[left].key, 0);
                     resp[left].state = 2;
                 }
+            if (!chord_has(resp[i].key)) {      /* (0.8.3) the chord moved under it: a firm note, or a long one a
+                                                  * semitone from the chord's, onto the nearest of the chord's */
+                int j, near = 0;
+                for (j = 1; j <= 2 && !near; j++)
+                    near = chord_has(resp[i].key - j) ? -j : chord_has(resp[i].key + j) ? j : 0;
+                if (near && (resp[i].firm || ((near == 1 || near == -1) && resp[i].off - resp[i].on > (uint32_t)(step_len * 3.0f)))) {
+                    resp[i].key = (uint8_t)(resp[i].key + near);
+                }
+            }
             ans_note(resp[i].key, 1);
             resp[i].state = 1;
         }

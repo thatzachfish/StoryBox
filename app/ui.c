@@ -113,7 +113,7 @@ static struct {
     uint8_t timer;                     /* the sleep timer: 0 off, 1..4 a quarter hour each */
     uint8_t dark;                      /* the screen dark: the timer on and nothing touched for 30 s */
     uint8_t sting_k, sting_dbl, sting_was, act_tap_k;   /* (act_tap: an act key's last tap, for a double) */
-    uint32_t act_tap_t;                 /* the sting last fired (1..3), and when: its key's flash */
+    uint32_t act_tap_t, rec_t;                  /* (rec_t: REC's last tap, for a double) */                 /* the sting last fired (1..3), and when: its key's flash */
     uint32_t sting_t;
     uint32_t input_t;                  /* the last touch */
     uint32_t timer_end;
@@ -311,6 +311,19 @@ static void tr_start(int piece, uint32_t ms)
 }
 
 /* to piece i: on the next phrase (slow 0), or now over Fade (slow 1) */
+/* (0.8.3) each story's Wander as it starts: Zach's performance stories (Fast and Slow, Inside, Fly) Perform, the acts
+ * waiting for him; the house music: Pre-show about a minute an act, Intermission in order, as long as it goes, Post Show
+ * (and the rest) as it was */
+static const int8_t STORY_WANDER[EN_NSTORY] = {44, -1, -1, -1, 0, 0, 0, 1, -1, -1};
+static void story_wander(void)
+{
+    int w = STORY_WANDER[proj.piece / EN_NACT % EN_NSTORY];
+    if (w >= 0 && proj.wander != w) {
+        proj.wander = (uint8_t)w;
+        mark_dirty();
+    }
+}
+
 static void tr_queue(int piece, int slow)
 {
     piece = (piece % NPIECES + NPIECES) % NPIECES;
@@ -410,8 +423,10 @@ static void tr_tick(void)
         tr.on = 0;
         proj.piece = tr.piece;
         proj_hold_keep = 0;
-        if (proj.piece / EN_NACT != story)
+        if (proj.piece / EN_NACT != story) {
             say_as("STORY", en_story_name(proj.piece / EN_NACT), 0);
+            story_wander();                      /* (0.8.3) the story's own Wander, to start */
+        }
         mark_dirty();
     }
 }
@@ -999,6 +1014,21 @@ static void button(int b)
         }
         break;
     case B_REC:
+        if (plat_ms() - ui.rec_t < 450u) {       /* (0.8.3) twice: the keys, lead or acts (the page stays); the first
+                                                  * tap's freeze undone */
+            int i;
+            ui.rec_t = 0;
+            en_freeze(!en_frozen);
+            if (ui.lead)
+                for (i = 0; i < NKEYS; i++)
+                    if (ui.keys >> i & 1u)
+                        en_lead_off(53 + i);
+            ui.lead = (uint8_t)!ui.lead;
+            ui.acts = (uint8_t)!ui.lead;
+            say(ui.lead ? "LEAD" : "ACTS", ui.lead ? EN_LEAD_NAME[proj.par[P_LSOUND]] : "ON THE KEYS");
+            break;
+        }
+        ui.rec_t = plat_ms();
         say("FREEZE", en_frozen ? "OFF" : "ON");
         en_freeze(!en_frozen);                   /* the engine takes it at its next block */
         break;
@@ -1839,11 +1869,11 @@ static void draw_perform(void)
     for (a = 0; a < EN_NACT; a++) {              /* the act keys, big */
         int32_t x = 6 + a * 58;
         int pc = cur / EN_NACT * EN_NACT + a, on = pc == cur, nx = pc == next && next != cur;
-        cv_round(x, 78, 54, 40, 8, on ? K_PAD : nx ? K_ACC : K_PANEL);
+        cv_round(x, 100, 54, 40, 8, on ? K_PAD : nx ? K_ACC : K_PANEL);   /* (0.8.3: under the one-shots) */
         if (!on)
-            cv_round(x + 2, 80, 50, 36, 6, nx ? K_BG : K_PANEL);
-        text_c(x + 27, 80, &FONT_B, KN[a], on ? K_BG : nx ? K_ACC : K_TEXT);
-        text_c(x + 27, 102, &FONT_XS, en_act_name(pc), on ? K_BG : nx ? K_ACC : K_DIM);
+            cv_round(x + 2, 102, 50, 36, 6, nx ? K_BG : K_PANEL);
+        text_c(x + 27, 102, &FONT_B, KN[a], on ? K_BG : nx ? K_ACC : K_TEXT);
+        text_c(x + 27, 124, &FONT_XS, en_act_name(pc), on ? K_BG : nx ? K_ACC : K_DIM);
     }
     {                                            /* the one-shots: C#5 D#5 F#5, the one playing lit, one waiting for the
                                                   * loop's start outlined */
@@ -1854,11 +1884,11 @@ static void draw_perform(void)
             int has = en_sting_len(cur, k) != 0, me = has && ui.sting_k == k + 1,
                 play = me && (th == 2 || (!th && plat_ms() - ui.sting_t < 2500u)), wait = me && th == 1;
             const char *n = has ? en_sting_name(cur, k) : "-";
-            cv_round(x, 122, 74, 18, 5, play ? K_ALERT : wait ? K_ALERT : K_PANEL);
+            cv_round(x, 78, 74, 18, 5, play ? K_ALERT : wait ? K_ALERT : K_PANEL);
             if (wait)
-                cv_round(x + 2, 124, 70, 14, 4, K_BG);
-            cv_text(x + 4, 125, &FONT_XS, SK[k], play ? K_BG : K_DIM);
-            cv_text(x + 22, 125, &FONT_XS, n, play ? K_BG : wait ? K_ALERT : has ? K_TEXT : K_LINE);
+                cv_round(x + 2, 80, 70, 14, 4, K_BG);
+            cv_text(x + 4, 81, &FONT_XS, SK[k], play ? K_BG : K_DIM);
+            cv_text(x + 22, 81, &FONT_XS, n, play ? K_BG : wait ? K_ALERT : has ? K_TEXT : K_LINE);
         }
     }
 }
@@ -1954,7 +1984,7 @@ static int help_lines(int b, const char *l[HELP_LINES])
     case B_FX: L("COLOURS"); L("EACH INSTRUMENT'S OWN:"); L("SHIMMER, ECHO, DRIVE, PUNCH"); break;
     case B_GLO: L("SETUP"); L("ROOT, TEMPO, SLEEP, FADE"); break;
     case B_EDIT: L("LEAD: THE KEYS PLAY A LEAD"); L("IN THE SCALE. KNOB 4: ITS OCTAVE"); L("AGAIN: BACK TO THE ACTS"); break;
-    case B_REC: L("FREEZE: THE CHORD HOLDS"); L(" AND THE REVERB RINGS ON"); L("AGAIN: THAW"); break;
+    case B_REC: L("FREEZE: THE CHORD HOLDS"); L(" AND THE REVERB RINGS ON"); L("AGAIN: THAW"); L("TWICE: KEYS LEAD / ACTS"); break;
     case B_OCTDN: L("ANSWER: A STEP DOWN"); L("BOTH: ANSWER OFF"); break;
     case B_OCTUP: L("ANSWER: A STEP UP, TO IMPROVISING"); L("BOTH: ANSWER OFF"); break;
     case B_SAVE:
