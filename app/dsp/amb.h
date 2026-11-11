@@ -183,6 +183,8 @@ int en_story_key(int s);                       /* the key its chords and stings 
 int en_sting_len(int piece, int k);            /* its notes, 0 none */
 int en_theme_busy(void);                        /* a one-shot theme: 0 none, 1 waiting for the loop, 2 playing */
 const char *en_prog_text(int piece);            /* an act's progression as written ("G:2 Em:2"), or 0 */
+int en_prog_steps(void);                        /* (0.8.6) the progression playing: its steps */
+int en_prog_label(int i, char *buf);            /* step i: its chord's name into buf (16), its bars (0: none) */
 const char *en_sting_name(int piece, int k);
 void en_sting(int piece, int k);
 const char *en_act_name(int piece);

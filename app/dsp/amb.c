@@ -80,7 +80,9 @@ static const struct {
         {55, 55, 60, 62, 45, 60, 25, 62, 40, 2, 45, 60, 55, 40, 60, 50, 0, 1, 88, 2, 1, 0, 0, 0, 10, 40, 70, 65, 35, 0, 0, 50, 0, 60, 45, 15, 0, 70, 3},
         {55, 70, 55, 58, 55, 70, 25, 58, 50, 1, 50, 65, 60, 45, 70, 55, 0, 1, 88, 2, 4, 0, 0, 0, 15, 40, 65, 70, 60, 0, 0, 50, 0, 60, 45, 15, 0, 70, 3},
         {50, 35, 40, 40, 25, 50, 35, 40, 50, 3, 60, 75, 35, 55, 45, 40, 0, 1, 80, 2, 1, 0, 0, 0, 20, 30, 70, 45, 100, 0, 0, 50, 0, 60, 45, 15, 0, 70, 2}},
-        {"1:2 4:2", "1:2 4:2 7:2 3:2", "1:2 7:2 4:2 1:2", 0}, 2, {0}, {0}},
+        {"1:2 4:2", "1:2 4:2 7:2 3:2", "1:2 7:2 4:2 1:2", 0}, 2,
+        {"D4", "F#5 D5 E5 A4", "D5 F#5 A5 D6"}, {"Bell", "Chime", "Sparkle"}},   /* (0.8.6: a bell; the lobby's chime,
+                                                  * Westminster's four; a rising sparkle) */
     {"Sleep", {"Dusk", "Drifting", "Deep", "Stillness"}, {
         {50, 45, 30, 0, 30, 30, 55, 0, 40, 4, 55, 85, 35, 70, 30, 45, 0, 1, 56, 2, 6, 0, 0, 0, 40, 25, 0, 40, 100, 0, 0, 50, 2, 50, 30, 40, 0, 0, 0},
         {50, 35, 25, 0, 25, 25, 65, 0, 35, 5, 58, 86, 28, 75, 20, 50, 0, 1, 52, 2, 6, -1, 1, -1, 45, 20, 0, 40, 100, 0, 0, 50, 2, 50, 30, 40, 0, 0, 0},
@@ -142,7 +144,7 @@ static const struct {
         {50, 55, 65, 68, 55, 65, 20, 75, 45, 1, 40, 55, 60, 35, 65, 55, 0, 1, 92, 0, 1, 0, 0, 0, 10, 55, 45, 70, 35, 10, 0, 50, 4, 60, 50, 15, 0, 75, 1},
         {55, 45, 45, 40, 30, 50, 35, 40, 50, 2, 50, 65, 45, 50, 50, 40, 0, 1, 88, 0, 1, 0, 0, 0, 15, 40, 35, 50, 30, 0, 0, 50, 4, 55, 45, 15, 0, 85, 1}},
         {"Cm7:2 Fm7:2", "Cm7:2 Fm7:2 Abmaj7:2 G7:2", "Fm7:2 Bb7:2 Ebmaj7:2 Abmaj7:1 G7:1", "Abmaj7:2 G7:2"},
-        0, {"C6 G5", "C3 C3 Eb4 G4 Bb4"}, {"Chime", "Curtain"}},
+        0, {"C6 G5", "C3 C3 Eb4 G4 Bb4", "C4"}, {"Chime", "Curtain", "Bell"}},   /* (0.8.6: and a bell) */
     /* Post Show: Intermission's family, jazzy and bright (0.5: major sevenths, nothing scary): F major, swung; a Rhodes,
      * an organ, strings. Each act its own drums: Bows, Encore and Stage Door Bright (0.7: four on the floor, the claps,
      * the hats between: not Intermission's boom-bap), Walk Home soft. (0.7: Bows plain and glad, F Bb F C, no
@@ -154,7 +156,7 @@ static const struct {
         {55, 45, 50, 40, 35, 50, 30, 35, 50, 2, 50, 65, 50, 45, 55, 40, 0, 1, 88, 5, 0, 0, 0, 0, 15, 40, 45, 40, 30, 0, 0, 50, 4, 55, 45, 15, 0, 90, 0}},
         {"F:2 Bb:2 F:2 C:2", "Fmaj7:2 Am7:2 Bbmaj7:2 C7:2", "Bbmaj7:2 Ebmaj7:2 Fmaj7:2 Dbmaj7:1 C7:1",
          "Fmaj7:2 Bbmaj7:2 Gm7:2 C7:2"},
-        5, {"F5 A5 C6", "F3 C4 F4 A4 C5"}, {"Fanfare", "Bow"}},
+        5, {"F5 A5 C6", "F3 C4 F4 A4 C5", "F4"}, {"Fanfare", "Bow", "Bell"}},   /* (0.8.6: and a bell) */
     /* Riebeck: an original campfire-and-stars piece in the spirit of a game Zach loves (none of its music): a banjo
      * picking by the fire in D, the launch, drifting among the stars (no drums, a far wind), the last supernova */
     {"Riebeck", {"Campfire", "Liftoff", "Drifting", "Supernova"}, {
@@ -1070,6 +1072,41 @@ static float freedom = 1.0f;                    /* Freedom, 0..1 */
 volatile int8_t en_prog_step = -1;
 static void chord_to(int i);
 static int prog_on(void) { return prog_cur >= 0 && prog_n[prog_cur] && freedom < 0.995f; }
+/* (0.8.6, the Acts page) the playing progression's steps: how many; step i's bars and its chord's name, as written
+ * (moved with Root; a degree's chord built on the scale now, in thirds) */
+int en_prog_steps(void) { return prog_cur >= 0 ? prog_n[prog_cur] : 0; }
+int en_prog_label(int i, char *buf)
+{
+    int pcs[5], n = 0, k;
+    buf[0] = 0;
+    if (prog_cur < 0 || i < 0 || i >= prog_n[prog_cur])
+        return 0;
+    if (prog_deg[prog_cur][i] < 0) {
+        int q = prog_q[prog_cur][i], r = (par[P_ROOT] + prog_off[prog_cur][i]) % 12;
+        pcs[n++] = r;
+        for (k = 0; k < 4 && QUAL_IV[q][k] != 0xFF; k++)
+            pcs[n++] = (r + QUAL_IV[q][k]) % 12;
+        en_chord_name(pcs, n, buf);
+        if (prog_bass[prog_cur][i] >= 0) {       /* (its bass: "/F#") */
+            static const char *const NM[12] = {"C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"};
+            const char *b = NM[(par[P_ROOT] + prog_bass[prog_cur][i]) % 12];
+            char *e = buf;
+            while (*e)
+                e++;
+            *e++ = '/';
+            while (*b)
+                *e++ = *b++;
+            *e = 0;
+        }
+    } else if (nsteps >= 5) {
+        int d = prog_deg[prog_cur][i] % nsteps, nt = nsteps == 7 ? 4 : 3;
+        pcs[n++] = (par[P_ROOT] + steps[d]) % 12;
+        for (k = 0; k < nt; k++)
+            pcs[n++] = (par[P_ROOT] + steps[(d + 2 * k) % nsteps]) % 12;
+        en_chord_name(pcs, n, buf);
+    }
+    return prog_bars[prog_cur][i];
+}
 static float freedom_eff(void) { return freedom * (1.0f - 0.008f * (float)par[P_GROOVE]); }   /* Structure: as written */
 
 static void chord_named(int off, int q, int bass)   /* a named chord, off semitones above the key (Root) */

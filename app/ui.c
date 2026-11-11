@@ -1788,52 +1788,43 @@ static void meter2(int32_t x, int32_t y, int32_t h, int v, uint16_t off, uint16_
 /* (0.8.1) the Perform page (the Feel page's knobs): the chord now, big; the progression's loop, a cell a bar, its chords
  * over them and the bar now lit; and the act keys, big: F G A B and their acts, the one playing lit, the one coming
  * outlined */
-static int name_pc(const char *t, int *len)     /* "F#m7" -> 6, its root's length 2 */
+static void draw_chord_big(int32_t x, int32_t y, const char *nm)   /* (0.8.6) a lead sheet's chord: the root big
+                                                  * (FONT_L, capitals), its sharp or flat and its kind beside it */
 {
-    static const int8_t PC[7] = {9, 11, 0, 2, 4, 5, 7};
-    int pc, n = 1;
-    if (*t < 'A' || *t > 'G')
-        return -1;
-    pc = PC[*t - 'A'];
-    if (t[1] == '#')
-        pc++, n++;
-    else if (t[1] == 'b')
-        pc--, n++;
-    *len = n;
-    return (pc + 12) % 12;
-}
-static void chord_moved(const char *t, int n, int mv, char *out)   /* a written chord, moved with Root ("Em" +2: "F#m") */
-{
-    static const char *const NM[12] = {"C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"};
-    int k = 0, l, pc = name_pc(t, &l), j;
-    if (pc < 0) {
-        out[0] = 0;
-        return;
+    char r[2], acc[2], q[12];
+    int k = 0, n = 0;
+    r[0] = nm[0];
+    r[1] = 0;
+    acc[0] = acc[1] = 0;
+    if (nm[0] && (nm[1] == '#' || nm[1] == 'b'))
+        acc[0] = nm[1], k = 2;
+    else
+        k = nm[0] ? 1 : 0;
+    if (nm[k] == 'M') {                          /* (a major seventh, as a lead sheet writes it: "maj7") */
+        q[n++] = 'm', q[n++] = 'a', q[n++] = 'j';
+        k++;
     }
-    for (j = 0; NM[(pc + mv + 12) % 12][j]; j++)
-        out[k++] = NM[(pc + mv + 12) % 12][j];
-    for (j = l; j < n && k < 9; j++) {
-        if (t[j] == '/') {                        /* (a bass under it: moved too) */
-            int l2, p2 = name_pc(t + j + 1, &l2), m;
-            if (p2 < 0)
-                break;
-            out[k++] = '/';
-            for (m = 0; NM[(p2 + mv + 12) % 12][m] && k < 11; m++)
-                out[k++] = NM[(p2 + mv + 12) % 12][m];
-            break;
-        }
-        out[k++] = t[j];
+    while (nm[k] && n < 11)
+        q[n++] = nm[k++];
+    q[n] = 0;
+    cv_text(x, y, &FONT_L, r, K_TEXT);
+    x += text_w(&FONT_L, r) + 1;
+    if (acc[0]) {
+        cv_text(x, y + 1, &FONT_B, acc[0] == 'b' ? "b" : "#", K_TEXT);
+        x += text_w(&FONT_B, acc) + 1;
     }
-    out[k] = 0;
+    cv_text(x, y + 14, &FONT_B, q, K_ACC);
 }
 static void draw_perform(void)
 {
     static const char *const KN[4] = {"F", "G", "A", "B"};
     char nm[16];
     int cur = tr.on ? tr.piece : proj.piece, next = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : -1, a;
-    const char *pt = en_prog_text(proj.piece);
-    int mv = (proj.par[P_ROOT] - en_story_key(proj.piece / EN_NACT) + 12) % 12, bars = en_loop_bars, bar = en_loop_bar;
-    cv_text(8, -2, &FONT_M, en_playing ? chord_now(nm) : "-", K_TEXT);   /* the chord now */
+    int bars = en_loop_bars, bar = en_loop_bar, ns = en_prog_steps();
+    if (en_playing)
+        draw_chord_big(8, 0, chord_now(nm));     /* the chord now, big */
+    else
+        cv_text(8, 0, &FONT_L, "-", K_DIM);
     if (bar >= 0 && bars > 0) {
         char t[16];
         int n = 0;
@@ -1846,31 +1837,18 @@ static void draw_perform(void)
         t[n++] = ' ';
         itoa_u((uint32_t)bars, t + n);
         cv_text(230 - text_w(&FONT_XS, "BAR"), 2, &FONT_XS, "BAR", K_DIM);
-        cv_text(230 - text_w(&FONT_B, t), 14, &FONT_B, t, K_TEXT);
+        cv_text(230 - text_w(&FONT_B, t), 15, &FONT_B, t, K_TEXT);
     } else
-        cv_text(230 - text_w(&FONT_XS, "chords: free"), 14, &FONT_XS, "chords: free", K_DIM);
-    if (pt && bars > 0 && bar >= 0) {            /* the loop: a cell a bar, grouped by chord */
-        int32_t x0 = 8, w = 224, cw = (w + 2) / bars - 2, x = x0, b = 0;
+        cv_text(230 - text_w(&FONT_XS, "chords: free"), 15, &FONT_XS, "chords: free", K_DIM);
+    if (ns > 0 && bars > 0 && bar >= 0) {        /* the loop: a cell a bar, its chords over them */
+        int32_t gaps = ns - 1, cw = (224 - 2 * gaps + 2) / bars - 2, x = 8, b = 0, i;
         if (cw < 3)
             cw = 3;
-        while (*pt && b < bars) {
-            const char *tok;
-            int tl = 0, nb = 0, k, here;
-            while (*pt == ' ')
-                pt++;
-            tok = pt;
-            while (pt[tl] && pt[tl] != ':' && pt[tl] != ' ')
-                tl++;
-            pt += tl;
-            if (*pt == ':') {
-                pt++;
-                while (*pt >= '0' && *pt <= '9')
-                    nb = nb * 10 + (*pt++ - '0');
-            }
+        for (i = 0; i < ns && b < bars; i++) {
+            int nb = en_prog_label(i, nm), k, here;
             if (nb < 1)
                 nb = 1;
             here = bar >= b && bar < b + nb;
-            chord_moved(tok, tl, mv, nm);
             if (text_w(&FONT_XS, nm) + 2 > (cw + 2) * nb) {   /* (short: "maj7" as "M7", then the root alone) */
                 int q, r;
                 for (q = 0; nm[q]; q++)
@@ -1885,22 +1863,11 @@ static void draw_perform(void)
                     nm[nm[1] == '#' || nm[1] == 'b' ? 2 : 1] = 0;
             }
             if (nm[0])
-                cv_text(x, 40, &FONT_XS, nm, here ? K_ACC : K_DIM);
+                cv_text(x, 38, &FONT_XS, nm, here ? K_ACC : K_DIM);
             for (k = 0; k < nb && b < bars; k++, b++, x += cw + 2)
-                cv_round(x, 56, cw, 16, 2, b == bar ? K_ACC : b < bar ? mix(K_BG, K_ACC, 6) : here ? mix(K_BG, K_ACC, 4) : K_PANEL);
+                cv_round(x, 54, cw, 18, 3, b == bar ? K_ACC : b < bar ? mix(K_BG, K_ACC, 6) : here ? mix(K_BG, K_ACC, 4) : K_PANEL);
             x += 2;                              /* (a gap between chords) */
-            while (*pt && *pt != ' ')
-                pt++;
         }
-    }
-    for (a = 0; a < EN_NACT; a++) {              /* the act keys, big */
-        int32_t x = 6 + a * 58;
-        int pc = cur / EN_NACT * EN_NACT + a, on = pc == cur, nx = pc == next && next != cur;
-        cv_round(x, 100, 54, 40, 8, on ? K_PAD : nx ? K_ACC : K_PANEL);   /* (0.8.3: under the one-shots) */
-        if (!on)
-            cv_round(x + 2, 102, 50, 36, 6, nx ? K_BG : K_PANEL);
-        text_c(x + 27, 102, &FONT_B, KN[a], on ? K_BG : nx ? K_ACC : K_TEXT);
-        text_c(x + 27, 124, &FONT_XS, en_act_name(pc), on ? K_BG : nx ? K_ACC : K_DIM);
     }
     {                                            /* the one-shots: C#5 D#5 F#5, the one playing lit, one waiting for the
                                                   * loop's start outlined */
@@ -1911,11 +1878,35 @@ static void draw_perform(void)
             int has = en_sting_len(cur, k) != 0, me = has && ui.sting_k == k + 1,
                 play = me && (th == 2 || (!th && plat_ms() - ui.sting_t < 2500u)), wait = me && th == 1;
             const char *n = has ? en_sting_name(cur, k) : "-";
-            cv_round(x, 78, 74, 18, 5, play ? K_ALERT : wait ? K_ALERT : K_PANEL);
+            cv_round(x, 78, 74, 20, 5, play ? K_ALERT : wait ? K_ALERT : K_PANEL);
             if (wait)
-                cv_round(x + 2, 80, 70, 14, 4, K_BG);
+                cv_round(x + 2, 80, 70, 16, 4, K_BG);
             cv_text(x + 4, 81, &FONT_XS, SK[k], play ? K_BG : K_DIM);
-            cv_text(x + 22, 81, &FONT_XS, n, play ? K_BG : wait ? K_ALERT : has ? K_TEXT : K_LINE);
+            cv_text(x + 22, text_w(&FONT_S, n) <= 50 ? 80 : 82, text_w(&FONT_S, n) <= 50 ? &FONT_S : &FONT_XS, n,
+                    play ? K_BG : wait ? K_ALERT : has ? K_TEXT : K_LINE);
+        }
+    }
+    for (a = 0; a < EN_NACT; a++) {              /* the act keys, big */
+        int32_t x = 6 + a * 58;
+        int pc = cur / EN_NACT * EN_NACT + a, on = pc == cur, nx = pc == next && next != cur;
+        cv_round(x, 102, 54, 40, 8, on ? K_PAD : nx ? K_ACC : K_PANEL);
+        if (!on)
+            cv_round(x + 2, 104, 50, 36, 6, nx ? K_BG : K_PANEL);
+        text_c(x + 27, 104, &FONT_B, KN[a], on ? K_BG : nx ? K_ACC : K_TEXT);
+        {
+            const char *an = en_act_name(pc);
+            uint16_t c = on ? K_BG : nx ? K_ACC : K_DIM;
+            if (text_w(&FONT_XS, an) <= 50) {
+                text_c(x + 27, 124, &FONT_XS, an, c);
+            } else {                             /* (two words, two lines: "Lights / Down") */
+                char w1[16];
+                int k = 0;
+                while (an[k] && an[k] != ' ' && k < 15)
+                    w1[k] = an[k], k++;
+                w1[k] = 0;
+                text_c(x + 27, 118, &FONT_XS, w1, c);
+                text_c(x + 27, 129, &FONT_XS, an[k] ? an + k + 1 : "", c);
+            }
         }
     }
 }
