@@ -141,16 +141,16 @@ The four knobs, page by page:
 | System | Tune | Lights | MIDI out | (free) |
 | One-shots | Level | Space | Echo | Tone |
 | Harmony (ENV) | Interval | Mix | Shimmer | Width |
-| Repeat (LFO) | Rate | Mix | Length | Pitch |
+| Tape Stop (LFO) | Stop | Start | Scratch | Mix |
 | Throw / Cloud (ARP) | Type | Amount | Tone | Time |
 | Glitch / Shuffle (SEQ) | Type | Amount | Size | Vary |
 
 The punch-ins (0.8.14; hold the button, or double-tap to latch):
 
-- **Harmony**: the whole sound again above itself. Interval: Third (major or minor, following the chord), Fifth,
-  Octave, 5th + 8ve, All.
-- **Repeat**: from the next sixteenth, a slice (Rate: 1/4, 1/8, 1/16, 1/32) recorded and played again and again.
-  Length gates it; Pitch moves each repeat up or down.
+- **Harmony**: the whole sound again above itself. Interval: Shimmer (0.8.16: the octave and an octave and a fifth,
+  fed back on themselves, glassy; the Third's place), Fifth, Octave, 5th + 8ve, All (no third now).
+- **Tape Stop** (0.8.16, Repeat's place): the whole sound slows to a stop, pitch falling, over Stop (0.15 .. 1 s).
+  Stopped, turn Scratch: a hand on the record. Let go: it spins back up over Start (0: straight back).
 - **Throw**: the sound thrown into the reverb and echo, rising over Time (a beat to four bars); let go, it comes back
   in a beat. **Cloud**: the moment just gone held as slow, overlapping grains (Time: their length). Tone, for both:
   left of the middle darker (a low-pass), right of it thinner (a high-pass). Amount: how much.

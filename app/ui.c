@@ -32,10 +32,10 @@ static int page_pos(int v)
 }
 #define NOBTN 0xFF
 static const char *const VIEW_NAME[NVIEWS] = {"Story", "Acts", "Mixer", "Effects", "Effects 2", "Pad", "Melody", "Bass",
-                                              "Drums", "Lead", "Setup", "System", "Bluetooth", "One-shots", "Harmony", "Repeat", "Throw/Cloud", "Glitch/Shuffle"};
+                                              "Drums", "Lead", "Setup", "System", "Bluetooth", "One-shots", "Harmony", "Tape Stop", "Throw/Cloud", "Glitch/Shuffle"};
 static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, B_SEL, NOBTN, B_FX, NOBTN, NOBTN, NOBTN, NOBTN, NOBTN, B_EDIT, B_GLO, NOBTN,
                                          NOBTN, NOBTN, B_ENV, B_LFO, B_ARP, B_SEQ};
-/* the punch-ins: ENV Harmony (0.7, Reverse's place), LFO Repeat, ARP Throw / Cloud, SEQ Glitch / Shuffle (0.8.14) (held; a double tap latches one on) */
+/* the punch-ins: ENV Harmony (0.7, Reverse's place), LFO Tape Stop (0.8.16), ARP Throw / Cloud, SEQ Glitch / Shuffle (0.8.14) (held; a double tap latches one on) */
 static const uint8_t FX_BTN[EN_NFX] = {B_ENV, B_LFO, B_ARP, B_SEQ};
 /* the four knobs of each page: a parameter, or one of these; and what the knob is called there */
 enum { K_LEDS = 100, K_CPU, K_NONE, K_PLAYMODE, K_WANDER, K_FADE, K_ACT, K_TIMER, K_ANSWER, K_BTDEV, K_BTOUT, K_BTON, K_BTRANGE };
@@ -55,7 +55,7 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {K_NONE, K_BTDEV, K_BTOUT, K_BTON},   /* (0.7: to the right, knob 1 free) */
     {P_OSLEVEL, P_OSSPACE, P_OSECHO, P_OSTONE},   /* (0.8) the one-shots, all together, the story's */
     {P_RVLEN, P_RVMIX, P_HVSHIM, P_HVWIDTH},     /* (0.8: the punch-ins' knobs 3 and 4) */
-    {P_STRATE, P_STMIX, P_STLEN, P_STPITCH},
+    {P_STRATE, P_STPITCH, P_STLEN, P_STMIX},     /* (0.8.16) Tape Stop: Stop, Start, Scratch, Mix */
     {P_FLTYPE, P_FLRES, P_FLCUT, P_FLSWEEP},     /* (0.8.14) Throw / Cloud: Type, Amount, Tone, Time */
     {P_SCSIZE, P_SCMIX, P_SCPITCH, P_SCSPREAD},  /* (0.8.14) Glitch / Shuffle: Type, Amount, Size, Vary */
 };
@@ -75,7 +75,7 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
     {"", "Pick", "Play on", "Bluetooth"},
     {"Level", "Space", "Echo", "Tone"},
     {"Interval", "Mix", "Shimmer", "Width"},
-    {"Rate", "Mix", "Length", "Pitch"},
+    {"Stop", "Start", "Scratch", "Mix"},
     {"Type", "Amount", "Tone", "Time"},
     {"Type", "Amount", "Size", "Vary"},
 };
@@ -273,7 +273,7 @@ static int global_p(int p)                     /* the player's: Root and the lea
 static int switch_p(int p)
 {
     return p == P_MODE || p == P_PADTONE || p == P_ETIME || p == P_BOCT || p == P_BSOUND || p == P_ROOT || p == P_METER ||
-           p == P_LSOUND || p == P_LOCT || p == P_RVLEN || p == P_STRATE || p == P_FLTYPE || p == P_SCSIZE || p == P_SCPITCH;
+           p == P_LSOUND || p == P_LOCT || p == P_RVLEN || p == P_FLTYPE || p == P_SCSIZE || p == P_SCPITCH;
 }
 /* (0.8.14) Fade: a detent a step, 1 s .. 2 min, the short ones each a second */
 static const char *fx_name(int i)               /* (0.8.14) a punch-in's name: ARP's and SEQ's by their Type */
@@ -1191,6 +1191,10 @@ static void input(void)
                 say(fx_name(i), "LATCHED");
             } else {
                 ui.fx_held |= (uint8_t)(1u << i);
+                if (i == 1) {                    /* (0.8.16) Tape Stop: Scratch from the middle each time */
+                    proj.par[P_STLEN] = 50;
+                    en_set(P_STLEN, 50);
+                }
                 if (!ui.fx_back)
                     ui.fx_back = (uint8_t)(ui.view + 1);
                 set_view(V_REV + (int)i);
@@ -2071,7 +2075,7 @@ static void draw_colours(void)
 #define HELP_LINES 4
 static const char *const BTN_LABEL[NB] = {"FX", "SEL", "ENV", "LFO", "EDIT", "GLO", "HOME", "SAVE", "ARP", "SEQ",
                                           "PLAY", "REC", "OCT-", "OCT+"};
-static const char *const BTN_DOES[12] = {"Colours", "Effects", "Harmony", "Repeat", "Lead", "Setup",
+static const char *const BTN_DOES[12] = {"Colours", "Effects", "Harmony", "Tape Stop", "Lead", "Setup",
                                          "Story", "Save", "Throw/Cloud", "Glitch", "Play", "Freeze"};
 static int help_lines(int b, const char *l[HELP_LINES])
 {
@@ -2096,8 +2100,8 @@ static int help_lines(int b, const char *l[HELP_LINES])
             L(" BACK TO ITS RECIPE");
         }
         break;
-    case B_HOME: L("HOME STORY, FX EFFECTS, SEL ACTS,"); L(" ENV HARMONY, LFO REPEAT, EDIT LEAD, GLO SETUP,");
-        L(" SAVE, ARP THROW, SEQ GLITCH,"); L(" PLAY, REC FREEZE"); break;
+    case B_HOME: L("HOME STORY, FX EFFECTS, SEL ACTS,"); L(" ENV HARMONY, LFO TAPE STOP,");
+        L(" EDIT LEAD, GLO SETUP, SAVE, ARP THROW,"); L(" SEQ GLITCH, PLAY, REC FREEZE"); break;
     default: break;
     }
 #undef L
@@ -2486,14 +2490,18 @@ static void fx_picture(int i, int32_t x0, int32_t y0, int32_t w, int32_t h, uint
         }
         break;
     }
-    case 1: {
-        int32_t bw = w / 4;
-        for (k = 0; k < 4; k++) {
-            int j;
-            for (j = 0; j < 5 && j * 6 < bw - 6; j++) {
-                int32_t bh = (h - 6) - j * (h - 6) / 6;
-                cv_rect(x0 + k * bw + j * 6, my - bh / 2, 4, bh, c);
-            }
+    case 1: {                                    /* (0.8.16) Tape Stop: a wave slowing, its waves longer and
+                                                  * lower, to a flat line */
+        int32_t py = my;
+        float ph = 0.0f;
+        for (k = 0; k <= w; k += 2) {
+            const float t = (float)k / (float)w, sp = 1.0f - t, a = sp < 0.15f ? sp / 0.15f : 1.0f;
+            int32_t y;
+            ph += 0.5f * sp * sp + 0.02f;
+            y = my - (int32_t)((float)h * 0.38f * a * fm_sinf(ph));
+            if (k)
+                cv_line(x0 + k - 2, py, x0 + k, y, c);
+            py = y;
         }
         break;
     }

@@ -1,4 +1,4 @@
-# the punch-ins: ENV Harmony, LFO Repeat, ARP Throw / Cloud, SEQ Glitch / Shuffle (0.8.14); held: on, the knobs theirs (their page), back on
+# the punch-ins: ENV Harmony, LFO Tape Stop (0.8.16: unlatched, it spins back up over Start first), ARP Throw / Cloud, SEQ Glitch / Shuffle (0.8.14); held: on, the knobs theirs (their page), back on
 # letting go; a double tap latches one; a tap then shows its page, another turns it off
 wait 3000
 tap HOME
@@ -36,5 +36,5 @@ wait 400
 expect fx 2
 tap LFO
 tap LFO
-wait 300
+wait 700
 expect fx 0

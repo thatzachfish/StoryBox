@@ -40,11 +40,11 @@ static const en_param_t PARAMS[P_NPARAMS] = {
     {"Tension", 0, 100, 0},   {"Meter", 0, 1, 0},       {"Energy", 0, 100, 50},
     {"Lead", 0, EN_NLEAD - 1, 0}, {"Lead level", 0, 100, 40}, {"Lead tone", 0, 100, 50}, {"Glide", 0, 100, 20},
     {"Lead oct", -2, 2, 0},   {"Structure", 0, 100, 0}, {"Kit", 0, 4, 0},
-    {"Interval", 0, 4, 1},    {"Mix", 0, 100, 60},     {"Rate", 0, 3, 2},        {"Mix", 0, 100, 100},
+    {"Interval", 0, 4, 1},    {"Mix", 0, 100, 60},     {"Stop", 0, 100, 40},     {"Mix", 0, 100, 100},
     {"Tone", 0, 100, 50},     {"Amount", 0, 100, 80},  {"Type", 0, 1, 0},        {"Amount", 0, 100, 50},
     {"Surf", 0, 100, 0},      {"Melody", 0, EN_NMEL - 1, 0},
     {"Shimmer", 0, 100, 0},   {"Echo", 0, 100, 50},     {"Drive", 0, 100, 0},     {"Punch", 0, 100, 0},
-    {"Shimmer", 0, 100, 0},   {"Width", 0, 100, 50},    {"Length", 0, 100, 100},   {"Pitch", -50, 50, 0},
+    {"Shimmer", 0, 100, 0},   {"Width", 0, 100, 50},    {"Scratch", 0, 100, 50},   {"Start", 0, 100, 30},
     {"Time", 0, 100, 50},     {"Type", 0, 1, 0},        {"Size", 0, 2, 1},        {"Vary", 0, 100, 0},
     {"Level", 0, 100, 70},    {"Space", 0, 100, 40},    {"Echo", 0, 100, 20},     {"Tone", 0, 100, 50},
 };
@@ -404,15 +404,13 @@ void en_param_text(int i, int v, char *b)
     else if (i == P_METER)
         s = v ? "3/4" : "4/4";
     else if (i == P_RVLEN)                       /* (0.7: Harmony's Interval; 0.8.14: thirds, all) */
-        s = v >= 4 ? "All" : v == 3 ? "5th + 8ve" : v == 2 ? "Octave" : v ? "Fifth" : "Third";
+        s = v >= 4 ? "All" : v == 3 ? "5th + 8ve" : v == 2 ? "Octave" : v ? "Fifth" : "Shimmer";
     else if (i == P_FLTYPE)                      /* (0.8.14: ARP's Type) */
         s = v ? "Cloud" : "Throw";
     else if (i == P_SCSIZE)                      /* (0.8.14: SEQ's Type) */
         s = v ? "Shuffle" : "Glitch";
     else if (i == P_SCPITCH)                     /* (0.8.14: its slices) */
         s = v >= 2 ? "1/8" : v ? "1/16" : "1/32";
-    else if (i == P_STRATE)                      /* (Repeat's slice) */
-        s = v >= 3 ? "1/32" : v == 2 ? "1/16" : v ? "1/8" : "1/4";
     else if (i == P_KIT)
         s = v == 4 ? "Bright" : v == 3 ? "Lounge" : v == 2 ? "Brushes" : v ? "Backbeat" : "Soft";
     else if (i == P_LSOUND)
@@ -701,10 +699,9 @@ static lead_t lead[NLEAD];
 /* StoryBox performance: the layers' mutes, each layer's gain gliding to 0 or 1 (mg: pad, bells, bass, pulse); the
  * breakdown (bd_req: asked for, from the next bar; bd_ret: 1 asked to come back, 2 this bar is the fill) */
 static uint32_t mute_mask, fx_mask;
-static int rb_held, rb_rec, rb_rec_n, rb_regrab, rp, rp_n, fz;   /* (0.8.14) rp: Repeat 1 waiting for the sixteenth,
-                                                    * 2 recording its slice, 3 playing it; fz: Cloud holding the ring */
-static float fz_at;   /* the punch-ins' ring held; rb_rec: recording again while the old
-                                                    * moment plays (a refresh); rb_regrab: the new one ready, at the seam */
+static int rb_held, ts, fz;   /* (0.8.16) ts: Tape Stop 1 slowing, 2 stopped (the ring held: Scratch moves the
+                               * record), 3 starting again; fz: Cloud holding the ring */
+static float fz_at;   /* the punch-ins' ring held */
 static float mg[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 static uint8_t bd, bd_req, bd_ret;
 static uint8_t ds, ds_req, ds_ret;               /* (0.8.13) the drum solo: on (from the next bar), asked, coming back
@@ -1668,10 +1665,6 @@ static void tick(void)
     if (bar) {
         meter_bar();
         en_barno++;
-        if (rp == 3 && !fz && !rb_rec && !rb_regrab && !(en_barno & 1u)) {   /* held a while (latched): a fresh moment */
-            rb_rec = 1;
-            rb_rec_n = 0;
-        }
         if (bd_req) {                            /* the breakdown, on the bar */
             bd_req = 0;
             bd = 1;
@@ -3869,7 +3862,8 @@ static void render_lead(uint32_t n)
 #define RB_N 16384
 static int16_t rb[RB_N] EN_POOL;
 static int rb_w;
-static float rb_acc, rb_pos, rb_start, rb_len, fxw[EN_NFX];
+static float rb_acc, ts_pos, ts_r, ts_at, ts_k0, fxw[EN_NFX];   /* (0.8.16) Tape Stop: the playhead in the ring, its
+                                                  * speed (1: as recorded), where it stopped, Scratch's knob then */
 volatile uint8_t en_fx_on;
 volatile float en_fade = 1.0f;
 
@@ -3957,23 +3951,38 @@ static void fx_chunk(uint32_t n)                 /* once a chunk: the fades, the
     const float k = fm_minf((float)n / (0.03f * EN_SR), 1.0f), beat = 4.0f * step_len;
     uint32_t want = fx_mask;
     uint8_t on = 0;
-    /* Repeat: pressed, it waits for the next sixteenth, records a slice from there, then plays it again and again */
+    /* (0.8.16) Tape Stop (LFO): pressed, the whole sound slows to a stop, pitch falling, over Stop (0.15 .. 1 s: the
+     * playhead behind the writing at most half a second); stopped, the ring is held and Scratch moves the
+     * record by hand; let go, it spins back up over Start (0: at once), then gives way to the sound as it is */
     if (want & 2u) {
-        if (!rp)
-            rp = 1;
-        if (rp == 1 && (b || !en_playing)) {
-            static const float SLICE[4] = {1.0f, 0.5f, 0.25f, 0.125f};
-            rp = 2;
-            rp_n = 0;
-            rb_len = beat * 0.5f * SLICE[par[P_STRATE] & 3];   /* (the ring at half rate) */
-            if (rb_len > (float)(RB_N / 2 - 64))
-                rb_len = (float)(RB_N / 2 - 64);
+        if (!ts) {
+            ts_pos = (float)rb_w;
+            ts_r = 1.0f;
         }
-    } else {
-        rp = 0;
+        if (ts != 2)
+            ts = 1;
+    } else if (ts == 1 || ts == 2) {
+        ts = par[P_STPITCH] <= 0 ? 0 : 3;
     }
-    if (rp != 3)
+    if (ts == 1) {
+        ts_r -= (float)n / ((0.15f + 0.0085f * (float)par[P_STRATE]) * EN_SR);
+        if (ts_r <= 0.0f) {
+            ts_r = 0.0f;
+            ts = 2;
+            ts_at = ts_pos;
+            ts_k0 = (float)par[P_STLEN];
+        }
+    } else if (ts == 3) {
+        ts_r += (float)n / ((0.05f + 0.009f * (float)par[P_STPITCH]) * EN_SR);
+        if (ts_r >= 1.0f) {
+            ts_r = 1.0f;
+            ts = 0;
+        }
+    }
+    if (!ts)
         want &= ~2u;
+    else
+        want |= 2u;
     /* Throw (ARP, Type 0): the sound into the reverb and echo, rising over Time on an S curve; let go, back in a beat.
      * Cloud (Type 1): its own fade, and the ring held */
     {
@@ -4020,12 +4029,7 @@ static void fx_chunk(uint32_t n)                 /* once a chunk: the fades, the
         on |= 4u;
     en_fx_on = on;
     tone_set();
-    if (rp == 3 || fz)
-        rb_held = 1;
-    else if (fxw[FX_STUTTER] < 0.01f && !fz) {
-        rb_held = 0;                             /* faded out: recording again */
-        rb_rec = rb_regrab = 0;
-    }
+    rb_held = ts == 2 || fz;                     /* (stopped, or Cloud: the ring held; else recording) */
 }
 
 /* Glitch / Shuffle's slices: each one (Size: a 1/32, 1/16 or 1/8) heard as it is, or cut, by a hash of its place in two
@@ -4178,51 +4182,33 @@ static void cloud(float *x, float *y)
 
 static int rb_odd;
 static float hv_last;                            /* (0.8) Harmony's last voices: Shimmer feeds them back into the ring */
-static float st_rate = 1.0f;                     /* (0.8) Repeat's playback rate: Pitch moves it each repeat */
-static float hv_r3 = 1.2599f;                    /* (0.8.14) Harmony's third, gliding to the chord's */
 static void fx_sample(float *l, float *r)        /* one frame of the whole sound through the punch-ins */
 {
     float x = *l, y = *r;
-    if (!rb_held)
-        st_rate = 1.0f;                          /* (a new moment held: at its own pitch first) */
-    if (!rb_held || rb_rec) {                    /* the ring: mono, every other frame (a pair's average) */
-        rb_acc += 0.5f * (x + y) + hv_last * (float)par[P_HVSHIM] * 0.0065f;
+    if (!rb_held) {                    /* the ring: mono, every other frame (a pair's average) */
+        rb_acc += 0.5f * (x + y) + hv_last * ((float)par[P_HVSHIM] * 0.0065f + (par[P_RVLEN] == 0 ? 0.3f : 0.0f));   /* (0.8.16:
+                                                  * Shimmer, the voices fed back, rising: glassy) */
         if (rb_odd ^= 1) {
         } else {
             float v = fm_clampf(rb_acc * 0.5f, -1.0f, 1.0f);
             rb[rb_w] = (int16_t)(v * 32767.0f);
             rb_w = rb_w + 1 >= RB_N ? 0 : rb_w + 1;
             rb_acc = 0.0f;
-            if (rb_rec && ++rb_rec_n >= (int)rb_len + 8) {   /* a fresh moment recorded: take it at the next seam */
-                rb_rec = 0;
-                rb_regrab = 1;
-            }
-            if (rp == 2 && ++rp_n >= (int)rb_len) {   /* (0.8.14) Repeat's slice recorded, from the sixteenth: hold it */
-                rp = 3;
-                rb_held = 1;
-                rb_start = (float)rb_w;
-                rb_pos = rb_start - rb_len;
-                st_rate = 1.0f;
-            }
         }
     }
-    if (fxw[FX_REVERSE] > 0.0005f) {             /* Harmony: the whole sound again above it (Interval: a third, a
-                                                  * fifth, an octave, fifth and octave, all three): a read head in the
-                                                  * ring each, two windows apart, faded in turn. (0.8.14) The third the
-                                                  * chord's: major or minor */
-        static const float GAIN[5][3] = {{0.8f, 0, 0}, {0, 0.8f, 0}, {0, 0, 0.8f}, {0, 0.8f, 0.6f}, {0.55f, 0.5f, 0.45f}};
+    if (fxw[FX_REVERSE] > 0.0005f) {             /* Harmony: the whole sound again above it (Interval: Shimmer, the
+                                                  * octave and the octave and a fifth fed back on themselves (0.8.16, the
+                                                  * third's place); a fifth; an octave; fifth and octave; all three): a
+                                                  * read head in the ring each, two windows apart, faded in turn */
+        static const float GAIN[5][3] = {{0.32f, 0, 0.5f}, {0, 0.8f, 0}, {0, 0, 0.8f}, {0, 0.8f, 0.6f}, {0.3f, 0.5f, 0.45f}};
         static float hd[3];
         const int iv = par[P_RVLEN] < 0 ? 0 : par[P_RVLEN] > 4 ? 4 : par[P_RVLEN];
         const float W = 1100.0f, w = fxw[FX_REVERSE] * (float)par[P_RVMIX] * 0.01f;
         float wet = 0.0f;
         int h;
-        {
-            int st = (chord_pcs[1] - chord_pcs[0] + 12) % 12;
-            float tr = st == 3 ? 1.1892f : 1.2599f;
-            hv_r3 += (tr - hv_r3) * 0.0005f;
-        }
         for (h = 0; h < 3; h++) {
-            float r = h == 0 ? hv_r3 : h == 1 ? 1.4983f : 2.0f, d, a, b2, ga, gb;
+            float r = h == 0 ? 3.0f : h == 1 ? 1.4983f : 2.0f, d, a, b2, ga, gb;   /* (0.8.16: the first head an
+                                                  * octave and a fifth up, the third gone) */
             if (GAIN[iv][h] <= 0.0f)
                 continue;
             hd[h] -= 0.5f * (r - 1.0f);          /* (the ring at half rate: a head at 0.5 r a frame, the writing at 0.5) */
@@ -4254,26 +4240,41 @@ static void fx_sample(float *l, float *r)        /* one frame of the whole sound
     } else {
         hv_last = 0.0f;
     }
-    if (fxw[FX_STUTTER] > 0.0005f) {             /* Repeat: the slice, again */
-        float wet, w;
+    if (fxw[FX_STUTTER] > 0.0005f) {             /* (0.8.16) Tape Stop */
+        const float w = fxw[FX_STUTTER] * (float)par[P_STMIX] * 0.01f;
+        float wet, amp, v;
+        if (ts == 2) {                           /* stopped: Scratch, a hand on the record */
+            static float sv;
+            float lag0 = (float)rb_w - ts_at, off;
+            if (lag0 < 0.0f)
+                lag0 += (float)RB_N;
+            off = fm_clampf(((float)par[P_STLEN] - ts_k0) * 400.0f, -((float)RB_N - 300.0f - lag0), lag0 - 4.0f);   /* (a
+                                                  * click ~ 18 ms of sound; never past the writing, nor round to it) */
+            float dd = ts_at + off - ts_pos;
+            if (dd > (float)(RB_N / 2))
+                dd -= (float)RB_N;
+            else if (dd < -(float)(RB_N / 2))
+                dd += (float)RB_N;
+            v = fm_clampf(dd * 0.0015f, -1.5f, 1.5f);
+            sv += (v - sv) * 0.01f;
+            ts_pos += sv;
+            amp = fm_minf(fm_fabsf(sv) * 3.0f, 1.0f);
+        } else {
+            ts_pos += 0.5f * ts_r;
+            amp = fm_minf(ts_r * 4.0f, 1.0f);
+        }
+        if (ts_pos >= (float)RB_N)
+            ts_pos -= (float)RB_N;
+        else if (ts_pos < 0.0f)
+            ts_pos += (float)RB_N;
         {
-            rb_pos += 0.5f * st_rate;
-            if (rb_pos >= rb_start) {            /* a repeat: (0.8) Pitch moves the next one, a tape slowing or rising */
-                rb_pos -= rb_len;
-                st_rate = fm_clampf(st_rate * fm_exp2f((float)par[P_STPITCH] * 0.0025f), 0.35f, 2.8f);
-                if (rb_regrab)
-                    rb_regrab = 0, rb_start = (float)rb_w, rb_pos = rb_start - rb_len, st_rate = 1.0f;
-            }
-            w = fxw[FX_STUTTER] * (float)par[P_STMIX] * 0.01f;
+            float lag = (float)rb_w - ts_pos;
+            if (lag < 0.0f)
+                lag += (float)RB_N;
+            if (lag < 2.0f || lag > (float)RB_N - 64.0f)
+                ts_pos = (float)rb_w - 2.0f;     /* (never ahead of the writing, nor lapped by it) */
         }
-        {                                        /* a short fade at the seam, so the loop does not click */
-            float d = rb_start - rb_pos, e = d < 0.0f ? d + rb_len : d, fade = fm_minf(fm_minf(e, rb_len - e) / 110.0f, 1.0f);
-            float on = rb_len * (0.15f + 0.0085f * (float)par[P_STLEN]), el = rb_len - e;   /* (0.8) Length: the
-                                                  * slice's share that sounds, the rest silent */
-            if (on < rb_len - 1.0f)
-                fade = fm_minf(fade, fm_clampf((on - el) / 110.0f, 0.0f, 1.0f));
-            wet = rb_read(rb_pos) * fade;
-        }
+        wet = rb_read(ts_pos) * amp * amp;
         x = x * (1.0f - w) + wet * w;
         y = y * (1.0f - w) + wet * w;
     }

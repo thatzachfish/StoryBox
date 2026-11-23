@@ -67,7 +67,7 @@ void project_defaults(void)
     proj.leds = 1;
     proj.wander = 51;                   /* (0.8.3: Pre-show's, about a minute an act) */
     proj.fade = 4;                       /* (0.8: 5 s; 0.8.14: a step a detent, 4 is 5 s) */
-    proj.recipes = 9;
+    proj.recipes = 10;
 }
 
 static int pool_ok(uint32_t p)                   /* the root and at least two more notes */
@@ -203,8 +203,17 @@ static void recipes_update(void)                /* (0.7) a saved act still on a 
         if (proj.piece / EN_NACT == 2 || proj.piece / EN_NACT == 9)
             take(&proj.slot[proj.piece]);
     }
+    if (proj.recipes < 10) {                     /* (10, 0.8.16: Tape Stop in Repeat's place: its knobs their defaults) */
+        static const uint8_t TSP[4] = {P_STRATE, P_STMIX, P_STLEN, P_STPITCH};
+        int s, q;
+        for (q = 0; q < 4; q++) {
+            proj.par[TSP[q]] = (int16_t)en_param_info(TSP[q])->def;
+            for (s = 0; s < NPIECES; s++)
+                proj.slot[s].par[TSP[q]] = (int8_t)en_param_info(TSP[q])->def;
+        }
+    }
     if (proj.recipes >= 2) {                     /* (1: 0.6.3's kits; 2: and Bows) */
-        proj.recipes = 9;
+        proj.recipes = 10;
         return;
     }
     for (i = 0; i < sizeof KIT_WAS / sizeof KIT_WAS[0]; i++) {
@@ -217,7 +226,7 @@ static void recipes_update(void)                /* (0.7) a saved act still on a 
         if (pc == proj.piece)
             proj.par[P_KIT] = r.par[P_KIT];
     }
-    proj.recipes = 9;
+    proj.recipes = 10;
 }
 
 static int project_valid(void)                  /* an older format: the recipes again */

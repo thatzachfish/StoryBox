@@ -281,3 +281,7 @@ one, sometimes) and rest whole bars between; rhythms from one-beat cells (quarte
 eighth, a snap, a long note, a rest), the first bar a motif and the second the same motif to its middle then a landing
 on a strong beat, held; swung as the drums are (fewer sixteenths, more space when swung); each note as loud as its
 place in the bar (it had played every note at the first's velocity).
+
+## 0.8.16 (2026-11-23)
+Zach: Throw really nice, Harmony good but its Third not; Repeat and Glitch/Shuffle sound alike: Tape Stop in Repeat's
+place (LFO). Built: Tape Stop (Stop, Start, Scratch, Mix); Harmony's Third became Shimmer (and All lost its third).
