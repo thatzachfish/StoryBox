@@ -274,3 +274,10 @@ power-on.
 Built in 0.8.14: the bottom layout again, Fade 1 s .. 2 min, Harmony's thirds and All, the punch-ins (Repeat, Throw /
 Cloud with Tone, Glitch / Shuffle), Warehouse (acid house) and Rooftop (lo-fi hip hop). Ideas for later: vinyl crackle
 for Rooftop; a dusty hip hop kit of its own.
+
+## 0.8.15 (2026-11-23): the improviser's rhythm
+Zach: the solos lack an understanding of rhythm. Built: phrases begin the beat before a downbeat (a pickup into the
+one, sometimes) and rest whole bars between; rhythms from one-beat cells (quarter, eighths, dotted, sixteenths, the off
+eighth, a snap, a long note, a rest), the first bar a motif and the second the same motif to its middle then a landing
+on a strong beat, held; swung as the drums are (fewer sixteenths, more space when swung); each note as loud as its
+place in the bar (it had played every note at the first's velocity).

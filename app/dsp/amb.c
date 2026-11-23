@@ -3040,7 +3040,7 @@ static void lead_note_off(int key)
  * more the higher Answer (a step here and there, the shape turned over, the whole moved up or down, an octave), and
  * its last note on a note of the chord. Kept as events, not sound. A key played while it answers stops it: it
  * listens again. */
-#define ANS_N 16
+#define ANS_N 32
 static struct {
     uint8_t key, vel, state, firm;               /* (resp: 0 waiting, 1 sounding, 2 done; firm (0.8.3): on a beat or
                                                   * long, so a note of the chord when it sounds) */
@@ -3052,10 +3052,10 @@ static uint32_t smp, call_last, ans_t0;
 volatile uint8_t en_ans_ring[16];                /* the answer's notes, for the screen: the key, | 0x80 let go */
 volatile uint8_t en_ans_w;
 
-static void ans_note(int key, int on)
+static void ans_note(int key, int on, int vel)  /* (0.8.15: each note its own velocity; was the first's) */
 {
     if (on)
-        lead_note_on(key, resp[0].vel);
+        lead_note_on(key, vel);
     else
         lead_note_off(key);
     en_ans_ring[en_ans_w & 15u] = (uint8_t)((key & 0x7F) | (on ? 0 : 0x80));
@@ -3068,7 +3068,7 @@ static void ans_stop(void)
     int i;
     for (i = 0; i < resp_n; i++)
         if (resp[i].state == 1) {
-            ans_note(resp[i].key, 0);
+            ans_note(resp[i].key, 0, 0);
             resp[i].state = 2;
         }
     ans_state = 0;
@@ -3227,12 +3227,90 @@ static int chord_near(int d, const int *sc, int m, int dir)   /* the scale degre
     }
     return d;
 }
+/* (0.8.15) the improviser's rhythm, as a player's: built a beat at a time from cells (a quarter; two eighths; a dotted
+ * eighth and a sixteenth; an eighth and two sixteenths; four sixteenths; the off eighth alone; a sixteenth and a
+ * dotted eighth; a long note over the next beat; a beat's rest), more of the busy ones with Energy, fewer of the
+ * sixteenths when it swings; the first bar a motif, the second the same motif to its middle then an ending, landing
+ * on a strong beat and held; sometimes a pickup of an eighth or two into the one. Times in sixteenths from the beat
+ * before the phrase's first bar (the pickup's beat) */
+static const uint8_t CELL_ON[9][4] = {{0}, {0, 2}, {0, 3}, {0, 2, 3}, {0, 1, 2, 3}, {2}, {0, 1}, {0}, {0}};
+static const uint8_t CELL_DUR[9][4] = {{4}, {2, 2}, {3, 1}, {2, 1, 1}, {1, 1, 1, 1}, {2}, {1, 3}, {8}, {0}};
+static const uint8_t CELL_N[9] = {1, 2, 2, 3, 4, 1, 2, 1, 0};
+static int imp_cell(float e, float wild, int last_beat)
+{
+    float w[9], t = 0.0f, r;
+    int c;
+    const float sw = swing > 0.06f ? 0.3f : 1.0f;   /* (swung: the sixteenths' cells rarer) */
+    w[0] = 1.4f - 0.6f * e;                      /* quarter */
+    w[1] = (1.4f + 0.4f * e) * (sw < 1.0f ? 0.7f : 1.0f);   /* two eighths (swung: fewer, more space) */
+    w[2] = (0.5f + 0.5f * e) * sw;               /* dotted eighth, sixteenth */
+    w[3] = (0.3f + 0.8f * e + 0.3f * wild) * sw; /* eighth, two sixteenths */
+    w[4] = (0.05f + 0.6f * e * e + 0.3f * wild) * sw;   /* four sixteenths: a run */
+    w[5] = sw < 1.0f ? 1.0f : 0.7f;              /* the off eighth: syncopation (swung: more) */
+    w[6] = (0.2f + 0.3f * e) * sw;               /* a snap */
+    w[7] = last_beat ? 0.0f : 0.6f - 0.3f * e;   /* a long note over two beats */
+    w[8] = 0.9f - 0.6f * e - 0.3f * wild;        /* a rest */
+    for (c = 0; c < 9; c++)
+        t += w[c] > 0.0f ? w[c] : 0.0f;
+    r = frand() * t;
+    for (c = 0; c < 8; c++) {
+        r -= w[c] > 0.0f ? w[c] : 0.0f;
+        if (r < 0.0f)
+            break;
+    }
+    return c;
+}
+static int imp_rhythm(uint8_t *rh, uint8_t *rd, int bars, float e, float wild)
+{
+    const int beats = (int)en_bar_len / 4;
+    int motif[8], b, j, rn = 0, bar, pick = frand() < 0.45f;
+    for (b = 0; b < beats && b < 8; b++) {
+        motif[b] = imp_cell(e, wild, b == beats - 1);
+        if (b == 0 && (motif[b] == 8 || motif[b] == 5) && !pick)
+            motif[b] = 1;                        /* (the one heard, unless a pickup leads into it) */
+        if (motif[b] == 7 && b + 1 < beats && b + 1 < 8)
+            motif[++b] = 8;                      /* (the long note's second beat) */
+    }
+    if (pick) {                                  /* a pickup: an eighth, or two eighths, or two sixteenths, into the one */
+        static const uint8_t PON[3][2] = {{2, 0}, {0, 2}, {2, 3}}, PD[3][2] = {{2, 0}, {2, 2}, {1, 1}};
+        const int q = irand(3), qn = q ? 2 : 1;
+        for (j = 0; j < qn; j++) {
+            rh[rn] = PON[q][j];
+            rd[rn++] = PD[q][j];
+        }
+    }
+    for (bar = 0; bar < bars; bar++) {
+        const int last = bar == bars - 1, land = beats == 3 ? 2 : beats / 2;   /* (the ending lands on beat 3; in 3/4
+                                                  * on beat 3 too, the bar's last) */
+        for (b = 0; b < beats; b++) {
+            int c = motif[b], at = 4 + (bar * beats + b) * 4;
+            if (last && bars > 1 && b > 0 && b >= land - 1 && b < land) {
+                c = frand() < 0.5f ? 1 : 0;      /* (the approach to the landing: plain) */
+            }
+            if (last && b == land && (bars > 1 || frand() < 0.5f)) {   /* the landing: held to the bar's end */
+                rh[rn] = (uint8_t)at;
+                rd[rn++] = (uint8_t)((beats - b) * 4);
+                break;
+            }
+            if (bar && !last && frand() < 0.3f)
+                c = imp_cell(e, wild, b == beats - 1);   /* (a little varied) */
+            if (c == 7 && b == beats - 1)
+                c = 0;
+            for (j = 0; j < CELL_N[c] && rn < ANS_N; j++) {
+                rh[rn] = (uint8_t)(at + CELL_ON[c][j]);
+                rd[rn++] = CELL_DUR[c][j];
+            }
+            if (c == 7)
+                b++;
+        }
+    }
+    return rn;
+}
+
 static void imp_build(void)                      /* a phrase of its own, into resp */
 {
-    int sc[12], m = en_scale(pool, sc), n = 0, d, k, bars, len16, slot, last = 0, back = 0, again;
+    int sc[12], m = en_scale(pool, sc), n = 0, d, k, bars, len16, last = 0, back = 0, again;
     const float e = fm_clampf((energy + 1.0f) * 0.5f, 0.0f, 1.0f), wild = fm_clampf((ans_amt - 0.5f) * 2.0f, 0.0f, 1.0f);
-    const float fill = (0.22f + 0.45f * e + 0.15f * wild) * (0.55f + 0.45f * wild);   /* how many of the eighths sound
-                                                  * (0.8: Sparse improv, fewer) */
     uint8_t rh[ANS_N], rd[ANS_N];
     int rn = 0;
     if (m < 3) {
@@ -3240,7 +3318,7 @@ static void imp_build(void)                      /* a phrase of its own, into re
         return;
     }
     bars = 1 + (frand() < 0.4f + 0.3f * e);
-    len16 = bars * (int)en_bar_len;
+    len16 = 4 + bars * (int)en_bar_len;          /* (0.8.15: a beat of pickup first) */
     again = imp_rn >= 3 && frand() < 0.5f;       /* the last rhythm again (a motif), new notes on it, or (0.8.13) its
                                                   * notes too, a step or two away (a sequence: what a player does) */
     if (again) {
@@ -3249,17 +3327,8 @@ static void imp_build(void)                      /* a phrase of its own, into re
             rd[rn] = (uint8_t)(imp_rh[k] + imp_rd[k] > len16 ? len16 - imp_rh[k] : imp_rd[k]);
             rn++;
         }
-    } else {
-        for (slot = 0; slot < len16 && rn < ANS_N; slot += 2) {
-            int dur = 2;
-            if (slot && frand() > fill)
-                continue;
-            while (slot + dur < len16 && dur < 8 && frand() > fill + 0.2f)   /* an eighth, or longer */
-                dur += 2;
-            rh[rn] = (uint8_t)slot;
-            rd[rn++] = (uint8_t)dur;
-            slot += dur - 2;
-        }
+    } else {                                     /* (0.8.15) a rhythm a player would play: see imp_rhythm */
+        rn = imp_rhythm(rh, rd, bars, e, wild);
     }
     d = chord_near(scale_deg(64 + irand(8), sc, m), sc, m, 0);   /* from about E4, a note of the chord */
     {
@@ -3296,9 +3365,16 @@ static void imp_build(void)                      /* a phrase of its own, into re
         if (n < ANS_N)
             imp_dd[n] = (int8_t)(d - d0);
         resp[n].key = (uint8_t)note;
-        resp[n].vel = (uint8_t)(firm ? 82 + irand(20) : 66 + irand(18));   /* (the beats a little stronger) */
-        resp[n].on = (uint32_t)((float)rh[k] * step_len);
-        resp[n].off = (uint32_t)((float)(rh[k] + rd[k]) * step_len * 0.92f);
+        {                                        /* (0.8.15) loud as its place in the bar: the one strongest, then the
+                                                  * beats, the off eighths, the sixteenths softest (ghosts); and swung
+                                                  * as the drums are (the off sixteenths late) */
+            const int p = (rh[k] + (int)en_bar_len - 4) % (int)en_bar_len;
+            const int base = p == 0 ? 100 : (p % 4) == 0 ? (p * 2 == (int)en_bar_len ? 92 : 86) : (p % 2) == 0 ? 74 : 62;
+            const float sw = swing * step_len;
+            resp[n].vel = (uint8_t)(base + irand(10));
+            resp[n].on = (uint32_t)((float)rh[k] * step_len + ((rh[k] & 1u) ? sw : 0.0f));
+            resp[n].off = (uint32_t)((float)(rh[k] + rd[k]) * step_len + (((rh[k] + rd[k]) & 1u) ? sw : 0.0f) - step_len * 0.25f);
+        }
         resp[n].state = 0;
         resp[n].firm = (uint8_t)firm;
         last = n++;
@@ -3326,7 +3402,9 @@ static void ans_beat(void)                       /* a beat: an answer waiting st
         return;
     if (call_n)                                  /* (a few notes left from the player, unanswered: let go) */
         call_n = 0;
-    if (--imp_rest > 0)
+    if (imp_rest > 0)
+        imp_rest--;
+    if (imp_rest > 0 || bar_pos + 4u != en_bar_len)   /* (0.8.15: phrases begin the beat before a one: its pickup) */
         return;
     imp_build();
     if (resp_n) {
@@ -3335,7 +3413,8 @@ static void ans_beat(void)                       /* a beat: an answer waiting st
     }
     {
         const float e = fm_clampf((energy + 1.0f) * 0.5f, 0.0f, 1.0f);   /* the rest after it, in beats */
-        imp_rest = (int)(en_bar_len / 4u) * (1 + (frand() < 0.5f)) + (int)((1.0f - e) * 6.0f * frand());
+        imp_rest = (int)(en_bar_len / 4u) * (1 + (frand() < 0.5f - 0.3f * e) + (frand() < 0.25f * (1.0f - e)));   /* (0.8.15) a bar or
+                                                  * two of rest (or three, calm), then the next beat before a one */
     }
 }
 
@@ -3358,7 +3437,7 @@ static void ans_tick(uint32_t n)                 /* each chunk: is the call over
         if (resp[i].state == 0 && smp - ans_t0 >= resp[i].on) {
             for (left = 0; left < i; left++)     /* (one key once: an earlier one on it let go first) */
                 if (resp[left].state == 1 && resp[left].key == resp[i].key) {
-                    ans_note(resp[left].key, 0);
+                    ans_note(resp[left].key, 0, 0);
                     resp[left].state = 2;
                 }
             if (!chord_has(resp[i].key)) {      /* (0.8.3) the chord moved under it: a firm note, or a long one a
@@ -3370,11 +3449,11 @@ static void ans_tick(uint32_t n)                 /* each chunk: is the call over
                     resp[i].key = (uint8_t)(resp[i].key + near);
                 }
             }
-            ans_note(resp[i].key, 1);
+            ans_note(resp[i].key, 1, resp[i].vel);
             resp[i].state = 1;
         }
         if (resp[i].state == 1 && smp - ans_t0 >= resp[i].off) {
-            ans_note(resp[i].key, 0);
+            ans_note(resp[i].key, 0, 0);
             resp[i].state = 2;
         }
     }
