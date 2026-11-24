@@ -292,7 +292,8 @@ int main(void)
             }
             zc[k] = (float)z;
         }
-        CHECK(zc[1] > 2.5f * zc[0], "Bell tone 100 not brighter: %.0f vs %.0f", (double)zc[1], (double)zc[0]);
+        CHECK(zc[1] > 1.25f * zc[0], "Bell tone 100 not brighter: %.0f vs %.0f", (double)zc[1], (double)zc[0]);   /* (StoryBox
+                                                  * 0.8.17: the modal bells' clang, truer than the FM's, less harsh: 1.25, was 2.5) */
         CHECK(zc[2] > 1.8f * zc[0], "Bell oct +2 not higher: %.0f vs %.0f", (double)zc[2], (double)zc[0]);
         en_init();
         en_play(1);

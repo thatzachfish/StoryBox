@@ -285,3 +285,9 @@ place in the bar (it had played every note at the first's velocity).
 ## 0.8.16 (2026-11-23)
 Zach: Throw really nice, Harmony good but its Third not; Repeat and Glitch/Shuffle sound alike: Tape Stop in Repeat's
 place (LFO). Built: Tape Stop (Stop, Start, Scratch, Mix); Harmony's Third became Shimmer (and All lost its third).
+
+## Theseus (2026-11-23)
+Zach: replace the original AMB-01 parts one by one with better, more custom ones, until only new code remains. First:
+the melody voices (too thin, too clean/digital, too fake; he wants real instruments in a room). 0.8.17: all eight
+rebuilt as modal instruments (measured mode ratios, a mallet's or pick's knock, a body, beating twins). Next
+candidates: the pad (Rhodes, Voices, Strings, Organ), the bass, the drums, the reverb.

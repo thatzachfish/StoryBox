@@ -934,10 +934,11 @@ typedef struct {
     int32_t wait;
     uint8_t on, note, loop, sting;               /* sting: StoryBox's, at its own level (not the bells'), ringing long */
     uint8_t mel;                                 /* StoryBox: its instrument (MEL) */
+    float f0, mc[8], mr2[8], my1[8], my2[8], ma[8], mt60[8], nz, nzd, nzs;   /* (0.8.17) its modes, its knock */
 } bell_t;
 static bell_t bell[NBELL];
-/* StoryBox: the melody's instruments, all two-operator FM: the modulator's ratio (0: the bells' own, by Bell tone), its
- * index and how fast it fades (s), the ring (x the bells'), a soft attack (0: the bells'), an octave up, a tremolo */
+/* StoryBox: the melody's instruments (0.8.17: the bells' Bell tone, each instrument's ring (x the bells'), a soft
+ * attack (0: the bells'), an octave up, a tremolo; ratio, idx, idx_t: the old FM's, unused now, the modes in INST) */
 static const struct {
     float ratio, idx, idx_t, dec, atk;
     int8_t oct;
@@ -953,7 +954,8 @@ static const struct {
     {1.0f, 2.8f, 0.11f, 0.32f, 0.0f, 0, 0},      /* banjo (0.8.7): a bright string's twang (every harmonic, a high index
                                                   * falling fast), not a tine's (it sounded like the kalimba) */
 };
-static const float MEL_GAIN[EN_NMEL] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.7f};   /* (the banjo softer) */
+static const float MEL_GAIN[EN_NMEL] = {1.3f, 1.3f, 1.1f, 1.2f, 1.05f, 1.05f, 1.15f, 0.7f};   /* (the banjo softer; 0.8.17:
+                                                  * the modal instruments as loud as the FM ones were) */
 static float mel_trem, mel_vib, mel_last[EN_NLOOP + 1];   /* (the slide: each loop's last note's pitch) */
 static int bell_sting_now;                       /* (sting_fire: its notes are always bells) */
 static float bell_vol, btone;
@@ -1326,6 +1328,109 @@ static void loop_pass(int l)                    /* the end of a pass: grow, prun
 static const float LOOP_IDX[EN_NLOOP] = {1.0f, 0.55f, 1.5f, 0.8f}, LOOP_DEC[EN_NLOOP] = {1.0f, 1.35f, 0.75f, 1.6f};
 static const int8_t LOOP_RAT[EN_NLOOP] = {0, 0, 1, -1};
 
+/* (0.8.17, Theseus 1) the melody's instruments, rebuilt as real ones ring: each a few modes (the bar's, the tine's,
+ * the string's own overtones, at their measured ratios, each its own loudness and ring), struck: harder, the higher
+ * modes louder; a knock of the mallet or the pick (a few ms of filtered noise); a body (the box, the head, the
+ * guitar's wood: a mode at a fixed pitch); a near twin of the fundamental, so it beats as real bars and bells do.
+ * Each mode a two-pole resonator (y = c y1 - r2 y2), the even ones to the right, the odd to the left: a room's width.
+ * ratio 0 ends the list; a negative ratio is a body mode, at that many Hz */
+#define NMODE 8
+typedef struct {
+    float ratio, amp, t60;                       /* t60: x the note's own ring */
+} mode_t;
+static const struct {
+    mode_t m[NMODE];
+    float hard;                                  /* how much harder a strike brightens the high modes */
+    float nz, nz_t, nz_lp;                       /* the knock: its level, length (s), colour (one-pole, 0..1: bright) */
+    float stretch;                               /* (strings) the overtones a little sharp, as a real string's */
+} INST[EN_NMEL] = {
+    /* bells (Bell tone below adds the clang): a glockenspiel's bar (1 : 2.76 : 5.40 : 8.93), its twin beating */
+    {{{1.0f, 1.0f, 1.0f}, {1.0016f, 0.32f, 0.9f}, {2.756f, 0.42f, 0.42f}, {5.404f, 0.2f, 0.22f}, {8.933f, 0.09f, 0.12f},
+      {4.2f, 0.0f, 0.8f}, {6.8f, 0.0f, 0.6f}, {11.3f, 0.0f, 0.45f}}, 0.5f, 0.05f, 0.0015f, 0.8f, 0.0f},
+    /* kalimba: a steel tine (1 : 6.27 : 17.5), the wooden box under it */
+    {{{1.0f, 1.0f, 1.0f}, {1.0009f, 0.18f, 0.8f}, {6.27f, 0.22f, 0.12f}, {17.5f, 0.05f, 0.04f}, {-260.0f, 0.16f, 0.07f}},
+     0.8f, 0.07f, 0.003f, 0.45f, 0.0f},
+    /* marimba: a rosewood bar tuned 1 : 4 : 10, its tube under it carrying the fundamental on, a soft yarn mallet */
+    {{{1.0f, 0.75f, 1.0f}, {1.0f, 0.45f, 1.6f}, {3.99f, 0.32f, 0.2f}, {9.9f, 0.09f, 0.07f}, {1.0025f, 0.12f, 1.2f}},
+     1.6f, 0.11f, 0.005f, 0.22f, 0.0f},
+    /* vibes: an aluminium bar, 1 : 4 : 10, long and pure, its twin beating slowly (and the motor's tremolo) */
+    {{{1.0f, 1.0f, 1.0f}, {1.0006f, 0.28f, 1.0f}, {4.0f, 0.22f, 0.28f}, {10.0f, 0.06f, 0.1f}}, 1.0f, 0.035f, 0.002f,
+     0.35f, 0.0f},
+    /* slide: a guitar's string, plucked a fifth along (its overtones), the body's wood at 110 and 220 Hz */
+    {{{1.0f, 1.0f, 1.0f}, {2.0f, 0.8f, 0.7f}, {3.0f, 0.54f, 0.5f}, {4.0f, 0.25f, 0.4f}, {6.0f, 0.17f, 0.28f},
+      {7.0f, 0.2f, 0.22f}, {-110.0f, 0.2f, 0.18f}, {-220.0f, 0.12f, 0.12f}}, 0.9f, 0.05f, 0.0012f, 0.7f, 0.0004f},
+    /* glass: a wine glass, nearly pure, its twin beating very slowly; swells in */
+    {{{1.0f, 1.0f, 1.0f}, {1.0004f, 0.55f, 1.0f}, {2.32f, 0.12f, 0.6f}, {4.25f, 0.04f, 0.4f}}, 0.3f, 0.0f, 0.001f, 0.5f,
+     0.0f},
+    /* music box: a steel comb's tooth, high and small, a tick, the little box */
+    {{{1.0f, 1.0f, 1.0f}, {1.0011f, 0.2f, 0.8f}, {6.27f, 0.38f, 0.2f}, {17.55f, 0.12f, 0.06f}, {-640.0f, 0.12f, 0.06f}},
+     0.7f, 0.06f, 0.0008f, 0.85f, 0.0f},
+    /* banjo: a string plucked near the bridge (every overtone bright), short, the drum head's twang */
+    {{{1.0f, 1.0f, 1.0f}, {2.0f, 0.93f, 0.6f}, {3.0f, 0.81f, 0.45f}, {4.0f, 0.66f, 0.35f}, {5.0f, 0.48f, 0.28f},
+      {6.0f, 0.31f, 0.22f}, {-520.0f, 0.35f, 0.07f}, {-1040.0f, 0.18f, 0.05f}}, 1.0f, 0.08f, 0.001f, 0.8f, 0.0005f},
+};
+
+static void modes_tune(bell_t *v, float f0, int init)   /* the modes' coefficients at f0 (Hz); init: struck */
+{
+    int k;
+    const float hz = 1.0f / EN_SR;
+    for (k = 0; k < NMODE; k++) {
+        const mode_t *m = &INST[v->mel].m[k];
+        float f, w, r;
+        if (m->ratio == 0.0f) {
+            v->mc[k] = v->mr2[k] = 0.0f;
+            if (init)
+                v->my1[k] = v->my2[k] = 0.0f;
+            continue;
+        }
+        f = m->ratio < 0.0f ? -m->ratio : f0 * m->ratio * (1.0f + INST[v->mel].stretch * m->ratio * m->ratio);
+        if (f > 16000.0f || (init ? v->ma[k] <= 0.0f : v->mc[k] == 0.0f)) {
+            v->mc[k] = v->mr2[k] = 0.0f;
+            if (init)
+                v->my1[k] = v->my2[k] = 0.0f;
+            continue;
+        }
+        w = FM_TWO_PI * f * hz;
+        r = v->mt60[k] > 0.0f ? fm_expf(-6.9f / (v->mt60[k] * EN_SR)) : 0.0f;
+        v->mc[k] = 2.0f * r * fm_cosf(w);
+        v->mr2[k] = r * r;
+        if (init) {                              /* struck: a sine from zero, its loudness ma */
+            v->my2[k] = 0.0f;
+            v->my1[k] = v->ma[k] * fm_sinf(w);
+        }
+    }
+}
+
+static void modes_strike(bell_t *v, float f0, float vel, float t60, int l)
+{
+    int k;
+    const float tone = v->mel == MEL_BELLS && !v->sting ? btone : 0.0f;
+    for (k = 0; k < NMODE; k++) {
+        const mode_t *m = &INST[v->mel].m[k];
+        float a = m->amp, hi;
+        if (m->ratio == 0.0f) {
+            v->ma[k] = 0.0f;
+            v->mt60[k] = 0.0f;
+            continue;
+        }
+        if (v->mel == MEL_BELLS) {               /* Bell tone: 0 round (the upper modes quiet), 100 a church bell's clang */
+            if (k >= 5)
+                a = (k == 5 ? 0.9f : k == 6 ? 0.75f : 0.6f) * tone * tone * LOOP_IDX[l];
+            else if (k >= 2)
+                a *= 0.12f + 3.2f * tone * tone;
+        }
+        hi = m->ratio > 1.5f ? fm_powf(fm_clampf(vel, 0.05f, 1.0f), INST[v->mel].hard) : 1.0f;   /* soft: the high
+                                                  * modes quieter */
+        v->ma[k] = a * hi * vel * (v->mel == MEL_BELLS ? 1.0f / (1.0f + 0.3f * tone * tone) : 1.0f);   /* (the clang
+                                                  * no louder) */
+        v->mt60[k] = t60 * m->t60;
+    }
+    v->nz = INST[v->mel].nz * vel * (v->mel == MEL_BELLS ? 0.3f + 0.7f * tone : 1.0f);
+    v->nzd = fm_expf(-6.9f / (fm_maxf(INST[v->mel].nz_t, 0.0003f) * EN_SR));
+    v->nzs = 0.0f;
+    modes_tune(v, f0, 1);
+}
+
 static void bell_voice(int l, int n, float vel, int32_t wait)
 {
     int i, best = 0, ri;
@@ -1369,6 +1474,16 @@ static void bell_voice(int l, int n, float vel, int32_t wait)
         v->idx = MEL[v->mel].idx * (0.6f + 0.4f * vel) * (1.0f / FM_TWO_PI);
         v->idec = fm_expf(-6.9f / (MEL[v->mel].idx_t * EN_SR));
         v->adec = fm_expf(-6.9f / (t60 * MEL[v->mel].dec * EN_SR));
+    }
+    v->f0 = mtof((float)n);
+    modes_strike(v, v->f0 * v->sl, vel, t60 * (v->mel ? MEL[v->mel].dec : 1.0f), l);
+    {                                            /* (its slowest mode: when it has rung out) */
+        float mx = 0.0f;
+        int k;
+        for (k = 0; k < NMODE; k++)
+            if (v->ma[k] > 0.0f && INST[v->mel].m[k].ratio > 0.0f)
+                mx = fm_maxf(mx, INST[v->mel].m[k].t60);
+        v->adec = fm_expf(-6.9f / (t60 * (v->mel ? MEL[v->mel].dec : 1.0f) * fm_maxf(mx, 0.2f) * EN_SR));
     }
     v->att = 0.0f;
     v->sting = 0;
@@ -2694,9 +2809,9 @@ static void render_bells(uint32_t n)
     trem = 0.5f + 0.5f * sine(mel_trem);
     for (i = 0; i < NBELL; i++) {
         bell_t *v = &bell[i];
-        float cph = v->cph, mph = v->mph, amp = v->amp, idx = v->idx, att = v->att;
+        float amp = v->amp, att = v->att;
         uint32_t j = 0;
-        float g = v->sting ? gs : gb, ar = MEL[v->mel].atk > 0.0f ? MEL[v->mel].atk : arate, sm = 1.0f,
+        float g = v->sting ? gs * 1.3f : gb, ar = MEL[v->mel].atk > 0.0f ? MEL[v->mel].atk : arate, sm = 1.0f,
               mecho = v->sting ? 0.85f : (float)par[P_MECHO] * 0.017f;   /* (Echo 50: as before) */
         if (MEL[v->mel].trem)
             g *= 1.0f - 0.5f * trem;
@@ -2716,29 +2831,62 @@ static void render_bells(uint32_t n)
             v->sl += (1.0f - v->sl) * fm_minf((float)n * (1.0f / (0.15f * EN_SR)), 1.0f);
             v->sv += (float)n * (1.0f / EN_SR);
             sm = v->sl * (1.0f + 0.006f * fm_clampf((v->sv - 0.2f) * 2.0f, 0.0f, 1.0f) * sine(mel_vib));
+            modes_tune(v, v->f0 * sm, 0);        /* (the modes retuned each chunk, ringing on) */
         }
-        for (; j < n; j++) {
-            float m = sine(mph) * idx, x;
-            float p = cph + m + 4.0f;            /* + 4 turns: positive for the table */
-            x = sine(p) * amp * att * g;
-            mixl[j] += x * v->gl;
-            mixr[j] += x * v->gr;
-            rsend[j] += x * 0.7f;
-            esend[j] += x * mecho;
-            cph += v->cinc * sm;
-            mph += v->minc * sm;
-            if (cph >= 1.0f)
-                cph -= 1.0f;
-            if (mph >= 1.0f)
-                mph -= 1.0f;
-            amp *= v->adec;
-            idx *= v->idec;
-            att += (1.0f - att) * ar;            /* the strike: ~4 ms, or soft as a slowed piano (~50 ms) */
+        {                                        /* (0.8.17) the modes, the knock */
+            float y1[NMODE], y2[NMODE], c[NMODE], r2[NMODE], nz = v->nz, nzs = v->nzs;
+            const float nzd = v->nzd, nlp = INST[v->mel].nz_lp;
+            int k, nk = 0;
+            for (k = 0; k < NMODE; k++) {
+                if (v->mc[k] == 0.0f && v->my1[k] == 0.0f)
+                    continue;
+                y1[nk] = v->my1[k];
+                y2[nk] = v->my2[k];
+                c[nk] = v->mc[k];
+                r2[nk] = v->mr2[k];
+                nk++;
+            }
+            for (; j < n; j++) {
+                float l2 = 0.0f, r = 0.0f, x, xl, xr;
+                for (k = 0; k < nk; k++) {
+                    const float y = c[k] * y1[k] - r2[k] * y2[k];
+                    y2[k] = y1[k];
+                    y1[k] = y;
+                    if (k & 1)
+                        r += y;
+                    else
+                        l2 += y;
+                }
+                if (nz > 0.00002f) {             /* the knock */
+                    noise = noise * 1664525u + 1013904223u;
+                    nzs += ((float)(int32_t)noise * (1.0f / 2147483648.0f) - nzs) * nlp;
+                    l2 += nzs * nz;
+                    r += nzs * nz;
+                    nz *= nzd;
+                }
+                x = (l2 + r) * 0.5f;
+                xl = (l2 * 0.75f + r * 0.25f) * att * g;   /* (the odd modes a little left, the even right) */
+                xr = (r * 0.75f + l2 * 0.25f) * att * g;
+                mixl[j] += xl * v->gl * 1.41f;
+                mixr[j] += xr * v->gr * 1.41f;
+                x *= att * g;
+                rsend[j] += x * 0.7f;
+                esend[j] += x * mecho;
+                amp *= v->adec;
+                att += (1.0f - att) * ar;        /* the strike: ~4 ms, or soft as a slowed piano (~50 ms) */
+            }
+            nk = 0;
+            for (k = 0; k < NMODE; k++) {
+                if (v->mc[k] == 0.0f && v->my1[k] == 0.0f)
+                    continue;
+                v->my1[k] = fm_flush(y1[nk]);
+                v->my2[k] = fm_flush(y2[nk]);
+                nk++;
+            }
+            v->nz = nz;
+            v->nzs = fm_flush(nzs);
         }
-        v->cph = cph;
-        v->mph = mph;
         v->amp = amp;
-        v->idx = idx;
         v->att = att;
         if (amp < 0.0008f) {
             v->on = 0;
