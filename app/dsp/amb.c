@@ -967,7 +967,7 @@ static const float RATIO[5] = {1.0f, 2.0f, 3.0f, 3.5f, 4.77f};
 
 /* ----------------------------------------------------------------- pulse --- */
 typedef struct {
-    float ph, inc, inc_end, amp, adec, idx, x1, x2, att, mph[4], pend;
+    float ph, inc, inc_end, amp, adec, idx, x1, x2, att, mph[6], pend;
     int32_t wait;                               /* swing: samples until a hit that waits (pend: its velocity) */
     uint8_t on, note;
 } drum_t;
@@ -976,13 +976,17 @@ static uint8_t drum_pos[EN_NDRUM];
 static uint32_t drum_pat[EN_NDRUM];
 static uint8_t drum_n[EN_NDRUM] = {16, 12, 7};  /* StoryBox: each pulse's cycle (the thump's is the bar) */
 static void snare_fire(float vel);             /* the backbeat kit's snare (below) */
+static void ride_fire(float vel);              /* (0.8.18) the ride, the shaker, the toms (below) */
+static void shaker_fire(float vel);
+static void tom_fire(float vel, float f);
+static int32_t ride_wait, shk_wait, tom_wait;
+static float ride_pend, shk_pend, tom_pend, tom_pf;
+static uint8_t fill_tom;                         /* (0.8.18) this bar's fill on the toms */
 static float pulse_vol, swing, hat_f = 0.9f, hat_open = 0.42f;
 static float step_len, pulse_left;               /* a sixteenth, in samples; to the next MIDI clock pulse */
 static uint32_t noise = 22222u;
 static const uint8_t DRUM_KMAX[EN_NDRUM] = {5, 7, 3};
 static const uint8_t DRUM_GM[EN_NDRUM] = {36, 42, 46};          /* kick, closed hat, open hat */
-/* the hats' metal: four square waves at the 808's inharmonic ratios (Hz / EN_SR) */
-static const float HAT_INC[4] = {304.4f / EN_SR, 369.6f / EN_SR, 522.7f / EN_SR, 800.0f / EN_SR};
 
 /* ------------------------------------------------------------------ space --- */
 static float echo_send, rev_send, echo_len, echo_len_t, echo_fb = 0.55f;
@@ -1575,12 +1579,19 @@ static void drum_fire(int d, float vel)
     v->amp = vel;
     v->att = 0.0f;
     switch (d) {
-    case 0: {                                   /* thump: the chord's root, low, falling into place */
-        float f = mtof((float)(36 + chord_pcs[0]));
+    case 0: {                                   /* the kick: the chord's root, low (E1 .. Eb2), the beater's pitch falling to
+                                                  * the skin's; (0.8.18) each kit its own drum */
+        static const float START[5] = {1.8f, 2.6f, 1.4f, 1.6f, 3.2f}, T60[5] = {0.4f, 0.5f, 0.28f, 0.32f, 0.55f},
+                           CLICK[5] = {0.12f, 0.25f, 0.06f, 0.1f, 0.35f};
+        const int k = par[P_KIT] >= 0 && par[P_KIT] <= 4 ? par[P_KIT] : 0;
+        float f = mtof((float)(28 + (chord_pcs[0] + 8) % 12));
         v->note = DRUM_GM[0];
-        v->inc = f * (par[P_KIT] == 2 ? 1.4f : 2.2f) * (1.0f / EN_SR);   /* (brushes: a soft low drum, shorter) */
+        v->inc = f * START[k] * (1.0f / EN_SR);
         v->inc_end = f * (1.0f / EN_SR);
-        v->adec = fm_expf(-6.9f / ((par[P_KIT] == 2 ? 0.3f : 0.45f) * EN_SR));
+        v->adec = fm_expf(-6.9f / (T60[k] * EN_SR));
+        v->idx = 0.0f;
+        v->x1 = CLICK[k] * vel;
+        v->ph = 0.0f;
         break;
     }
     case 1:                                     /* closed hat: short; it chokes the open one */
@@ -1634,6 +1645,13 @@ static void drum_hit(int d, float vel, int off)  /* off: an off sixteenth, which
 {
     int32_t w = (off ? (int32_t)(swing * step_len) : 0) + (d ? feel_wait(d) : 0);   /* (0.8.5: and the feel; the kick
                                                   * stays on the grid, the anchor) */
+    if (d == 1 && par[P_KIT] == 3) {             /* (0.8.18) Lounge: its time on the ride */
+        if (w > 0)
+            ride_wait = w, ride_pend = vel;
+        else
+            ride_fire(vel);
+        return;
+    }
     if (w > 0) {
         drum[d].wait = w;
         drum[d].pend = vel;
@@ -1642,10 +1660,32 @@ static void drum_hit(int d, float vel, int off)  /* off: an off sixteenth, which
     }
 }
 
+static void perc_hit(int which, float vel, int off, float f)   /* (0.8.18) 0 shaker, 1 tom (f Hz): swung, felt */
+{
+    int32_t w = (off ? (int32_t)(swing * step_len) : 0) + feel_wait(1);
+    if (which == 0) {
+        if (w > 0)
+            shk_wait = w, shk_pend = vel;
+        else
+            shaker_fire(vel);
+    } else {
+        if (w > 0)
+            tom_wait = w, tom_pend = vel, tom_pf = f;
+        else
+            tom_fire(vel, f);
+    }
+}
+
 static int32_t drums_wait(void)                 /* samples to the next hit that waits; 0: none */
 {
     int32_t m = 0;
     int d;
+    if (ride_wait > 0 && (!m || ride_wait < m))
+        m = ride_wait;
+    if (shk_wait > 0 && (!m || shk_wait < m))
+        m = shk_wait;
+    if (tom_wait > 0 && (!m || tom_wait < m))
+        m = tom_wait;
     for (d = 0; d < EN_NDRUM; d++)
         if (drum[d].wait > 0 && (!m || drum[d].wait < m))
             m = drum[d].wait;
@@ -1665,6 +1705,18 @@ static void drums_wait_step(int32_t k)          /* k samples went by: hits whose
     if (sn_wait > 0 && (sn_wait -= k) <= 0) {
         sn_wait = 0;
         snare_fire(sn_pend);
+    }
+    if (ride_wait > 0 && (ride_wait -= k) <= 0) {
+        ride_wait = 0;
+        ride_fire(ride_pend);
+    }
+    if (shk_wait > 0 && (shk_wait -= k) <= 0) {
+        shk_wait = 0;
+        shaker_fire(shk_pend);
+    }
+    if (tom_wait > 0 && (tom_wait -= k) <= 0) {
+        tom_wait = 0;
+        tom_fire(tom_pend, tom_pf);
     }
 }
 
@@ -1823,6 +1875,8 @@ static void tick(void)
         fill_bar = ds ? ((en_barno & 1u) == 0u && frand() < 0.7f) || ds_ret == 2   /* (0.8.13: the solo, every other bar) */
                       : (en_barno & 3u) == 0u && !pulse_rest && !bd && drum_kb[0] > 0 &&
                             frand() < (0.2f + 0.45f * (float)par[P_GROOVE] * 0.01f) * (0.7f + 0.3f * energy);
+    if (bar)
+        fill_tom = par[P_KIT] >= 1 && par[P_KIT] <= 3 && frand() < 0.55f;   /* (0.8.18) half the fills on the toms */
     if (par[P_KIT] == 3 && en_bar_len == 16 && !pulse_rest && !bd && par[P_PULSE] > 0) {   /* Lounge: the cross-stick */
         int b = bar_pos;
         if (b == 12)
@@ -1849,13 +1903,29 @@ static void tick(void)
     if (!pulse_rest && !bd && drum_kb[0] > 0 && !fill_bar && bar_pos == en_bar_len - 2 &&
         !(drum_pat[0] >> drum_pos[0] & 1u) && frand() < 0.08f + 0.1f * (energy + 1.0f))
         drum_hit(0, (0.5f + 0.15f * frand()) * pa, 0);   /* now and then a kick leading into the bar */
-    if (fill_bar && bar_pos >= en_bar_len - 4 && bd_ret != 2) {   /* the fill: the last beat's sixteenths, rising */
+    if (fill_bar && fill_tom && bar_pos >= en_bar_len - 4 && bd_ret != 2) {   /* (0.8.18) a fill round the toms: high,
+                                                  * high, middle, low, tuned to the chord */
+        static const float TR[4] = {1.68f, 1.68f, 1.335f, 1.0f};
+        const int f = bar_pos - (en_bar_len - 4);
+        perc_hit(1, (0.55f + 0.1f * (float)f + 0.1f * frand()) * pa, (int)(sixteenth & 1u),
+                 mtof((float)(40 + (chord_pcs[0] + 8) % 12)) * TR[f & 3]);
+        if (f == 3 && frand() < 0.5f)
+            drum_hit(0, 0.55f * pa, 0);
+    } else if (fill_bar && bar_pos >= en_bar_len - 4 && bd_ret != 2) {   /* the fill: the last beat's sixteenths, rising */
         int f = bar_pos - (en_bar_len - 4);
         drum_hit(1, (0.4f + 0.15f * (float)f) * pa, (int)(sixteenth & 1u));
         if (par[P_KIT] && f >= 2)
             snare_fire((0.4f + 0.2f * (float)(f - 2)) * pa);
         else if (!par[P_KIT] && f == 2)
             drum_hit(0, 0.6f * pa, 0);
+    }
+    if ((par[P_KIT] == 1 || par[P_KIT] == 4) && !pulse_rest && !bd && par[P_PULSE] > 0 && drum_kb[1] > 0) {   /* (0.8.18)
+                                                  * the shaker: the eighths, and with Energy the sixteenths between */
+        const float e = (energy + 1.0f) * 0.5f;
+        if (!(sixteenth & 1u))
+            perc_hit(0, ((bar_pos & 3) == 2 ? 0.55f : 0.38f) + 0.1f * frand(), 0, 0.0f);
+        else if (frand() < 0.15f + 0.6f * e)
+            perc_hit(0, 0.22f + 0.08f * frand(), 1, 0.0f);
     }
     for (d = 0; d < EN_NDRUM; d++) {
         int p = drum_pos[d];
@@ -2895,7 +2965,71 @@ static void render_bells(uint32_t n)
     }
 }
 
-/* a hat: the metal and noise, high-passed (Chamberlin SVF, ~4 to 10 kHz by Hats); no pitch, little echo */
+/* (0.8.18, Theseus 2) the drums, rebuilt. Each kit one of two worlds: a real kit in a room (Soft, Brushes, Lounge),
+ * or drums sampled off old records (Backbeat; Bright, cleaner): the kit plays into its own bus, then the room's early
+ * reflections, or the sampler's dust (12 bits at 26 kHz, as an SP-1200, darker, a tape's saturation).
+ *   kick     a skin: a sine falling from the beater's pitch to the drum's (tuned to the chord's root, low), its second
+ *            mode (1.6, short), the beater's click, a little saturation
+ *   snare    two head modes (185 Hz, x 1.59), the wires (noise band-passed, rattling on a moment), the stick's crack;
+ *            Bright a clap's three bursts; Lounge a cross-stick's woody knock; Brushes a brush's swish over a tap
+ *   hats     six square waves at the 808's inharmonic ratios and noise, high-passed, the stick's tick
+ *   ride     (new) its bell's ping (three inharmonic modes) over a long wash: Brushes' and Lounge's time
+ *   shaker   (new) beads: noise band-passed high, a quick swell and fall
+ *   toms     (new) in the fills: high, middle, low, tuned to the chord */
+static float dbl[BLK], dbr[BLK];                 /* the drums' bus */
+static int16_t room_buf[2048];                   /* the room: 46 ms, mono */
+static int room_w;
+static float room_lp[2], dust_h[2], dust_ph, dust_lp[2];
+static const float HAT6[6] = {205.3f / EN_SR, 304.4f / EN_SR, 369.6f / EN_SR, 522.7f / EN_SR, 540.0f / EN_SR, 800.0f / EN_SR};
+
+static inline float dnoise(void)
+{
+    noise = noise * 1664525u + 1013904223u;
+    return (float)(int32_t)noise * (1.0f / 2147483648.0f);
+}
+
+static void render_kick(uint32_t n, float g)
+{
+    drum_t *v = &drum[0];
+    uint32_t j;
+    float ph = v->ph, inc = v->inc, amp = v->amp, att = v->att, ph2 = v->idx, ck = v->x1, lp = v->x2;
+    const float a2 = fm_expf(-6.9f / (0.05f * EN_SR)), cd = fm_expf(-6.9f / (0.004f * EN_SR));
+    static float amp2;
+    if (!v->on)
+        return;
+    if (att == 0.0f)
+        amp2 = amp * 0.35f;
+    for (j = 0; j < n; j++) {
+        float x;
+        lp += (dnoise() - lp) * 0.3f;
+        x = sine(ph) * amp * att + sine(ph2) * amp2 + lp * ck;
+        x = fm_tanhf(x * 1.5f) * 0.75f * g;
+        dbl[j] += x;
+        dbr[j] += x;
+        ph += inc;
+        if (ph >= 1.0f)
+            ph -= 1.0f;
+        ph2 += inc * 1.6f;
+        if (ph2 >= 1.0f)
+            ph2 -= 1.0f;
+        inc += (v->inc_end - inc) * 0.0016f;     /* (~15 ms: the skin settling) */
+        amp *= v->adec;
+        amp2 *= a2;
+        ck *= cd;
+        att += (1.0f - att) * 0.25f;
+    }
+    v->ph = ph;
+    v->inc = inc;
+    v->amp = amp;
+    v->att = att;
+    v->idx = ph2;
+    v->x1 = ck;
+    v->x2 = fm_flush(lp);
+    amp2 = fm_flush(amp2);
+    v->on = amp > 0.0005f;
+}
+
+/* a hat: the metal and noise, high-passed (Chamberlin SVF, ~4 to 10 kHz by Hats), the stick's tick; Brushes' a swish */
 static void render_hat(drum_t *v, uint32_t n, float g, float pl, float pr)
 {
     uint32_t j;
@@ -2904,18 +3038,16 @@ static void render_hat(drum_t *v, uint32_t n, float g, float pl, float pr)
     if (!v->on)
         return;
     x1 = v->x1, x2 = v->x2, amp = v->amp, att = v->att;
-    if (par[P_KIT] == 2) {                       /* StoryBox's brushes: noise only, lower, swishing in */
+    if (par[P_KIT] == 2) {                       /* Brushes: the brush on the snare, noise only, lower, swishing in */
         const float f = hat_f * 0.5f;
         for (j = 0; j < n; j++) {
             float hp, x;
-            noise = noise * 1664525u + 1013904223u;
-            hp = (float)(int32_t)noise * (1.0f / 2147483648.0f) * 0.8f - x2 - 0.9f * x1;
+            hp = dnoise() * 0.8f - x2 - 0.9f * x1;
             x1 += f * hp;
             x2 += f * x1;
-            x = x1 * 0.7f * amp * att * g;       /* (its band) */
-            mixl[j] += x * pl;
-            mixr[j] += x * pr;
-            rsend[j] += x * 0.3f;
+            x = x1 * 0.7f * amp * att * g;
+            dbl[j] += x * pl;
+            dbr[j] += x * pr;
             amp *= v->adec;
             att += (1.0f - att) * 0.012f;
         }
@@ -2928,22 +3060,19 @@ static void render_hat(drum_t *v, uint32_t n, float g, float pl, float pr)
     }
     for (j = 0; j < n; j++) {
         float in = 0.0f, hp, x;
-        for (k = 0; k < 4; k++) {
-            v->mph[k] += HAT_INC[k];
+        for (k = 0; k < 6; k++) {
+            v->mph[k] += HAT6[k] * 1.7f;
             if (v->mph[k] >= 1.0f)
                 v->mph[k] -= 1.0f;
-            in += v->mph[k] < 0.5f ? 0.25f : -0.25f;
+            in += v->mph[k] < 0.5f ? 0.17f : -0.17f;
         }
-        noise = noise * 1664525u + 1013904223u;
-        in = 0.5f * in + 0.6f * (float)(int32_t)noise * (1.0f / 2147483648.0f);
-        hp = in - x2 - 0.8f * x1;
+        in = 0.55f * in + 0.5f * dnoise();
+        hp = in - x2 - 0.7f * x1;
         x1 += hat_f * hp;
         x2 += hat_f * x1;
-        x = hp * amp * att * g;
-        mixl[j] += x * pl;
-        mixr[j] += x * pr;
-        rsend[j] += x * 0.2f;
-        esend[j] += x * 0.08f;
+        x = (hp + (att < 0.6f ? dnoise() * 0.6f : 0.0f)) * amp * att * g;   /* (the tick, as it opens) */
+        dbl[j] += x * pl;
+        dbr[j] += x * pr;
         amp *= v->adec;
         att += (1.0f - att) * 0.3f;
     }
@@ -2954,9 +3083,9 @@ static void render_hat(drum_t *v, uint32_t n, float g, float pl, float pr)
     v->on = amp > 0.0005f;
 }
 
-/* StoryBox: the backbeat kit's snare: a clap's three quick bursts of band-passed noise over a short body (190 Hz) */
+/* the snare */
 static struct {
-    float amp, ph, bamp, lp, hp;
+    float amp, ph, ph2, bamp, lp, hp, bp, ck;
     int32_t t;
     uint8_t on;
 } sn;
@@ -2964,72 +3093,236 @@ static void snare_fire(float vel)
 {
     sn.amp = vel;
     sn.bamp = vel;
-    sn.ph = 0.0f;
+    sn.ck = vel;
+    sn.ph = sn.ph2 = 0.0f;
     sn.t = 0;
     sn.on = 1;
-    midi(0x99, 38, (uint32_t)(vel * 127.0f));
-    midi(0x89, 38, 0);
+    midi(0x99, par[P_KIT] == 3 ? 37 : 38, (uint32_t)(vel * 127.0f));
+    midi(0x89, par[P_KIT] == 3 ? 37 : 38, 0);
 }
 static void render_snare(uint32_t n, float g)
 {
     uint32_t j;
-    const int rim = par[P_KIT] == 2 || par[P_KIT] == 3;   /* brushes, Lounge: a rim's click (a short knock, ~1.2 kHz) */
-    const float dec = fm_expf(-6.9f / ((rim ? 0.01f : 0.2f) * EN_SR)), bdec = fm_expf(-6.9f / ((rim ? 0.03f : 0.08f) * EN_SR)),
-                binc = (rim ? 1250.0f : 190.0f) / EN_SR;
+    const int kit = par[P_KIT], rim = kit == 3, brush = kit == 2, clap = kit == 4;
+    const float wt = rim ? 0.012f : brush ? 0.22f : clap ? 0.16f : kit == 1 ? 0.24f : 0.18f,
+                dec = fm_expf(-6.9f / (wt * EN_SR)), bdec = fm_expf(-6.9f / ((rim ? 0.045f : brush ? 0.06f : 0.1f) * EN_SR)),
+                f1 = (rim ? 820.0f : 185.0f) / EN_SR, f2 = f1 * (rim ? 2.03f : 1.59f), cd = fm_expf(-6.9f / (0.002f * EN_SR)),
+                head = clap ? 0.12f : rim ? 0.9f : brush ? 0.35f : 0.6f, wire = rim ? 0.15f : 1.0f;
     if (!sn.on)
         return;
     for (j = 0; j < n; j++) {
-        float nz, x, burst = 1.0f;
+        float nz = dnoise(), x, burst = 1.0f, w;
         int32_t t = sn.t++;
-        noise = noise * 1664525u + 1013904223u;
-        nz = (float)(int32_t)noise * (1.0f / 2147483648.0f);
-        sn.lp += (nz - sn.lp) * 0.35f;          /* band-passed: ~1 .. 5 kHz */
-        sn.hp += (sn.lp - sn.hp) * 0.12f;
-        if (t < 1100 && !rim)                   /* the clap: three quick re-attacks */
-            burst = 1.0f + 0.9f * fm_expf(-(float)(t % 370) * (1.0f / 70.0f));
-        x = (sn.lp - sn.hp) * 1.6f * sn.amp * burst + sine(sn.ph) * 0.55f * sn.bamp;
+        sn.lp += (nz - sn.lp) * (brush ? 0.2f : 0.55f);   /* the wires: band-passed, ~2 .. 7 kHz (the brush darker) */
+        sn.hp += (sn.lp - sn.hp) * 0.1f;
+        w = sn.lp - sn.hp;
+        if (clap && t < 1100)                    /* the clap: three quick re-attacks */
+            burst = 1.0f + 1.1f * fm_expf(-(float)(t % 370) * (1.0f / 60.0f));
+        else if (brush)                          /* the brush: swishing in */
+            burst = fm_minf((float)t * (1.0f / 220.0f), 1.0f);
+        else if (t < 44)                         /* the wires a moment after the stick */
+            burst = (float)t * (1.0f / 44.0f);
+        x = w * 1.5f * wire * sn.amp * burst + (sine(sn.ph) + 0.5f * sine(sn.ph2)) * head * sn.bamp + nz * sn.ck * (brush ? 0.1f : 0.5f);
         x *= g;
-        mixl[j] += x * 0.9f;
-        mixr[j] += x;
-        rsend[j] += x * 0.3f;
-        sn.ph += binc;
+        dbl[j] += x * 0.92f;
+        dbr[j] += x;
+        sn.ph += f1;
         if (sn.ph >= 1.0f)
             sn.ph -= 1.0f;
+        sn.ph2 += f2;
+        if (sn.ph2 >= 1.0f)
+            sn.ph2 -= 1.0f;
         sn.amp *= dec;
         sn.bamp *= bdec;
+        sn.ck *= cd;
     }
+    sn.ck = fm_flush(sn.ck);
     sn.on = sn.amp > 0.0005f || sn.bamp > 0.0005f;
+}
+
+/* (0.8.18) the new ones: the ride, the shaker, the toms */
+static struct {
+    float amp, wamp, ph[3], mph[6], x1, x2, pend;
+    int32_t wait;
+    uint8_t on;
+} ride;
+static struct {
+    float amp, att, lp, hp, pend;
+    int32_t wait, t;
+    uint8_t on;
+} shk;
+static struct {
+    float ph, inc, inc_end, amp, ck, pend, pend_f;
+    int32_t wait;
+    uint8_t on;
+} tom;
+static void ride_fire(float vel)
+{
+    ride.amp = vel;
+    ride.wamp = vel;
+    ride.on = 1;
+    midi(0x99, 51, (uint32_t)(vel * 110.0f));
+    midi(0x89, 51, 0);
+}
+static void shaker_fire(float vel)
+{
+    shk.amp = vel;
+    shk.att = 0.0f;
+    shk.t = 0;
+    shk.on = 1;
+    midi(0x99, 70, (uint32_t)(vel * 110.0f));
+    midi(0x89, 70, 0);
+}
+static void tom_fire(float vel, float f)
+{
+    tom.inc = f * 1.5f / EN_SR;
+    tom.inc_end = f / EN_SR;
+    tom.amp = vel;
+    tom.ck = vel;
+    tom.on = 1;
+    midi(0x99, f > 160.0f ? 50u : f > 110.0f ? 47u : 43u, (uint32_t)(vel * 110.0f));
+    midi(0x89, f > 160.0f ? 50u : f > 110.0f ? 47u : 43u, 0);
+}
+static void render_ride(uint32_t n, float g)
+{
+    static const float R[3] = {590.0f / EN_SR, 1422.0f / EN_SR, 2201.0f / EN_SR};
+    const float pd = fm_expf(-6.9f / (0.7f * EN_SR)), wd = fm_expf(-6.9f / (1.6f * EN_SR));
+    uint32_t j;
+    int k;
+    if (!ride.on)
+        return;
+    for (j = 0; j < n; j++) {
+        float in = 0.0f, hp, x, p;
+        for (k = 0; k < 6; k++) {
+            ride.mph[k] += HAT6[k] * 2.3f;
+            if (ride.mph[k] >= 1.0f)
+                ride.mph[k] -= 1.0f;
+            in += ride.mph[k] < 0.5f ? 0.17f : -0.17f;
+        }
+        in = 0.6f * in + 0.4f * dnoise();
+        hp = in - ride.x2 - 0.5f * ride.x1;
+        ride.x1 += 0.75f * hp;
+        ride.x2 += 0.75f * ride.x1;
+        p = 0.0f;
+        for (k = 0; k < 3; k++) {
+            ride.ph[k] += R[k];
+            if (ride.ph[k] >= 1.0f)
+                ride.ph[k] -= 1.0f;
+            p += sine(ride.ph[k]) * (k ? 0.5f : 1.0f);
+        }
+        x = (p * 0.22f * ride.amp + hp * 0.5f * ride.wamp) * g;
+        dbl[j] += x * 0.7f;
+        dbr[j] += x;
+        ride.amp *= pd;
+        ride.wamp *= wd;
+    }
+    ride.x1 = fm_flush(ride.x1);
+    ride.x2 = fm_flush(ride.x2);
+    ride.on = ride.wamp > 0.0005f;
+}
+static void render_shaker(uint32_t n, float g)
+{
+    const float dd = fm_expf(-6.9f / (0.055f * EN_SR));
+    uint32_t j;
+    if (!shk.on)
+        return;
+    for (j = 0; j < n; j++) {
+        float x;
+        shk.lp += (dnoise() - shk.lp) * 0.7f;    /* the beads: high, ~5 .. 12 kHz */
+        shk.hp += (shk.lp - shk.hp) * 0.35f;
+        x = (shk.lp - shk.hp) * shk.amp * shk.att * g;
+        dbl[j] += x;
+        dbr[j] += x * 0.6f;
+        shk.att += (1.0f - shk.att) * 0.004f;    /* (a quick swell: the beads thrown) */
+        if (shk.t++ > 300)
+            shk.amp *= dd;
+    }
+    shk.lp = fm_flush(shk.lp);
+    shk.hp = fm_flush(shk.hp);
+    shk.on = shk.amp > 0.0005f;
+}
+static void render_tom(uint32_t n, float g)
+{
+    const float d = fm_expf(-6.9f / (0.35f * EN_SR)), cd = fm_expf(-6.9f / (0.003f * EN_SR));
+    uint32_t j;
+    if (!tom.on)
+        return;
+    for (j = 0; j < n; j++) {
+        float x = (sine(tom.ph) + 0.3f * sine(tom.ph * 1.5f)) * tom.amp + dnoise() * tom.ck * 0.3f;
+        x = fm_tanhf(x * 1.3f) * 0.8f * g;
+        dbl[j] += x * 0.8f;
+        dbr[j] += x;
+        tom.ph += tom.inc;
+        if (tom.ph >= 1.0f)
+            tom.ph -= 1.0f;
+        tom.inc += (tom.inc_end - tom.inc) * 0.001f;
+        tom.amp *= d;
+        tom.ck *= cd;
+    }
+    tom.ck = fm_flush(tom.ck);
+    tom.on = tom.amp > 0.0005f;
 }
 
 static void render_drums(uint32_t n)
 {
     uint32_t j;
     const float g = pulse_vol * 1.45f * mg[3];   /* (StoryBox 0.3: louder) */
-    drum_t *v;
-    v = &drum[0];                                /* thump: a sine falling to its note */
-    if (v->on) {
-        float ph = v->ph, inc = v->inc, amp = v->amp, att = v->att;
-        for (j = 0; j < n; j++) {
-            float x = sine(ph) * amp * att * g;
-            mixl[j] += x;
-            mixr[j] += x;
-            rsend[j] += x * 0.1f;
-            ph += inc;
-            if (ph >= 1.0f)
-                ph -= 1.0f;
-            inc += (v->inc_end - inc) * 0.0012f;
-            amp *= v->adec;
-            att += (1.0f - att) * 0.02f;
-        }
-        v->ph = ph;
-        v->inc = inc;
-        v->amp = amp;
-        v->att = att;
-        v->on = amp > 0.0005f;
-    }
+    const int kit = par[P_KIT] >= 0 && par[P_KIT] <= 4 ? par[P_KIT] : 0, dusty = kit == 1 || kit == 4;
+    static const float KG[5] = {1.28f, 1.18f, 1.35f, 1.55f, 1.2f};   /* (each kit as loud as it was)*/
+    for (j = 0; j < n; j++)
+        dbl[j] = dbr[j] = 0.0f;
+    render_kick(n, g);
     render_hat(&drum[1], n, g * 0.2f, 0.6f, 1.0f);    /* closed: a little right */
     render_hat(&drum[2], n, g * 0.14f, 1.0f, 0.7f);   /* open: a little left */
     render_snare(n, g * 0.5f);
+    render_ride(n, g * 0.16f);
+    render_shaker(n, g * 0.13f);
+    render_tom(n, g * 0.55f);
+    for (j = 0; j < n; j++) {
+        float l = dbl[j], r = dbr[j], m = 0.5f * (l + r), e = 0.0f;
+        int t;
+        {                                        /* the room: its early reflections, left and right in turn */
+            static const int16_t TAP[6] = {269, 428, 613, 851, 1147, 1473};   /* 6 .. 33 ms */
+            static const float TG[6] = {0.5f, 0.45f, 0.38f, 0.32f, 0.25f, 0.2f};
+            float el = 0.0f, er = 0.0f;
+            room_buf[room_w] = (int16_t)(fm_clampf(m, -1.0f, 1.0f) * 32767.0f);
+            for (t = 0; t < 6; t++) {
+                const float s = (float)room_buf[(room_w - TAP[t]) & 2047] * (1.0f / 32767.0f) * TG[t];
+                if (t & 1)
+                    er += s;
+                else
+                    el += s;
+            }
+            room_w = (room_w + 1) & 2047;
+            room_lp[0] += (el - room_lp[0]) * 0.4f;   /* (the walls soften it) */
+            room_lp[1] += (er - room_lp[1]) * 0.4f;
+            e = dusty ? 0.22f : 0.5f;
+            l += room_lp[0] * e;
+            r += room_lp[1] * e;
+        }
+        if (dusty) {                             /* the sampler: held at 26 kHz, 12 bits (Backbeat), darker, saturated */
+            dust_ph += 26040.0f / EN_SR;
+            if (dust_ph >= 1.0f || kit == 4) {
+                dust_ph -= dust_ph >= 1.0f ? 1.0f : 0.0f;
+                dust_h[0] = kit == 1 ? (float)(int)(l * 2048.0f) * (1.0f / 2048.0f) : l;
+                dust_h[1] = kit == 1 ? (float)(int)(r * 2048.0f) * (1.0f / 2048.0f) : r;
+            }
+            dust_lp[0] += (dust_h[0] - dust_lp[0]) * (kit == 1 ? 0.62f : 0.85f);
+            dust_lp[1] += (dust_h[1] - dust_lp[1]) * (kit == 1 ? 0.62f : 0.85f);
+            l = fm_tanhf(dust_lp[0] * 1.6f) * 0.68f;
+            r = fm_tanhf(dust_lp[1] * 1.6f) * 0.68f;
+        }
+        l *= KG[kit];
+        r *= KG[kit];
+        mixl[j] += l;
+        mixr[j] += r;
+        rsend[j] += (l + r) * 0.08f;
+        esend[j] += (l + r) * 0.02f;
+    }
+    room_lp[0] = fm_flush(room_lp[0]);
+    room_lp[1] = fm_flush(room_lp[1]);
+    dust_lp[0] = fm_flush(dust_lp[0]);
+    dust_lp[1] = fm_flush(dust_lp[1]);
 }
 
 /* ------------------------------------------------------------------ lead --- */

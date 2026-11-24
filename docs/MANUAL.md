@@ -536,3 +536,10 @@ F4 **Warehouse** (Lighthouse's place): acid house in A minor at 120, four on the
 minutes and with Energy). Doors, Squelch, Strobe, Sunrise. A4 **Rooftop** (Riebeck's place): lo-fi hip hop in F minor
 at 80, swung, a Rhodes, a sub bass, vibes and a kalimba. Dusk, Cypher, Rain, Late Night. The Bass page's Sound has
 Acid for any story.
+
+### The drums (0.8.18)
+
+Two worlds. Soft, Brushes and Lounge are a real kit in a small room; Backbeat sounds sampled off an old record (an
+SP-1200's 12 bits, darker, saturated) and Bright is a cleaner, punchier version of it. New: Lounge keeps time on a
+ride cymbal; Backbeat and Bright have a shaker (the eighths, and with Energy the sixteenths); half the fills on
+Backbeat, Brushes and Lounge go round the toms, tuned to the chord.

@@ -291,3 +291,8 @@ Zach: replace the original AMB-01 parts one by one with better, more custom ones
 the melody voices (too thin, too clean/digital, too fake; he wants real instruments in a room). 0.8.17: all eight
 rebuilt as modal instruments (measured mode ratios, a mallet's or pick's knock, a body, beating twins). Next
 candidates: the pad (Rhodes, Voices, Strings, Organ), the bass, the drums, the reverb.
+
+0.8.18, Theseus 2, the drums (Zach: Backbeat/Bright and Brushes/Lounge matter most; the sounds and too few drums;
+a real kit in a room, and dusty sampled breaks): kick, snare, hats rebuilt; a ride (Lounge's time), a shaker (Backbeat,
+Bright), toms (half the fills on Backbeat, Brushes, Lounge); Soft, Brushes, Lounge in a room; Backbeat through an
+SP-1200's 12 bits at 26 kHz, Bright lightly saturated.
