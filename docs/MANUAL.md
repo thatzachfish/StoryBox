@@ -557,6 +557,6 @@ West African timeline. Sunrise, Gathering, Dance, Embers.
 
 ### The FM-1's speaker off, for USB audio (0.8.21)
 
-On the Bluetooth page, knob 1 (Speaker) turns the FM-1's own speaker and headphone jack off, so the sound goes only
+On the Bluetooth page, knob 1 (FM-1 out) turns the FM-1's own speaker and headphone jack off, so the sound goes only
 over USB-C (to a computer or an iPad) and to a Bluetooth speaker, at the level MASTER sets. It is always back on at
 power-on.

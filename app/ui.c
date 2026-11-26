@@ -72,7 +72,7 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
     {"Level", "Glide", "Sound", "Octave"},
     {"Root", "Tempo", "Sleep", "Fade"},
     {"Tune", "Lights", "MIDI out", ""},
-    {"Speaker", "Pick", "Play on", "Bluetooth"},
+    {"FM-1 out", "Pick", "Play on", "Bluetooth"},
     {"Level", "Space", "Echo", "Tone"},
     {"Interval", "Mix", "Shimmer", "Width"},
     {"Stop", "Start", "Scratch", "Mix"},
@@ -597,7 +597,7 @@ static void bt_knob(int k, int v)
             return;
         app_spk_off = (uint8_t)!v;
         plat_usb_audio_full(!v);
-        say("SPEAKER", v ? "ON" : "OFF: USB ONLY");
+        say("FM-1 OUT", v ? "ON" : "OFF: USB ONLY");
         return;
     }
     if (k == K_BTRANGE) {
@@ -630,7 +630,7 @@ static void bt_knob(int k, int v)
             return;
         }
         plat_bta_output(v != 0);
-        say("PLAY ON", v ? "SPEAKER" : "FM-1");
+        say("PLAY ON", v ? "BLUETOOTH SPEAKER" : "FM-1");
     } else if (k == K_BTDEV && bt.n) {
         bt.sel = v < 0 ? 0 : v >= bt.n ? bt.n - 1 : v;
         bt_cpy(bt.want, bt.name[bt.sel]);
@@ -783,7 +783,7 @@ static const char *knob_name(int k)
         return en_param_info(k)->name;
     return k == K_LEDS ? "Lights" : k == K_CPU ? "CPU" : k == K_PLAYMODE ? "Mode" : k == K_WANDER ? (!proj.wander ? "Wander" : proj.wander <= 50 ? "In order" : "Roaming") :
            k == K_FADE ? "Fade" : k == K_ACT ? "Act" : k == K_TIMER ? "Sleep" : k == K_ANSWER ? "Answer" :
-           k == K_BTDEV ? "Pick" : k == K_BTOUT ? "Play on" : k == K_BTON ? "Bluetooth" : k == K_BTRANGE ? "Range" : k == K_SPK ? "Speaker" : "";
+           k == K_BTDEV ? "Pick" : k == K_BTOUT ? "Play on" : k == K_BTON ? "Bluetooth" : k == K_BTRANGE ? "Range" : k == K_SPK ? "FM-1 out" : "";
 }
 static void knob_text(int k, char *b)
 {
@@ -815,7 +815,7 @@ static void knob_text(int k, char *b)
         *b++ = '/';
         itoa_u((uint32_t)bt.n, b);
     } else if (k == K_ANSWER || k == K_BTOUT || k == K_BTON || k == K_BTDEV || k == K_BTRANGE || k == K_SPK) {
-        const char *n = k == K_SPK ? (v ? "On" : "Off") : k == K_BTRANGE ? (v == 0 ? "Near" : v == 1 ? "Medium" : "Far") : k == K_ANSWER ? (v ? 0 : "Off") : k == K_BTOUT ? (v ? "Speaker" : "FM-1") : k == K_BTON ? (v ? "On" : "Off") :
+        const char *n = k == K_SPK ? (v ? "On" : "Off") : k == K_BTRANGE ? (v == 0 ? "Near" : v == 1 ? "Medium" : "Far") : k == K_ANSWER ? (v ? 0 : "Off") : k == K_BTOUT ? (v ? "BT speaker" : "FM-1") : k == K_BTON ? (v ? "On" : "Off") :
                         bt.n ? bt.name[v] : "None";
         int j = 0;
         if (!n) {
