@@ -306,3 +306,9 @@ Bell tone). He'd also like a dulcimer someday.
 environmental) he liked Afro-folk best, with the acid bass, and the kalimba (narrowly). Built Palm Wine (F4): G
 Mixolydian, 116, kalimba, the Round bass (not the Acid: his mistake, he said), a new Highlife kit (the kick on one and three, off-beat hats, the shaker, an
 agogo bell's timeline). He found the Guitar quiet and indistinct: to improve.
+
+## Visualizer page (Zach, 2026-11-25): queued
+Of four sketches (Bloom, Tide, Ripples, Drift) he chose Tide: layered waves, bass the deepest wave, the pad the middle,
+the melody the bright crest. Knobs: K1 Gravity (the down direction turns; the water sloshes and settles, fluid), K2
+Tide level (the layers low with sky above .. high, flooding the screen), K3 Sky (palettes Dawn, Dusk, Night, Deep sea,
+Ember), K4 Glow (the crests lit by the music). Mockup: the "StoryBox Visualizer" canvas, frame "Tide, with knobs".
