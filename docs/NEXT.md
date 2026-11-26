@@ -296,3 +296,8 @@ candidates: the pad (Rhodes, Voices, Strings, Organ), the bass, the drums, the r
 a real kit in a room, and dusty sampled breaks): kick, snare, hats rebuilt; a ride (Lounge's time), a shaker (Backbeat,
 Bright), toms (half the fills on Backbeat, Brushes, Lounge); Soft, Brushes, Lounge in a room; Backbeat through an
 SP-1200's 12 bits at 26 kHz, Bright lightly saturated.
+
+0.8.19 (Zach on the melody: vibes, marimba, kalimba good; banjo nothing, slide not real, bells a-tonal, music box dull):
+Slide became Guitar (nylon, a plucked-string loop, its body), Music box Felt piano (modal), Banjo Koto (a plucked
+string, bright, some notes pressed up); the bells in tune (a handbell's harmonics, the glockenspiel's clang only with
+Bell tone). He'd also like a dulcimer someday.

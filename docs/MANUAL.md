@@ -543,3 +543,8 @@ Two worlds. Soft, Brushes and Lounge are a real kit in a small room; Backbeat so
 SP-1200's 12 bits, darker, saturated) and Bright is a cleaner, punchier version of it. New: Lounge keeps time on a
 ride cymbal; Backbeat and Bright have a shaker (the eighths, and with Energy the sixteenths); half the fills on
 Backbeat, Brushes and Lounge go round the toms, tuned to the chord.
+
+### The melody's instruments (0.8.19)
+
+Bells (in tune: a handbell's; Bell tone adds a glockenspiel's clang), Kalimba, Marimba, Vibes, Guitar (nylon,
+fingerpicked), Glass, Felt piano, Koto (some notes pressed up into pitch, as a koto player does).

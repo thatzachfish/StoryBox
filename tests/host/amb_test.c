@@ -265,13 +265,14 @@ int main(void)
 
     /* Bell tone and Bell oct are heard: brighter (zero crossings) and higher with them, bells alone */
     {
-        float zc[3];
+        float zc[3], hf[3];
         int k;
         static const int TONE[3] = {0, 100, 0}, OCT[3] = {0, 0, 2};
         for (k = 0; k < 3; k++) {
             int b2, j;
             long z = 0;
             float prev = 0.0f;
+            double dd = 0.0, ee = 0.0;
             en_init();
             en_set(P_PAD, 0);
             en_set(P_BASS, 0);
@@ -287,13 +288,18 @@ int main(void)
                 for (j = 0; j < 256; j++) {
                     float x = (float)buf[2 * j];
                     z += (x > 0.0f) != (prev > 0.0f);
+                    dd += (double)(x - prev) * (double)(x - prev);
+                    ee += (double)x * (double)x;
                     prev = x;
                 }
             }
             zc[k] = (float)z;
+            hf[k] = (float)(dd / (ee > 0.0 ? ee : 1.0));
         }
-        CHECK(zc[1] > 1.25f * zc[0], "Bell tone 100 not brighter: %.0f vs %.0f", (double)zc[1], (double)zc[0]);   /* (StoryBox
-                                                  * 0.8.17: the modal bells' clang, truer than the FM's, less harsh: 1.25, was 2.5) */
+        CHECK(hf[1] > 2.0f * hf[0], "Bell tone 100 not brighter: %.4f vs %.4f", (double)hf[1], (double)hf[0]);   /* (StoryBox
+                                                  * 0.8.19: brightness as the high frequencies' share of the energy, the
+                                                  * slope's against the level's; zero crossings, as before, counted the
+                                                  * quiet tails, where the fundamental rings on) */
         CHECK(zc[2] > 1.8f * zc[0], "Bell oct +2 not higher: %.0f vs %.0f", (double)zc[2], (double)zc[0]);
         en_init();
         en_play(1);

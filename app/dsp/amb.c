@@ -633,7 +633,8 @@ void en_fx(uint32_t mask) { post(C_FX, 0, (int)(mask & 15u)); }
 void en_lead_on(int note, int vel) { post(C_LON, note & 127, vel & 127); }
 void en_lead_off(int note) { post(C_LOFF, note & 127, 0); }
 void en_answer(int amount) { post(C_ANS, 0, amount < 0 ? 0 : amount > 100 ? 100 : amount); }
-const char *const EN_MEL_NAME[EN_NMEL] = {"Bells", "Kalimba", "Marimba", "Vibes", "Slide", "Glass", "Music box", "Banjo"};
+const char *const EN_MEL_NAME[EN_NMEL] = {"Bells", "Kalimba", "Marimba", "Vibes", "Guitar", "Glass", "Felt piano", "Koto"};   /* (0.8.19: Slide,
+                                                  * Music box, Banjo became Guitar, Felt piano, Koto) */
 const char *const EN_LEAD_NAME[EN_NLEAD] = {"Kalimba", "Bell", "Flute", "Guitar", "Rhodes", "Violin", "Cello", "Slide"};
 void en_breakdown(int on) { post(C_BREAK, on ? 1 : 0, 0); }
 void en_drum_solo(int on) { post(C_DSOLO, on ? 1 : 0, 0); }
@@ -935,6 +936,8 @@ typedef struct {
     uint8_t on, note, loop, sting;               /* sting: StoryBox's, at its own level (not the bells'), ringing long */
     uint8_t mel;                                 /* StoryBox: its instrument (MEL) */
     float f0, mc[8], mr2[8], my1[8], my2[8], ma[8], mt60[8], nz, nzd, nzs;   /* (0.8.17) its modes, its knock */
+    float ks_L, ks_G, ks_br, ks_s, ks_b[4], ks_bend;   /* (0.8.19) a plucked string's: its loop, its loss, its body */
+    int ks_w;
 } bell_t;
 static bell_t bell[NBELL];
 /* StoryBox: the melody's instruments (0.8.17: the bells' Bell tone, each instrument's ring (x the bells'), a soft
@@ -948,15 +951,14 @@ static const struct {
     {5.4f, 1.4f, 0.07f, 0.55f, 0.0f, 0, 0},      /* kalimba: a tick, a round body */
     {4.0f, 1.1f, 0.025f, 0.28f, 0.0f, 0, 0},     /* marimba: short and woody */
     {4.0f, 0.22f, 0.05f, 1.7f, 0.0f, 0, 1},      /* vibes: pure and long, a mallet's tick, the motor's shimmer */
-    {1.0f, 1.5f, 0.45f, 0.9f, 0.0f, 0, 0},       /* slide: a guitar's, each note sliding from the one before */
+    {1.0f, 1.5f, 0.45f, 1.0f, 0.0f, 0, 0},       /* (0.8.19) guitar: nylon strings, fingerpicked (a plucked string) */
     {1.0f, 0.25f, 0.6f, 1.4f, 0.0003f, 0, 0},    /* glass: pure, swelling in */
-    {3.5f, 2.2f, 0.6f, 0.55f, 0.0f, 12, 0},      /* music box: high and small */
-    {1.0f, 2.8f, 0.11f, 0.32f, 0.0f, 0, 0},      /* banjo (0.8.7): a bright string's twang (every harmonic, a high index
-                                                  * falling fast), not a tine's (it sounded like the kalimba) */
+    {3.5f, 2.2f, 0.6f, 1.5f, 0.004f, 0, 0},      /* (0.8.19) felt piano: soft hammers, long strings */
+    {1.0f, 2.8f, 0.11f, 1.3f, 0.0f, 0, 0},       /* (0.8.19) koto: silk strings, plucked bright, some notes pressed up */
 };
-static const float MEL_GAIN[EN_NMEL] = {1.3f, 1.3f, 1.1f, 1.2f, 1.05f, 1.05f, 1.15f, 0.7f};   /* (the banjo softer; 0.8.17:
+static const float MEL_GAIN[EN_NMEL] = {1.3f, 1.3f, 1.1f, 1.2f, 0.95f, 1.05f, 1.15f, 4.0f};   /* (the banjo softer; 0.8.17:
                                                   * the modal instruments as loud as the FM ones were) */
-static float mel_trem, mel_vib, mel_last[EN_NLOOP + 1];   /* (the slide: each loop's last note's pitch) */
+static float mel_trem, mel_vib;
 static int bell_sting_now;                       /* (sting_fire: its notes are always bells) */
 static float bell_vol, btone;
 static int8_t loop_note[EN_NLOOP][EN_LOOP_MAX];
@@ -1348,9 +1350,10 @@ static const struct {
     float nz, nz_t, nz_lp;                       /* the knock: its level, length (s), colour (one-pole, 0..1: bright) */
     float stretch;                               /* (strings) the overtones a little sharp, as a real string's */
 } INST[EN_NMEL] = {
-    /* bells (Bell tone below adds the clang): a glockenspiel's bar (1 : 2.76 : 5.40 : 8.93), its twin beating */
-    {{{1.0f, 1.0f, 1.0f}, {1.0016f, 0.32f, 0.9f}, {2.756f, 0.42f, 0.42f}, {5.404f, 0.2f, 0.22f}, {8.933f, 0.09f, 0.12f},
-      {4.2f, 0.0f, 0.8f}, {6.8f, 0.0f, 0.6f}, {11.3f, 0.0f, 0.45f}}, 0.5f, 0.05f, 0.0015f, 0.8f, 0.0f},
+    /* bells (0.8.19, in tune): a handbell's, its fundamental, its twin beating, the twelfth (x3) and the octave above
+     * it, a little of x5; Bell tone adds a glockenspiel's inharmonic clang (2.76, 5.40, 8.93) */
+    {{{1.0f, 1.0f, 1.0f}, {1.0016f, 0.32f, 0.9f}, {3.0f, 0.38f, 0.5f}, {2.0f, 0.2f, 0.6f}, {5.04f, 0.1f, 0.25f},
+      {2.756f, 0.0f, 0.42f}, {5.404f, 0.0f, 0.22f}, {8.933f, 0.0f, 0.12f}}, 0.8f, 0.04f, 0.0015f, 0.8f, 0.0f},
     /* kalimba: a steel tine (1 : 6.27 : 17.5), the wooden box under it */
     {{{1.0f, 1.0f, 1.0f}, {1.0009f, 0.18f, 0.8f}, {6.27f, 0.22f, 0.12f}, {17.5f, 0.05f, 0.04f}, {-260.0f, 0.16f, 0.07f}},
      0.8f, 0.07f, 0.003f, 0.45f, 0.0f},
@@ -1360,18 +1363,17 @@ static const struct {
     /* vibes: an aluminium bar, 1 : 4 : 10, long and pure, its twin beating slowly (and the motor's tremolo) */
     {{{1.0f, 1.0f, 1.0f}, {1.0006f, 0.28f, 1.0f}, {4.0f, 0.22f, 0.28f}, {10.0f, 0.06f, 0.1f}}, 1.0f, 0.035f, 0.002f,
      0.35f, 0.0f},
-    /* slide: a guitar's string, plucked a fifth along (its overtones), the body's wood at 110 and 220 Hz */
-    {{{1.0f, 1.0f, 1.0f}, {2.0f, 0.8f, 0.7f}, {3.0f, 0.54f, 0.5f}, {4.0f, 0.25f, 0.4f}, {6.0f, 0.17f, 0.28f},
-      {7.0f, 0.2f, 0.22f}, {-110.0f, 0.2f, 0.18f}, {-220.0f, 0.12f, 0.12f}}, 0.9f, 0.05f, 0.0012f, 0.7f, 0.0004f},
+    /* guitar (0.8.19): a plucked string (ks_pluck below), no modes */
+    {{{0.0f, 0.0f, 0.0f}}, 1.0f, 0.0f, 0.001f, 0.5f, 0.0f},
     /* glass: a wine glass, nearly pure, its twin beating very slowly; swells in */
     {{{1.0f, 1.0f, 1.0f}, {1.0004f, 0.55f, 1.0f}, {2.32f, 0.12f, 0.6f}, {4.25f, 0.04f, 0.4f}}, 0.3f, 0.0f, 0.001f, 0.5f,
      0.0f},
-    /* music box: a steel comb's tooth, high and small, a tick, the little box */
-    {{{1.0f, 1.0f, 1.0f}, {1.0011f, 0.2f, 0.8f}, {6.27f, 0.38f, 0.2f}, {17.55f, 0.12f, 0.06f}, {-640.0f, 0.12f, 0.06f}},
-     0.7f, 0.06f, 0.0008f, 0.85f, 0.0f},
-    /* banjo: a string plucked near the bridge (every overtone bright), short, the drum head's twang */
-    {{{1.0f, 1.0f, 1.0f}, {2.0f, 0.93f, 0.6f}, {3.0f, 0.81f, 0.45f}, {4.0f, 0.66f, 0.35f}, {5.0f, 0.48f, 0.28f},
-      {6.0f, 0.31f, 0.22f}, {-520.0f, 0.35f, 0.07f}, {-1040.0f, 0.18f, 0.05f}}, 1.0f, 0.08f, 0.001f, 0.8f, 0.0005f},
+    /* felt piano (0.8.19): a string's harmonics, a little sharp as a piano's, the high ones soft (the felt), its unison
+     * twin ringing on longer (the piano's aftersound), the hammer's soft thump */
+    {{{1.0f, 1.0f, 1.0f}, {1.0011f, 0.55f, 1.6f}, {2.0f, 0.42f, 0.55f}, {3.0f, 0.2f, 0.4f}, {4.0f, 0.09f, 0.3f},
+      {5.0f, 0.045f, 0.22f}, {6.0f, 0.025f, 0.18f}, {-95.0f, 0.12f, 0.05f}}, 1.2f, 0.05f, 0.009f, 0.1f, 0.00035f},
+    /* koto (0.8.19): a plucked string (ks_pluck below), no modes */
+    {{{0.0f, 0.0f, 0.0f}}, 1.0f, 0.0f, 0.001f, 0.5f, 0.0f},
 };
 
 static void modes_tune(bell_t *v, float f0, int init)   /* the modes' coefficients at f0 (Hz); init: struck */
@@ -1421,7 +1423,7 @@ static void modes_strike(bell_t *v, float f0, float vel, float t60, int l)
             if (k >= 5)
                 a = (k == 5 ? 0.9f : k == 6 ? 0.75f : 0.6f) * tone * tone * LOOP_IDX[l];
             else if (k >= 2)
-                a *= 0.12f + 3.2f * tone * tone;
+                a *= 0.15f + 1.3f * tone;        /* (0.8.19: in tune; round at 0) */
         }
         hi = m->ratio > 1.5f ? fm_powf(fm_clampf(vel, 0.05f, 1.0f), INST[v->mel].hard) : 1.0f;   /* soft: the high
                                                   * modes quieter */
@@ -1435,6 +1437,8 @@ static void modes_strike(bell_t *v, float f0, float vel, float t60, int l)
     modes_tune(v, f0, 1);
 }
 
+static int pk_plucked(const bell_t *v);
+static void pk_pluck(bell_t *v, float f, float vel, float t60);
 static void bell_voice(int l, int n, float vel, int32_t wait)
 {
     int i, best = 0, ri;
@@ -1460,11 +1464,6 @@ static void bell_voice(int l, int n, float vel, int32_t wait)
     v->cinc = mtof((float)n) * (1.0f / EN_SR);
     v->sl = 1.0f;
     v->sv = 0.0f;
-    if (v->mel == MEL_SLIDE) {                   /* from this loop's last note (near enough), or up from below */
-        float lp = mel_last[l < EN_NLOOP ? l : EN_NLOOP];
-        v->sl = lp > 0.0f ? fm_clampf(lp / v->cinc, 0.75f, 1.33f) : 0.944f;
-        mel_last[l < EN_NLOOP ? l : EN_NLOOP] = v->cinc;
-    }
     ri = par[P_BTONE] * 5 / 101 + LOOP_RAT[l];
     v->minc = v->cinc * (MEL[v->mel].ratio > 0.0f ? MEL[v->mel].ratio : RATIO[ri < 0 ? 0 : ri > 4 ? 4 : ri]);
     v->amp = vel;
@@ -1488,6 +1487,10 @@ static void bell_voice(int l, int n, float vel, int32_t wait)
             if (v->ma[k] > 0.0f && INST[v->mel].m[k].ratio > 0.0f)
                 mx = fm_maxf(mx, INST[v->mel].m[k].t60);
         v->adec = fm_expf(-6.9f / (t60 * (v->mel ? MEL[v->mel].dec : 1.0f) * fm_maxf(mx, 0.2f) * EN_SR));
+    }
+    if (pk_plucked(v)) {
+        pk_pluck(v, v->f0, vel, t60 * MEL[v->mel].dec);
+        v->adec = fm_expf(-6.9f / (t60 * MEL[v->mel].dec * EN_SR));
     }
     v->att = 0.0f;
     v->sting = 0;
@@ -2864,6 +2867,107 @@ static void render_bass(uint32_t n)
     en_bass_level = amp;
 }
 
+/* (0.8.19) the plucked strings, Guitar and Koto: a string as a loop (Karplus-Strong): a burst of noise the length of
+ * one trip along it (softer plucked, darker; the pick's place along the string cutting the overtones a node there
+ * would), round and round, each trip a little quieter (its ring) and darker (the loss filter: the guitar's nylon
+ * warm, the koto's silk bright); the body's two resonances under it (the guitar's wood, the koto's long box); the
+ * koto, some notes pressed up into pitch after the pluck, then a slow vibrato, as a player's left hand does */
+#define PK_N 512
+static int16_t pk_line[NBELL][PK_N];
+static uint32_t pk_seed = 0x1234567u;            /* (its own dice: the music's untouched) */
+static int pk_plucked(const bell_t *v) { return v->mel == MEL_SLIDE || v->mel == MEL_BANJO; }
+static void pk_pluck(bell_t *v, float f, float vel, float t60)
+{
+    int16_t *ln = pk_line[v - bell];
+    const int koto = v->mel == MEL_BANJO;
+    float L = EN_SR / f, lp = 0.0f, e[PK_N], mean = 0.0f;
+    int i, n, P;
+    v->ks_br = koto ? 0.62f + 0.25f * vel : 0.35f + 0.25f * vel;
+    while (L > (float)(PK_N - 8))
+        L *= 0.5f;                               /* (too low for the loop: an octave up) */
+    v->ks_L = L - (1.0f - v->ks_br) / v->ks_br;  /* (less the loss filter's own delay: in tune) */
+    v->ks_G = fm_expf(-6.9f * L / (t60 * EN_SR));
+    n = (int)L;
+    P = (int)(L * (koto ? 0.1f : 0.22f));
+    if (P < 1)
+        P = 1;
+    for (i = 0; i < n; i++) {
+        pk_seed = pk_seed * 1664525u + 1013904223u;
+        lp += ((float)(int32_t)pk_seed * (1.0f / 2147483648.0f) - lp) * (koto ? 0.55f + 0.4f * vel : 0.2f + 0.45f * vel);
+        e[i] = lp;
+    }
+    for (i = n - 1; i >= P; i--)
+        e[i] -= e[i - P];                        /* the pick's place */
+    for (i = 0; i < n; i++)
+        mean += e[i];
+    mean /= (float)(n > 0 ? n : 1);
+    for (i = 0; i < PK_N; i++)
+        ln[i] = 0;
+    for (i = 0; i < n; i++)
+        ln[i] = (int16_t)fm_clampf((e[i] - mean) * vel * 14000.0f, -32000.0f, 32000.0f);
+    v->ks_w = n;
+    v->ks_s = 0.0f;
+    v->ks_b[0] = v->ks_b[1] = v->ks_b[2] = v->ks_b[3] = 0.0f;
+    pk_seed = pk_seed * 1664525u + 1013904223u;
+    v->ks_bend = koto && (pk_seed >> 24) < 77u ? 0.944f : 1.0f;   /* (three in ten of a koto's notes pressed up a
+                                                  * semitone) */
+    v->sv = 0.0f;
+}
+static void pk_render(bell_t *v, uint32_t j0, uint32_t n, float g, float att0, float *att_io, float ar, float mecho)
+{
+    int16_t *ln = pk_line[v - bell];
+    const int koto = v->mel == MEL_BANJO;
+    float s = v->ks_s, att = att0, L, b0 = v->ks_b[0], b1 = v->ks_b[1], b2 = v->ks_b[2], b3 = v->ks_b[3];
+    const float br = v->ks_br, G = v->ks_G, f1 = koto ? 250.0f : 102.0f, f2 = koto ? 520.0f : 205.0f, r = 0.995f,
+                c1 = 2.0f * r * fm_cosf(FM_TWO_PI * f1 / EN_SR), c2 = 2.0f * r * fm_cosf(FM_TWO_PI * f2 / EN_SR);
+    uint32_t j;
+    int w = v->ks_w;
+    if (koto) {                                  /* the press, then the vibrato */
+        v->sv += (float)n * (1.0f / EN_SR);
+        if (v->sv > 0.08f)
+            v->ks_bend += (1.0f - v->ks_bend) * fm_minf((float)n * (1.0f / (0.12f * EN_SR)), 1.0f);
+        L = v->ks_L / (v->ks_bend * (1.0f + 0.004f * fm_clampf((v->sv - 0.5f) * 1.5f, 0.0f, 1.0f) * sine(mel_vib)));
+    } else {
+        L = v->ks_L;
+    }
+    if (L > (float)(PK_N - 4))
+        L = (float)(PK_N - 4);
+    for (j = j0; j < n; j++) {
+        float rp = (float)w - L, fr, y, x, body, b;
+        int i0;
+        if (rp < 0.0f)
+            rp += (float)PK_N;
+        i0 = (int)rp;
+        fr = rp - (float)i0;
+        y = ((float)ln[i0 & (PK_N - 1)] * (1.0f - fr) + (float)ln[(i0 + 1) & (PK_N - 1)] * fr) * (1.0f / 16384.0f);
+        s += br * (y - s);
+        y = s * G;
+        ln[w] = (int16_t)fm_clampf(y * 16384.0f, -32767.0f, 32767.0f);
+        w = (w + 1) & (PK_N - 1);
+        b = c1 * b0 - r * r * b1 + y * 0.01f;    /* the body */
+        b1 = b0;
+        b0 = b;
+        b = c2 * b2 - r * r * b3 + y * 0.01f;
+        b3 = b2;
+        b2 = b;
+        body = (b0 + 0.6f * b2) * (koto ? 0.5f : 1.0f);
+        x = (y + body) * att * g;
+        mixl[j] += x * v->gl * 1.2f;
+        mixr[j] += x * v->gr * 1.2f;
+        rsend[j] += x * 0.7f;
+        esend[j] += x * mecho;
+        v->amp *= v->adec;
+        att += (1.0f - att) * ar;
+    }
+    v->ks_w = w;
+    v->ks_s = fm_flush(s);
+    v->ks_b[0] = fm_flush(b0);
+    v->ks_b[1] = fm_flush(b1);
+    v->ks_b[2] = fm_flush(b2);
+    v->ks_b[3] = fm_flush(b3);
+    *att_io = att;
+}
+
 static void render_bells(uint32_t n)
 {
     int i;
@@ -2881,7 +2985,7 @@ static void render_bells(uint32_t n)
         bell_t *v = &bell[i];
         float amp = v->amp, att = v->att;
         uint32_t j = 0;
-        float g = v->sting ? gs * 1.3f : gb, ar = MEL[v->mel].atk > 0.0f ? MEL[v->mel].atk : arate, sm = 1.0f,
+        float g = v->sting ? gs * 1.3f : gb, ar = MEL[v->mel].atk > 0.0f ? MEL[v->mel].atk : arate,
               mecho = v->sting ? 0.85f : (float)par[P_MECHO] * 0.017f;   /* (Echo 50: as before) */
         if (MEL[v->mel].trem)
             g *= 1.0f - 0.5f * trem;
@@ -2897,13 +3001,10 @@ static void render_bells(uint32_t n)
             j = (uint32_t)v->wait;
             v->wait = 0;
         }
-        if (v->mel == MEL_SLIDE) {              /* the slide: gliding in (~0.15 s), then a vibrato */
-            v->sl += (1.0f - v->sl) * fm_minf((float)n * (1.0f / (0.15f * EN_SR)), 1.0f);
-            v->sv += (float)n * (1.0f / EN_SR);
-            sm = v->sl * (1.0f + 0.006f * fm_clampf((v->sv - 0.2f) * 2.0f, 0.0f, 1.0f) * sine(mel_vib));
-            modes_tune(v, v->f0 * sm, 0);        /* (the modes retuned each chunk, ringing on) */
-        }
-        {                                        /* (0.8.17) the modes, the knock */
+        if (pk_plucked(v)) {                     /* (0.8.19) a plucked string */
+            pk_render(v, j, n, g, att, &att, ar, mecho);
+            amp = v->amp;
+        } else {                                 /* (0.8.17) the modes, the knock */
             float y1[NMODE], y2[NMODE], c[NMODE], r2[NMODE], nz = v->nz, nzs = v->nzs;
             const float nzd = v->nzd, nlp = INST[v->mel].nz_lp;
             int k, nk = 0;
