@@ -17,11 +17,11 @@
 /* StoryBox 0.5's pages, left to right as SELECT steps through them; then the punch-ins' (while one is held, or a
  * latched one tapped). HOME: Story (and the keys back to the acts); FX: Colours; SEL: Effects; EDIT: Lead; GLO: Setup */
 enum { V_STORY, V_GARDEN, V_MIX, V_COLR, V_SPACE, V_PAD, V_BELLS, V_BASS, V_PULSE, V_LEAD, V_SETUP, V_SYSTEM, V_BT,
-       V_SHOTS, V_REV, V_STUT, V_FILT, V_SCAT, NVIEWS };
+       V_SHOTS, V_VIZ, V_REV, V_STUT, V_FILT, V_SCAT, NVIEWS };   /* (0.8.25: the Visualizer, the last page) */
 #define NPAGES V_REV
 /* (0.8.1) SELECT's order: One-shots just after Perform */
 static const uint8_t PAGE_ORDER[NPAGES] = {V_STORY, V_GARDEN, V_SHOTS, V_MIX, V_COLR, V_SPACE, V_PAD, V_BELLS, V_BASS,
-                                            V_PULSE, V_LEAD, V_SETUP, V_SYSTEM, V_BT};
+                                            V_PULSE, V_LEAD, V_SETUP, V_SYSTEM, V_BT, V_VIZ};
 static int page_pos(int v)
 {
     int k;
@@ -32,13 +32,14 @@ static int page_pos(int v)
 }
 #define NOBTN 0xFF
 static const char *const VIEW_NAME[NVIEWS] = {"Story", "Acts", "Mixer", "Effects", "Effects 2", "Pad", "Melody", "Bass",
-                                              "Drums", "Lead", "Setup", "System", "Bluetooth", "One-shots", "Harmony", "Tape Stop", "Throw/Cloud", "Glitch/Shuffle"};
+                                              "Drums", "Lead", "Setup", "System", "Bluetooth", "One-shots", "Visualizer", "Harmony", "Tape Stop", "Throw/Cloud", "Glitch/Shuffle"};
 static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, B_SEL, NOBTN, B_FX, NOBTN, NOBTN, NOBTN, NOBTN, NOBTN, B_EDIT, B_GLO, NOBTN,
-                                         NOBTN, NOBTN, B_ENV, B_LFO, B_ARP, B_SEQ};
+                                         NOBTN, NOBTN, NOBTN, B_ENV, B_LFO, B_ARP, B_SEQ};
 /* the punch-ins: ENV Harmony (0.7, Reverse's place), LFO Tape Stop (0.8.16), ARP Throw / Cloud, SEQ Glitch / Shuffle (0.8.14) (held; a double tap latches one on) */
 static const uint8_t FX_BTN[EN_NFX] = {B_ENV, B_LFO, B_ARP, B_SEQ};
 /* the four knobs of each page: a parameter, or one of these; and what the knob is called there */
-enum { K_LEDS = 100, K_CPU, K_NONE, K_PLAYMODE, K_WANDER, K_FADE, K_ACT, K_TIMER, K_ANSWER, K_BTDEV, K_BTOUT, K_BTON, K_BTRANGE, K_SPK };
+enum { K_LEDS = 100, K_CPU, K_NONE, K_PLAYMODE, K_WANDER, K_FADE, K_ACT, K_TIMER, K_ANSWER, K_BTDEV, K_BTOUT, K_BTON, K_BTRANGE, K_SPK,
+       K_VGRAV, K_VLEVEL, K_VSKY, K_VGLOW };   /* (0.8.25) the Visualizer's */
 static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_TEMPO, P_GROOVE, P_TENSION, K_WANDER},    /* (0.8: Tempo in Act's place: PRESETS is the act) */
     {P_EVOLVE, P_FREEDOM, P_DRIFT, P_MOTION},
@@ -54,6 +55,7 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_TUNE, K_LEDS, P_MIDI, K_NONE},            /* (0.8: the CPU in words on the page) */
     {K_SPK, K_BTDEV, K_BTOUT, K_BTON},    /* (0.8.21: knob 1 the FM-1's speaker, on or off: USB only) */
     {P_OSLEVEL, P_OSSPACE, P_OSECHO, P_OSTONE},   /* (0.8) the one-shots, all together, the story's */
+    {K_VGRAV, K_VLEVEL, K_VSKY, K_VGLOW},        /* (0.8.25) the Visualizer: Gravity, Tide, Sky, Glow */
     {P_RVLEN, P_RVMIX, P_HVSHIM, P_HVWIDTH},     /* (0.8: the punch-ins' knobs 3 and 4) */
     {P_STRATE, P_STPITCH, P_STLEN, P_STMIX},     /* (0.8.16) Tape Stop: Stop, Start, Scratch, Mix */
     {P_FLTYPE, P_FLRES, P_FLCUT, P_FLSWEEP},     /* (0.8.14) Throw / Cloud: Type, Amount, Tone, Time */
@@ -74,6 +76,7 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
     {"Tune", "Lights", "MIDI out", ""},
     {"FM-1 out", "Pick", "Play on", "Bluetooth"},
     {"Level", "Space", "Echo", "Tone"},
+    {"Gravity", "Tide", "Sky", "Glow"},
     {"Interval", "Mix", "Shimmer", "Width"},
     {"Stop", "Start", "Scratch", "Mix"},
     {"Type", "Amount", "Tone", "Time"},
@@ -139,6 +142,13 @@ static struct {
     uint32_t frame;
     uint32_t sig[4];                   /* what each band shows: redrawn when it changes */
 } ui;
+/* (0.8.25) the Visualizer's knobs and motion (draw_viz) */
+static struct {
+    uint8_t grav, level, sky, glow;
+    float ang, angv, slosh, sloshv, t, mel;
+    uint32_t last_ms;
+} viz = {0, 40, 1, 50, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0u};
+static const char *const VIZ_SKY_NAME[5] = {"Dawn", "Dusk", "Night", "Deep sea", "Ember"};
 
 /* the screen reader (announce.c; speak() below): a message went to it this frame, so speak() leaves what it
  * changed be; and the transport as last said (PLAY says its own: the engine takes it a block later) */
@@ -771,6 +781,8 @@ static int knob_get(int k)
         return bt_range();
     if (k == K_SPK)
         return !app_spk_off;
+    if (k == K_VGRAV || k == K_VLEVEL || k == K_VSKY || k == K_VGLOW)
+        return k == K_VGRAV ? viz.grav : k == K_VLEVEL ? viz.level : k == K_VSKY ? viz.sky : viz.glow;
     return 0;
 }
 static void knob_range(int k, int *lo, int *hi)
@@ -782,7 +794,8 @@ static void knob_range(int k, int *lo, int *hi)
         *lo = 0;
         *hi = k == K_LEDS ? 2 : k == K_FADE ? NFADE - 1 : k == K_CPU || k == K_WANDER ? 100 : k == K_PLAYMODE ? 1 :
               k == K_ACT ? EN_NACT - 1 : k == K_TIMER ? 4 : k == K_ANSWER ? 100 : k == K_BTDEV ? (bt.n ? bt.n - 1 : 0) :
-              k == K_BTOUT || k == K_BTON || k == K_SPK ? 1 : k == K_BTRANGE ? 2 : 0;
+              k == K_BTOUT || k == K_BTON || k == K_SPK ? 1 : k == K_BTRANGE ? 2 : k == K_VGRAV ? 71 :
+              k == K_VLEVEL || k == K_VGLOW ? 100 : k == K_VSKY ? 4 : 0;
     }
 }
 static const char *knob_name(int k)
@@ -791,7 +804,7 @@ static const char *knob_name(int k)
         return en_param_info(k)->name;
     return k == K_LEDS ? "Lights" : k == K_CPU ? "CPU" : k == K_PLAYMODE ? "Mode" : k == K_WANDER ? (!proj.wander ? "Wander" : proj.wander <= 50 ? "In order" : "Roaming") :
            k == K_FADE ? "Fade" : k == K_ACT ? "Act" : k == K_TIMER ? "Sleep" : k == K_ANSWER ? "Answer" :
-           k == K_BTDEV ? "Pick" : k == K_BTOUT ? "Play on" : k == K_BTON ? "Bluetooth" : k == K_BTRANGE ? "Range" : k == K_SPK ? "FM-1 out" : "";
+           k == K_BTDEV ? "Pick" : k == K_BTOUT ? "Play on" : k == K_BTON ? "Bluetooth" : k == K_BTRANGE ? "Range" : k == K_SPK ? "FM-1 out" : k == K_VGRAV ? "Gravity" : k == K_VLEVEL ? "Tide" : k == K_VSKY ? "Sky" : k == K_VGLOW ? "Glow" : "";
 }
 static void knob_text(int k, char *b)
 {
@@ -812,6 +825,19 @@ static void knob_text(int k, char *b)
         const char *n = k == K_ACT ? en_act_name(tr_goal() / EN_NACT * EN_NACT + v) : v ? "Vibe" : "Perform";
         int j = 0;
         while (n[j] && j < 9) {
+            b[j] = n[j];
+            j++;
+        }
+        b[j] = 0;
+    } else if (k == K_VGRAV || k == K_VSKY || k == K_VLEVEL || k == K_VGLOW) {   /* (0.8.25) the Visualizer's: degrees;
+                                                  * the sky by name; Tide and Glow as numbers */
+        const char *n = k == K_VSKY ? VIZ_SKY_NAME[v < 5 ? v : 1] : 0;
+        int j = 0;
+        if (!n) {
+            itoa_u((uint32_t)v * (k == K_VGRAV ? 5u : 1u), b);
+            return;
+        }
+        while (n[j] && j < 10) {
             b[j] = n[j];
             j++;
         }
@@ -897,6 +923,21 @@ static void knob_set(int k, int v)
     int lo, hi;
     if (k == K_CPU || k == K_NONE)
         return;
+    if (k == K_VGRAV) {                          /* (0.8.25) round and round */
+        viz.grav = (uint8_t)(((v % 72) + 72) % 72);
+        return;
+    }
+    if (k == K_VLEVEL || k == K_VSKY || k == K_VGLOW) {
+        const int hi = k == K_VSKY ? 4 : 100;
+        v = v < 0 ? 0 : v > hi ? hi : v;
+        if (k == K_VLEVEL)
+            viz.level = (uint8_t)v;
+        else if (k == K_VSKY)
+            viz.sky = (uint8_t)v;
+        else
+            viz.glow = (uint8_t)v;
+        return;
+    }
     if (k == K_BTDEV || k == K_BTOUT || k == K_BTON || k == K_BTRANGE || k == K_SPK) {
         bt_knob(k, v);
         return;
@@ -2369,6 +2410,106 @@ static void draw_setup(void)
 /* Bluetooth (0.6): what it is doing, in words; the speakers, known and found, the one picked outlined, the one
  * connected green; how to work it */
 /* (0.8) the One-shots page: the story's three, the one playing lit; its knobs set all of them, kept with the story */
+/* (0.8.25) the Visualizer, the last page: Tide. Five layers of water under a sky, rolling; the deepest wave lifted by
+ * the kick, the top crest by the melody, the middle with the pad. K1 Gravity: which way is down (5 degrees a click,
+ * round and round); turned, the water sloshes and settles. K2 Tide: the layers low under a wide sky .. high, flooding
+ * the screen. K3 Sky: Dawn, Dusk, Night, Deep sea, Ember. K4 Glow: the crests lit by the music. Drawn pixel by pixel:
+ * each one's depth along gravity against the five surfaces (sampled every 8 px along them, a frame's sines) */
+
+static const uint8_t VIZ_SKY[5][7][3] = {     /* each sky: its top and bottom, then the five layers */
+    {{26, 24, 48}, {58, 42, 64}, {110, 120, 200}, {200, 140, 190}, {250, 180, 150}, {250, 215, 160}, {140, 200, 190}},
+    {{7, 8, 13}, {21, 18, 38}, {70, 60, 150}, {190, 80, 150}, {240, 150, 70}, {244, 205, 70}, {90, 190, 140}},
+    {{2, 3, 8}, {7, 10, 24}, {30, 40, 110}, {50, 80, 160}, {60, 130, 190}, {90, 180, 200}, {200, 210, 120}},
+    {{2, 11, 16}, {3, 22, 28}, {20, 70, 90}, {30, 110, 120}, {50, 160, 150}, {90, 200, 170}, {180, 230, 190}},
+    {{13, 6, 5}, {28, 11, 8}, {110, 30, 40}, {170, 50, 50}, {220, 90, 50}, {245, 150, 60}, {250, 210, 120}},
+};
+#define VIZ_NS 41                                /* the surfaces' samples, -160 .. 160 */
+static void draw_viz(void)
+{
+    static const float LY[5] = {-0.12f, 0.0f, 0.12f, 0.26f, 0.4f}, LF[5] = {1.3f, 1.0f, 0.8f, 0.6f, 0.45f},
+                       LS[5] = {0.15f, 0.22f, 0.3f, 0.4f, 0.5f};
+    const uint32_t now = plat_ms();
+    float dt = viz.last_ms ? (float)(now - viz.last_ms) * 0.001f : 0.05f, kick = en_drum_glow[0], mel = 0.0f, pad = en_pad_level;
+    float surf[5][VIZ_NS], tgt, d, turb, lv = (float)viz.level * 0.01f, glow = (float)viz.glow * 0.01f, ca, sa, m[5];
+    const uint8_t(*S)[3] = VIZ_SKY[viz.sky < 5 ? viz.sky : 1];
+    const float H = 144.0f, cx = 120.0f, cy = 72.0f;
+    int i, k, x, y;
+    if (dt > 0.12f)
+        dt = 0.12f;
+    viz.last_ms = now;
+    viz.t += dt;
+    for (i = 0; i < EN_NLOOP; i++)
+        mel = fm_maxf(mel, en_loop_glow[i]);
+    viz.mel = fm_maxf(mel, viz.mel * fm_expf(-dt * 2.5f));
+    tgt = (float)viz.grav * (FM_TWO_PI / 72.0f);   /* gravity, sloshing toward it */
+    d = tgt - viz.ang;
+    while (d > FM_PI)
+        d -= FM_TWO_PI;
+    while (d < -FM_PI)
+        d += FM_TWO_PI;
+    viz.angv += (d * 9.0f - viz.angv * 4.2f) * dt;
+    viz.ang += viz.angv * dt;
+    viz.sloshv += (-viz.angv * 0.9f - viz.slosh * 14.0f - viz.sloshv * 2.2f) * dt;
+    viz.slosh += viz.sloshv * dt;
+    turb = fm_minf(1.5f, fm_fabsf(viz.angv) * 0.8f + fm_fabsf(viz.slosh) * 2.0f);
+    for (i = 0; i < 5; i++) {                    /* the surfaces, in depth along gravity from the middle (down +) */
+        const float lift = i == 4 ? kick * 7.0f : i == 0 ? viz.mel * 9.0f : 2.0f + pad * 3.0f,
+                    amp = (8.0f + (float)i * 4.0f) * 0.55f * (1.0f + turb),
+                    base = (0.55f - lv * 0.75f) * H + (LY[i] + 0.12f) * H * (0.55f + 0.9f * lv) - cy;
+        m[i] = i == 4 ? kick : i == 0 ? viz.mel : 0.35f + 0.3f * kick;
+        for (k = 0; k < VIZ_NS; k++) {
+            const float u = (float)(k * 8 - 160), un = (u + 160.0f) * (1.0f / 320.0f);
+            surf[i][k] = base - lift + viz.slosh * u * (0.5f + (float)i * 0.15f) +
+                         fm_sinf(un * FM_TWO_PI * LF[i] * 1.5f + viz.t * LS[i] * FM_TWO_PI) * amp * 0.6f +
+                         fm_sinf(un * FM_TWO_PI * LF[i] * 3.4f - viz.t * LS[i] * 4.0f * (1.0f + turb)) * amp * 0.4f * (0.5f + turb);
+        }
+    }
+    ca = fm_cosf(viz.ang);
+    sa = fm_sinf(viz.ang);
+    for (y = 0; y < 144; y++) {
+        const float dy = (float)y - cy;
+        float u = -cx * ca + dy * sa, v = cx * sa + dy * ca;   /* along the surface, down through it */
+        for (x = 0; x < 240; x++, u += ca, v -= sa) {
+            float fk = (u + 160.0f) * (1.0f / 8.0f), fr;
+            int r, g, b, li = -1;
+            if (fk < 0.0f)
+                fk = 0.0f;
+            if (fk > (float)(VIZ_NS - 1) - 0.01f)
+                fk = (float)(VIZ_NS - 1) - 0.01f;
+            k = (int)fk;
+            fr = fk - (float)k;
+            for (i = 4; i >= 0; i--) {
+                const float s = surf[i][k] + (surf[i][k + 1] - surf[i][k]) * fr;
+                if (v > s) {
+                    const float dep = v - s, sh = 1.0f - fm_minf(0.7f, dep * (1.0f / 110.0f));
+                    const uint8_t *c = S[2 + i];
+                    r = (int)((float)c[0] * sh);
+                    g = (int)((float)c[1] * sh);
+                    b = (int)((float)c[2] * sh);
+                    if (dep < 2.0f && glow > 0.03f) {   /* the crest, lit */
+                        const float w = glow * (0.25f + 0.75f * m[i]) * (1.0f - dep * 0.5f) * 140.0f;
+                        r += (int)w;
+                        g += (int)w;
+                        b += (int)w;
+                    }
+                    li = i;
+                    break;
+                }
+            }
+            if (li < 0) {                        /* the sky: top to bottom along gravity */
+                const float q = fm_clampf((v + 120.0f) * (1.0f / 240.0f), 0.0f, 1.0f);
+                r = (int)((float)S[0][0] + (float)(S[1][0] - S[0][0]) * q);
+                g = (int)((float)S[0][1] + (float)(S[1][1] - S[0][1]) * q);
+                b = (int)((float)S[0][2] + (float)(S[1][2] - S[0][2]) * q);
+            }
+            r = r > 255 ? 255 : r;
+            g = g > 255 ? 255 : g;
+            b = b > 255 ? 255 : b;
+            cv_pset(x, y, RGB(r, g, b));
+        }
+    }
+}
+
 static void draw_shots(void)
 {
     int k, cur = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : proj.piece;
@@ -2710,7 +2851,7 @@ static void draw_main(void)
     uint32_t h, i;
     int what = ui.help ? 1 : ui.view == V_STORY ? 2 : ui.view == V_LEAD ? 3 : ui.view == V_SPACE ? 4 : ui.view >= V_REV ? 5 :
                ui.view == V_GARDEN ? 6 : ui.view == V_SETUP ? 7 : ui.view == V_SYSTEM ? 8 : ui.view == V_MIX ? 9 :
-               ui.view == V_COLR ? 10 : ui.view == V_BT ? 11 : ui.view == V_SHOTS ? 12 : 0;
+               ui.view == V_COLR ? 10 : ui.view == V_BT ? 11 : ui.view == V_SHOTS ? 12 : ui.view == V_VIZ ? 13 : 0;
     lead_trace_tick();
     mix_meter_tick();
     if (ui.frame % 3u)                           /* 20 frames a second is plenty */
@@ -2774,6 +2915,10 @@ static void draw_main(void)
                                   (uint32_t)plat_bta_out_device() << 12 | (uint32_t)proj.bt_off << 13),
                       plat_ms() / 400u), (uint32_t)bt.name[bt.sel][0] | (uint32_t)bt.conn[0] << 8 | (uint32_t)bt.name[0][1] << 16);
         break;
+    case 13:                                     /* (0.8.25) the Visualizer: about 12 frames a second (each pixel
+                                                  * worked out: the main loop's time kept for the rest) */
+        h = hash(h, plat_ms() / 80u);
+        break;
     case 12:
         h = hash(hash(h, (uint32_t)ui.sting_k | (uint32_t)en_theme_busy() << 4 | (uint32_t)(plat_ms() - ui.sting_t < 2500u) << 5),
                  (uint32_t)proj.par[P_OSLEVEL] | (uint32_t)proj.par[P_OSSPACE] << 8 | (uint32_t)proj.par[P_OSECHO] << 16 |
@@ -2824,6 +2969,7 @@ static void draw_main(void)
     case 10: draw_colours(); break;
     case 11: draw_bt(); break;
     case 12: draw_shots(); break;
+    case 13: draw_viz(); break;
     default:
         if (ring_focus() >= 0)                   /* (0.7: an instrument's page, every instrument's strips, its own bright) */
             draw_inst_strips(ring_focus());

@@ -53,7 +53,7 @@ expect answer 0
 # the punch-ins' new knobs: Harmony's Shimmer, Width
 press ENV
 wait 100
-expect view 14
+expect view 15
 spin K3 30
 expect par53 30
 spin K4 -20

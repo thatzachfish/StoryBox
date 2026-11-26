@@ -13,3 +13,16 @@ shot speaker_off.png
 turn K1 1
 said FM-1 OUT ON
 expect usb_audio_full 0
+# (0.8.25) the Visualizer: the last page, after Bluetooth; its knobs: Gravity round and round, Sky by name
+turn SELECT 1
+wait 200
+expect view 14
+said Visualizer page: Gravity 0, Tide 40, Sky Dusk, Glow 50
+turn K1 -1
+wait 100
+said Gravity 355
+wait 600
+turn K3 1
+wait 300
+said Sky Night
+shot visualizer.png

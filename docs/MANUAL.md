@@ -566,3 +566,11 @@ power-on.
 While a Bluetooth speaker plays, the FM-1's own speaker stays silent (it used to crackle when the stream hiccuped).
 FM-1 out Off no longer silences the Bluetooth speaker. When the render runs late (Bluetooth's encoding shares its
 time), StoryBox sheds work for a few seconds: the melody's faintest overtones and the drums' room.
+
+### The Visualizer (0.8.25, the last page)
+
+Tide: five layers of water under a sky, moving with the music (the deepest wave with the kick, the top crest with the
+melody, the middle with the pad). K1 Gravity: which way is down, 5 degrees a click, round and round; turned, the water
+sloshes and settles. K2 Tide: low under a wide sky .. high, flooding the screen. K3 Sky: Dawn, Dusk, Night, Deep sea,
+Ember. K4 Glow: the crests lit by the music. About 12 frames a second; once a second while a Bluetooth speaker plays
+(the radio's work comes first).
