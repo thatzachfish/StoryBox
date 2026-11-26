@@ -941,6 +941,11 @@ typedef struct {
     int ks_w;
 } bell_t;
 static bell_t bell[NBELL];
+/* (0.8.24) the render past 90 % of its time (fm1-base's APP_OVERLOAD: Bluetooth's encoding shares the audio's
+ * interrupt; an act's change, both acts ringing): for 3 s the melody's voices keep their four strongest modes, the
+ * drums skip the room */
+static int32_t lite_left;
+void en_overload(void) { lite_left = (int32_t)(3.0f * EN_SR); }
 /* StoryBox: the melody's instruments (0.8.17: the bells' Bell tone, each instrument's ring (x the bells'), a soft
  * attack (0: the bells'), an octave up, a tremolo; ratio, idx, idx_t: the old FM's, unused now, the modes in INST) */
 static const struct {
@@ -3042,7 +3047,13 @@ static void render_bells(uint32_t n)
             const float nzd = v->nzd, nlp = INST[v->mel].nz_lp;
             int k, nk = 0;
             for (k = 0; k < NMODE; k++) {
+                if (v->mc[k] != 0.0f && fm_fabsf(v->my1[k]) + fm_fabsf(v->my2[k]) < 1e-5f) {   /* (0.8.24) rung out
+                                                  * (-100 dB): let go, its work saved */
+                    v->mc[k] = v->mr2[k] = v->my1[k] = v->my2[k] = 0.0f;
+                }
                 if (v->mc[k] == 0.0f && v->my1[k] == 0.0f)
+                    continue;
+                if (lite_left > 0 && nk >= 4)    /* (0.8.24) shedding: the four strongest (listed first) only */
                     continue;
                 y1[nk] = v->my1[k];
                 y2[nk] = v->my2[k];
@@ -3082,6 +3093,8 @@ static void render_bells(uint32_t n)
             nk = 0;
             for (k = 0; k < NMODE; k++) {
                 if (v->mc[k] == 0.0f && v->my1[k] == 0.0f)
+                    continue;
+                if (lite_left > 0 && nk >= 4)
                     continue;
                 v->my1[k] = fm_flush(y1[nk]);
                 v->my2[k] = fm_flush(y2[nk]);
@@ -3462,7 +3475,8 @@ static void render_drums(uint32_t n)
     for (j = 0; j < n; j++) {
         float l = dbl[j], r = dbr[j], m = 0.5f * (l + r), e = 0.0f;
         int t;
-        {                                        /* the room: its early reflections, left and right in turn */
+        if (lite_left <= 0) {                    /* the room: its early reflections, left and right in turn (0.8.24:
+                                                  * not while shedding) */
             static const int16_t TAP[6] = {269, 428, 613, 851, 1147, 1473};   /* 6 .. 33 ms */
             static const float TG[6] = {0.5f, 0.45f, 0.38f, 0.32f, 0.25f, 0.2f};
             float el = 0.0f, er = 0.0f;
@@ -5154,6 +5168,8 @@ static void control(uint32_t n)                 /* once a chunk: the slow things
 
 void en_render(int32_t *out, uint32_t n, uint32_t gain_q12)
 {
+    if (lite_left > 0)
+        lite_left -= (int32_t)n;
     const float gain = (float)gain_q12 * (1.0f / 4096.0f) * 2.0f;
     drain();
     if (en_ext && ++ext_age > 100u)

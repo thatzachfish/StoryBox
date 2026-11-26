@@ -588,7 +588,7 @@ static void bt_power(void) {}
 /* (0.8.21) the FM-1's own speaker (and headphones) off: the sound only over USB (and Bluetooth), at MASTER's level
  * (app_render takes it from MASTER itself; the render's gain after the USB recording, APP_GAIN, 0). Not saved: at
  * power-on it is always on, so the FM-1 is never silent without saying why */
-volatile uint8_t app_spk_off;
+volatile uint8_t app_spk_off, app_bt_quiet;
 static void bt_knob(int k, int v)
 {
     if (k == K_SPK) {
@@ -596,7 +596,7 @@ static void bt_knob(int k, int v)
         if (v == !app_spk_off)
             return;
         app_spk_off = (uint8_t)!v;
-        plat_usb_audio_full(!v);
+        plat_usb_audio_full(!v || app_bt_quiet);
         say("FM-1 OUT", v ? "ON" : "OFF: USB ONLY");
         return;
     }
@@ -682,6 +682,14 @@ static void bt_forget(void)                     /* SAVE held on the page: the pi
 
 static void bt_tick(int page)                   /* every frame: what happened, said; the page looks; power-on calls */
 {
+    {                                            /* (0.8.24) a Bluetooth speaker playing: the FM-1's own output off for
+                                                  * good, the USB recording at MASTER's level */
+        const uint8_t q = (uint8_t)(plat_bta_state() == PLAT_BTA_STREAMING && plat_bta_out_device());
+        if (q != app_bt_quiet) {
+            app_bt_quiet = q;
+            plat_usb_audio_full(app_spk_off || q);
+        }
+    }
     int st, lost;
     uint32_t now = plat_ms();
     char nm[17];

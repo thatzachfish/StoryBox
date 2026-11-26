@@ -11,16 +11,23 @@
 #define APP_SPLASH                       /* the loading screen in StoryBox's colours (ui_splash) */
 void ui_splash(void);
 #define APP_BLOCK 256u                   /* frames per audio block: 5.8 ms at 44.1 kHz */
+#define APP_OVERLOAD                     /* (0.8.24) the render past 90 % of its time: app_overload sheds work */
+void app_overload(void);
 #define FM1B_UAC_DEEP 1                  /* (0.8.23) the USB recording a half (5.8 ms) more in hand: the engine past ~40 % of
                                           * its time ran fm1-base's shallow ring dry (Zach's iPad: warbly, garbled,
                                           * glitches; the speaker clean). Its 4 KB ring in the pool */
-extern volatile uint8_t app_spk_off;     /* (0.8.21) the Bluetooth page's Speaker off: USB only (ui.c) */
-#define APP_GAIN(m) (app_spk_off ? 0u : (uint32_t)(m) * (uint32_t)(m) >> 12)   /* (fm1-base's square; 0 for the speaker
-                                          * and headphones when off) */
+extern volatile uint8_t app_spk_off;     /* (0.8.21) the Bluetooth page's FM-1 out off: USB only (ui.c) */
+extern volatile uint8_t app_bt_quiet;    /* (0.8.24) a Bluetooth speaker playing: the FM-1's own output off for good (its
+                                          * hiccups leaked out of the FM-1's speaker as crackles) */
+#define APP_GAIN(m) (app_spk_off || app_bt_quiet ? 0u : (uint32_t)(m) * (uint32_t)(m) >> 12)   /* (fm1-base's square; 0
+                                          * for the speaker and headphones when off) */
+#define APP_BT_FRAMES                    /* (0.8.24) Bluetooth its own copy of the render, before the FM-1's own is
+                                          * muted: FM-1 out off had silenced the Bluetooth speaker too */
+const int32_t *app_bt_frames(const int32_t *lr, uint32_t n);
 #ifdef APP_VERSION                       /* a release build passes its own (tools/build.py --release) */
 #define EN_VERSION APP_VERSION
 #else
-#define EN_VERSION "0.8.23"               /* StoryBox's version, shown on the System page (the install page's too) */
+#define EN_VERSION "0.8.24"               /* StoryBox's version, shown on the System page (the install page's too) */
 #endif
 
 /* the store: the project at 0xFC000 and the panel calibration at 0xDC000, where AMB-1 0.9 kept them (an update keeps

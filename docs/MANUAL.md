@@ -560,3 +560,9 @@ West African timeline. Sunrise, Gathering, Dance, Embers.
 On the Bluetooth page, knob 1 (FM-1 out) turns the FM-1's own speaker and headphone jack off, so the sound goes only
 over USB-C (to a computer or an iPad) and to a Bluetooth speaker, at the level MASTER sets. It is always back on at
 power-on.
+
+### Bluetooth and the FM-1's own speaker (0.8.24)
+
+While a Bluetooth speaker plays, the FM-1's own speaker stays silent (it used to crackle when the stream hiccuped).
+FM-1 out Off no longer silences the Bluetooth speaker. When the render runs late (Bluetooth's encoding shares its
+time), StoryBox sheds work for a few seconds: the melody's faintest overtones and the drums' room.
