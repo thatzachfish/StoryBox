@@ -554,3 +554,9 @@ fingerpicked), Glass, Felt piano, Koto (some notes pressed up into pitch, as a k
 Afro-folk after West Africa's palm-wine music and highlife: G Mixolydian at 116, the kalimba, a round bass, and the
 new Highlife kit (Kit 5): the kick on one and three, the hats on the off-beats, a shaker, and an iron bell playing the
 West African timeline. Sunrise, Gathering, Dance, Embers.
+
+### The FM-1's speaker off, for USB audio (0.8.21)
+
+On the Bluetooth page, knob 1 (Speaker) turns the FM-1's own speaker and headphone jack off, so the sound goes only
+over USB-C (to a computer or an iPad) and to a Bluetooth speaker, at the level MASTER sets. It is always back on at
+power-on.

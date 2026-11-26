@@ -38,7 +38,7 @@ static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, B_SEL, NOBTN, B_FX, NOBTN, NOBT
 /* the punch-ins: ENV Harmony (0.7, Reverse's place), LFO Tape Stop (0.8.16), ARP Throw / Cloud, SEQ Glitch / Shuffle (0.8.14) (held; a double tap latches one on) */
 static const uint8_t FX_BTN[EN_NFX] = {B_ENV, B_LFO, B_ARP, B_SEQ};
 /* the four knobs of each page: a parameter, or one of these; and what the knob is called there */
-enum { K_LEDS = 100, K_CPU, K_NONE, K_PLAYMODE, K_WANDER, K_FADE, K_ACT, K_TIMER, K_ANSWER, K_BTDEV, K_BTOUT, K_BTON, K_BTRANGE };
+enum { K_LEDS = 100, K_CPU, K_NONE, K_PLAYMODE, K_WANDER, K_FADE, K_ACT, K_TIMER, K_ANSWER, K_BTDEV, K_BTOUT, K_BTON, K_BTRANGE, K_SPK };
 static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_TEMPO, P_GROOVE, P_TENSION, K_WANDER},    /* (0.8: Tempo in Act's place: PRESETS is the act) */
     {P_EVOLVE, P_FREEDOM, P_DRIFT, P_MOTION},
@@ -52,7 +52,7 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_LLEVEL, P_LGLIDE, P_LSOUND, P_LOCT},     /* (0.8: Octave; Answer on OCT- / OCT+) */
     {P_ROOT, P_TEMPO, K_TIMER, K_FADE},
     {P_TUNE, K_LEDS, P_MIDI, K_NONE},            /* (0.8: the CPU in words on the page) */
-    {K_NONE, K_BTDEV, K_BTOUT, K_BTON},   /* (0.7: to the right, knob 1 free) */
+    {K_SPK, K_BTDEV, K_BTOUT, K_BTON},    /* (0.8.21: knob 1 the FM-1's speaker, on or off: USB only) */
     {P_OSLEVEL, P_OSSPACE, P_OSECHO, P_OSTONE},   /* (0.8) the one-shots, all together, the story's */
     {P_RVLEN, P_RVMIX, P_HVSHIM, P_HVWIDTH},     /* (0.8: the punch-ins' knobs 3 and 4) */
     {P_STRATE, P_STPITCH, P_STLEN, P_STMIX},     /* (0.8.16) Tape Stop: Stop, Start, Scratch, Mix */
@@ -72,7 +72,7 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
     {"Level", "Glide", "Sound", "Octave"},
     {"Root", "Tempo", "Sleep", "Fade"},
     {"Tune", "Lights", "MIDI out", ""},
-    {"", "Pick", "Play on", "Bluetooth"},
+    {"Speaker", "Pick", "Play on", "Bluetooth"},
     {"Level", "Space", "Echo", "Tone"},
     {"Interval", "Mix", "Shimmer", "Width"},
     {"Stop", "Start", "Scratch", "Mix"},
@@ -585,8 +585,21 @@ static void bt_list(void)                       /* the known, then the found not
 static int bt_range(void) { return 1; }     /* (Range: kept for a later build, with a helper in fm1-base for the
                                                  * radio's strength; the build's checks keep BSP registers in the BSP) */
 static void bt_power(void) {}
+/* (0.8.21) the FM-1's own speaker (and headphones) off: the sound only over USB (and Bluetooth), at MASTER's level
+ * (app_render takes it from MASTER itself; the render's gain after the USB recording, APP_GAIN, 0). Not saved: at
+ * power-on it is always on, so the FM-1 is never silent without saying why */
+volatile uint8_t app_spk_off;
 static void bt_knob(int k, int v)
 {
+    if (k == K_SPK) {
+        v = v != 0;
+        if (v == !app_spk_off)
+            return;
+        app_spk_off = (uint8_t)!v;
+        plat_usb_audio_full(!v);
+        say("SPEAKER", v ? "ON" : "OFF: USB ONLY");
+        return;
+    }
     if (k == K_BTRANGE) {
         v = v < 0 ? 0 : v > 2 ? 2 : v;
         if (v == bt_range())
@@ -748,6 +761,8 @@ static int knob_get(int k)
         return !proj.bt_off;
     if (k == K_BTRANGE)
         return bt_range();
+    if (k == K_SPK)
+        return !app_spk_off;
     return 0;
 }
 static void knob_range(int k, int *lo, int *hi)
@@ -759,7 +774,7 @@ static void knob_range(int k, int *lo, int *hi)
         *lo = 0;
         *hi = k == K_LEDS ? 2 : k == K_FADE ? NFADE - 1 : k == K_CPU || k == K_WANDER ? 100 : k == K_PLAYMODE ? 1 :
               k == K_ACT ? EN_NACT - 1 : k == K_TIMER ? 4 : k == K_ANSWER ? 100 : k == K_BTDEV ? (bt.n ? bt.n - 1 : 0) :
-              k == K_BTOUT || k == K_BTON ? 1 : k == K_BTRANGE ? 2 : 0;
+              k == K_BTOUT || k == K_BTON || k == K_SPK ? 1 : k == K_BTRANGE ? 2 : 0;
     }
 }
 static const char *knob_name(int k)
@@ -768,7 +783,7 @@ static const char *knob_name(int k)
         return en_param_info(k)->name;
     return k == K_LEDS ? "Lights" : k == K_CPU ? "CPU" : k == K_PLAYMODE ? "Mode" : k == K_WANDER ? (!proj.wander ? "Wander" : proj.wander <= 50 ? "In order" : "Roaming") :
            k == K_FADE ? "Fade" : k == K_ACT ? "Act" : k == K_TIMER ? "Sleep" : k == K_ANSWER ? "Answer" :
-           k == K_BTDEV ? "Pick" : k == K_BTOUT ? "Play on" : k == K_BTON ? "Bluetooth" : k == K_BTRANGE ? "Range" : "";
+           k == K_BTDEV ? "Pick" : k == K_BTOUT ? "Play on" : k == K_BTON ? "Bluetooth" : k == K_BTRANGE ? "Range" : k == K_SPK ? "Speaker" : "";
 }
 static void knob_text(int k, char *b)
 {
@@ -799,8 +814,8 @@ static void knob_text(int k, char *b)
             b++;
         *b++ = '/';
         itoa_u((uint32_t)bt.n, b);
-    } else if (k == K_ANSWER || k == K_BTOUT || k == K_BTON || k == K_BTDEV || k == K_BTRANGE) {
-        const char *n = k == K_BTRANGE ? (v == 0 ? "Near" : v == 1 ? "Medium" : "Far") : k == K_ANSWER ? (v ? 0 : "Off") : k == K_BTOUT ? (v ? "Speaker" : "FM-1") : k == K_BTON ? (v ? "On" : "Off") :
+    } else if (k == K_ANSWER || k == K_BTOUT || k == K_BTON || k == K_BTDEV || k == K_BTRANGE || k == K_SPK) {
+        const char *n = k == K_SPK ? (v ? "On" : "Off") : k == K_BTRANGE ? (v == 0 ? "Near" : v == 1 ? "Medium" : "Far") : k == K_ANSWER ? (v ? 0 : "Off") : k == K_BTOUT ? (v ? "Speaker" : "FM-1") : k == K_BTON ? (v ? "On" : "Off") :
                         bt.n ? bt.name[v] : "None";
         int j = 0;
         if (!n) {
@@ -874,7 +889,7 @@ static void knob_set(int k, int v)
     int lo, hi;
     if (k == K_CPU || k == K_NONE)
         return;
-    if (k == K_BTDEV || k == K_BTOUT || k == K_BTON || k == K_BTRANGE) {
+    if (k == K_BTDEV || k == K_BTOUT || k == K_BTON || k == K_BTRANGE || k == K_SPK) {
         bt_knob(k, v);
         return;
     }

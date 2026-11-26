@@ -1,0 +1,15 @@
+# (0.8.21) the Bluetooth page's first knob: the FM-1's own speaker (and headphones) off, the sound over USB only, at
+# MASTER's level; on again; not saved
+wait 300
+listen
+tap HOME
+turn SELECT 13
+wait 200
+expect usb_audio_full 0
+turn K1 -1
+said SPEAKER OFF: USB ONLY
+expect usb_audio_full 1
+shot speaker_off.png
+turn K1 1
+said SPEAKER ON
+expect usb_audio_full 0

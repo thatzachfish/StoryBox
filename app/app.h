@@ -11,10 +11,13 @@
 #define APP_SPLASH                       /* the loading screen in StoryBox's colours (ui_splash) */
 void ui_splash(void);
 #define APP_BLOCK 256u                   /* frames per audio block: 5.8 ms at 44.1 kHz */
+extern volatile uint8_t app_spk_off;     /* (0.8.21) the Bluetooth page's Speaker off: USB only (ui.c) */
+#define APP_GAIN(m) (app_spk_off ? 0u : (uint32_t)(m) * (uint32_t)(m) >> 12)   /* (fm1-base's square; 0 for the speaker
+                                          * and headphones when off) */
 #ifdef APP_VERSION                       /* a release build passes its own (tools/build.py --release) */
 #define EN_VERSION APP_VERSION
 #else
-#define EN_VERSION "0.8.20"               /* StoryBox's version, shown on the System page (the install page's too) */
+#define EN_VERSION "0.8.21"               /* StoryBox's version, shown on the System page (the install page's too) */
 #endif
 
 /* the store: the project at 0xFC000 and the panel calibration at 0xDC000, where AMB-1 0.9 kept them (an update keeps

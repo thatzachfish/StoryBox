@@ -17,7 +17,14 @@ void app_init(void)
     project_apply();
     plat_stats_enable(1);                /* (0.7.1-bt: the debug stats on, for the Bluetooth hunt) */
 }
-void app_render(int32_t *lr, uint32_t n, uint32_t gain_q12) { en_render(lr, n, gain_q12); }
+void app_render(int32_t *lr, uint32_t n, uint32_t gain_q12)
+{
+    if (app_spk_off) {                           /* (0.8.21) the speaker off: the USB recording at MASTER's level */
+        const uint32_t m = plat_master();
+        gain_q12 = m * m >> 12;
+    }
+    en_render(lr, n, gain_q12);
+}
 void app_panic(void)
 {
     en_play(0);
