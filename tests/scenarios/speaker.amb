@@ -17,12 +17,30 @@ expect usb_audio_full 0
 turn SELECT 1
 wait 200
 expect view 14
-said Visualizer page: Gravity 0, Tide 40, Sky Dusk, Glow 50
+said Visualizer page: Gravity 0, Tide 40, Sky Dawn, Glow 50
 turn K1 -1
 wait 100
 said Gravity 355
 wait 600
-turn K3 1
+turn K3 2
 wait 300
 said Sky Night
 shot visualizer.png
+# (0.8.26) the interface in the sky's colours, kept; Dawn today's
+turn K4 50
+wait 300
+shot viz_glow.png
+turn SELECT -14
+wait 300
+shot theme_night_story.png
+turn SELECT 1
+wait 300
+shot theme_night_acts.png
+turn SELECT 13
+turn K3 -1
+wait 300
+said Sky Dusk
+turn SELECT -12
+wait 300
+shot theme_dusk_mixer.png
+

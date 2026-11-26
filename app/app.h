@@ -27,7 +27,7 @@ const int32_t *app_bt_frames(const int32_t *lr, uint32_t n);
 #ifdef APP_VERSION                       /* a release build passes its own (tools/build.py --release) */
 #define EN_VERSION APP_VERSION
 #else
-#define EN_VERSION "0.8.25"               /* StoryBox's version, shown on the System page (the install page's too) */
+#define EN_VERSION "0.8.26"               /* StoryBox's version, shown on the System page (the install page's too) */
 #endif
 
 /* the store: the project at 0xFC000 and the panel calibration at 0xDC000, where AMB-1 0.9 kept them (an update keeps
@@ -65,7 +65,8 @@ typedef struct {
     slot_t slot[NPIECES];                /* every piece as it was left (Tune and MIDI out are global) */
     uint8_t bt_range;                    /* 0.7.1: the radio's strength while a speaker plays: 1 Near, 2 Medium, 3 Far
                                           * (0, an older save: Medium) */
-    uint8_t rsv[15];                     /* room to grow */
+    uint8_t sky;                         /* 0.8.26: the Visualizer's Sky, the interface's colours (0 Dawn, today's) */
+    uint8_t rsv[14];                     /* room to grow */
 } project_t;
 
 extern project_t proj;

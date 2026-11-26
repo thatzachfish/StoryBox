@@ -88,21 +88,32 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
  * bells; the bass and the pulse in darker inks. Each layer has a pale tint for the shapes at rest. */
 /* StoryBox: a night palette, high contrast but not bright. Near-black ground, warm white text; yellow for what is
  * selected or turning, green for what plays, fuchsia for alerts (a warning, a low battery, a lot of Tension) */
-#define K_BG RGB(10, 11, 16)
-#define K_PANEL RGB(37, 40, 52)
-#define K_LINE RGB(71, 78, 97)
+/* (0.8.26) the interface takes its colours from the Visualizer's Sky: each colour the sky's hue at today's
+ * brightness and strength, so every sky is as clear as today. Dawn is today's own. Text, alerts, frost stay. */
+enum { T_BG, T_PANEL, T_LINE, T_ACC, T_BELL, T_BELL_T, T_PAD, T_PAD_T, T_PULSE, T_PULSE_T, T_BASS, T_BASS_T, NTHEME };
+static const uint16_t THEMES[5][NTHEME] = {
+    {RGB(10, 11, 16), RGB(37, 40, 52), RGB(71, 78, 97), RGB(255, 212, 58), RGB(64, 214, 240), RGB(32, 63, 69), RGB(104, 232, 84), RGB(41, 69, 39), RGB(194, 142, 255), RGB(58, 48, 71), RGB(255, 140, 52), RGB(71, 50, 32)},   /* Dawn (today's) */
+    {RGB(10, 10, 16), RGB(39, 37, 52), RGB(74, 71, 97), RGB(255, 211, 58), RGB(240, 147, 64), RGB(69, 49, 32), RGB(84, 232, 158), RGB(39, 69, 54), RGB(155, 142, 255), RGB(51, 48, 71), RGB(255, 52, 181), RGB(71, 32, 57)},   /* Dusk */
+    {RGB(10, 11, 16), RGB(37, 39, 52), RGB(71, 74, 97), RGB(58, 219, 255), RGB(64, 159, 240), RGB(32, 52, 69), RGB(216, 232, 84), RGB(66, 69, 39), RGB(142, 156, 255), RGB(48, 51, 71), RGB(52, 107, 255), RGB(32, 43, 71)},   /* Night */
+    {RGB(10, 14, 16), RGB(37, 48, 52), RGB(71, 90, 97), RGB(58, 255, 201), RGB(64, 240, 224), RGB(32, 69, 66), RGB(84, 232, 114), RGB(39, 69, 45), RGB(142, 223, 255), RGB(48, 64, 71), RGB(52, 232, 255), RGB(32, 67, 71)},   /* Deep sea */
+    {RGB(16, 11, 10), RGB(52, 37, 39), RGB(97, 71, 74), RGB(255, 154, 58), RGB(240, 105, 64), RGB(69, 41, 32), RGB(232, 186, 84), RGB(69, 60, 39), RGB(255, 142, 156), RGB(71, 48, 51), RGB(255, 52, 52), RGB(71, 32, 32)},   /* Ember */
+};
+static const uint16_t *ui_th = THEMES[0];
+#define K_BG ui_th[T_BG]
+#define K_PANEL ui_th[T_PANEL]
+#define K_LINE ui_th[T_LINE]
 #define K_DIM RGB(177, 179, 193)
 #define K_TEXT RGB(250, 246, 234)
-#define K_ACC RGB(255, 212, 58)          /* yellow: the page, the knob being turned, a message's word, where it is */
+#define K_ACC ui_th[T_ACC]                  /* (yellow today) the page, the knob being turned, a message's word, where it is */
 #define K_ALERT RGB(255, 62, 178)        /* fuchsia: alerts */
-#define K_BELL RGB(64, 214, 240)
-#define K_BELL_T RGB(32, 63, 69)
-#define K_PAD RGB(104, 232, 84)         /* green: what plays */
-#define K_PAD_T RGB(41, 69, 39)
-#define K_PULSE RGB(194, 142, 255)
-#define K_PULSE_T RGB(58, 48, 71)
-#define K_BASS RGB(255, 140, 52)
-#define K_BASS_T RGB(71, 50, 32)
+#define K_BELL ui_th[T_BELL]
+#define K_BELL_T ui_th[T_BELL_T]
+#define K_PAD ui_th[T_PAD]                  /* (green today) what plays */
+#define K_PAD_T ui_th[T_PAD_T]
+#define K_PULSE ui_th[T_PULSE]
+#define K_PULSE_T ui_th[T_PULSE_T]
+#define K_BASS ui_th[T_BASS]
+#define K_BASS_T ui_th[T_BASS_T]
 #define K_FROST RGB(120, 170, 255)
 #define K_FROST_T RGB(43, 54, 89)
 
@@ -144,10 +155,10 @@ static struct {
 } ui;
 /* (0.8.25) the Visualizer's knobs and motion (draw_viz) */
 static struct {
-    uint8_t grav, level, sky, glow;
+    uint8_t grav, level, glow;
     float ang, angv, slosh, sloshv, t, mel;
     uint32_t last_ms;
-} viz = {0, 40, 1, 50, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0u};
+} viz = {0, 40, 50, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0u};
 static const char *const VIZ_SKY_NAME[5] = {"Dawn", "Dusk", "Night", "Deep sea", "Ember"};
 
 /* the screen reader (announce.c; speak() below): a message went to it this frame, so speak() leaves what it
@@ -782,7 +793,7 @@ static int knob_get(int k)
     if (k == K_SPK)
         return !app_spk_off;
     if (k == K_VGRAV || k == K_VLEVEL || k == K_VSKY || k == K_VGLOW)
-        return k == K_VGRAV ? viz.grav : k == K_VLEVEL ? viz.level : k == K_VSKY ? viz.sky : viz.glow;
+        return k == K_VGRAV ? viz.grav : k == K_VLEVEL ? viz.level : k == K_VSKY ? proj.sky : viz.glow;
     return 0;
 }
 static void knob_range(int k, int *lo, int *hi)
@@ -932,9 +943,12 @@ static void knob_set(int k, int v)
         v = v < 0 ? 0 : v > hi ? hi : v;
         if (k == K_VLEVEL)
             viz.level = (uint8_t)v;
-        else if (k == K_VSKY)
-            viz.sky = (uint8_t)v;
-        else
+        else if (k == K_VSKY) {
+            if (proj.sky != (uint8_t)v) {        /* (0.8.26) kept: the interface's colours too */
+                proj.sky = (uint8_t)v;
+                ui.dirty = 1;
+            }
+        } else
             viz.glow = (uint8_t)v;
         return;
     }
@@ -2084,7 +2098,7 @@ static void draw_colours(void)
 {
     static const char *const EN[4] = {"Shimmer", "Echo", "Drive", "Punch"};
     static const char *const TN[4] = {"Pad", "Melody", "Bass", "Drums"};
-    static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
+    const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
     static const uint8_t EP[4] = {P_SHIMMER, P_MECHO, P_DRIVE, P_CRUSH};
     int i, k;
     for (i = 0; i < 4; i++) {
@@ -2214,7 +2228,7 @@ static void draw_help(void)
  * house music); the one-shots (C#5 D#5 F#5) at the bottom. The one playing lit, the one coming blinking */
 static void draw_map(void)
 {
-    static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
+    const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
     static const char *const SHORT[EN_NSTORY] = {"Pre-show", "Sleep", "Palm Wine", "Market", "Fast & Slow", "Inside",
                                                  "Fly", "Intermission", "Post Show", "Rooftop"};
     static const int8_t BANK[3][4] = {{5, 6, 4, -1}, {2, 3, 9, 1}, {0, 7, 8, -1}};
@@ -2430,8 +2444,8 @@ static void draw_viz(void)
                        LS[5] = {0.15f, 0.22f, 0.3f, 0.4f, 0.5f};
     const uint32_t now = plat_ms();
     float dt = viz.last_ms ? (float)(now - viz.last_ms) * 0.001f : 0.05f, kick = en_drum_glow[0], mel = 0.0f, pad = en_pad_level;
-    float surf[5][VIZ_NS], tgt, d, turb, lv = (float)viz.level * 0.01f, glow = (float)viz.glow * 0.01f, ca, sa, m[5];
-    const uint8_t(*S)[3] = VIZ_SKY[viz.sky < 5 ? viz.sky : 1];
+    float surf[5][VIZ_NS], cw[5], cg[5], hw[5], hg[5], tgt, d, turb, lv = (float)viz.level * 0.01f, glow = (float)viz.glow * 0.01f, ca, sa, m[5];
+    const uint8_t(*S)[3] = VIZ_SKY[proj.sky < 5 ? proj.sky : 0];
     const float H = 144.0f, cx = 120.0f, cy = 72.0f;
     int i, k, x, y;
     if (dt > 0.12f)
@@ -2466,12 +2480,20 @@ static void draw_viz(void)
     }
     ca = fm_cosf(viz.ang);
     sa = fm_sinf(viz.ang);
+    for (i = 0; i < 5; i++) {                    /* (0.8.26) Glow, more dramatic: each crest a lit band (wider, brighter with
+                                                  * the music, tinted by its water) and a halo rising above it */
+        const float e = 0.3f + 0.7f * m[i];
+        cw[i] = 1.5f + 8.0f * glow * e;
+        cg[i] = glow * (0.4f + 0.6f * m[i]) * 400.0f;
+        hw[i] = 3.0f + 26.0f * glow * e;
+        hg[i] = glow * (0.25f + 0.75f * m[i]) * 230.0f;
+    }
     for (y = 0; y < 144; y++) {
         const float dy = (float)y - cy;
         float u = -cx * ca + dy * sa, v = cx * sa + dy * ca;   /* along the surface, down through it */
         for (x = 0; x < 240; x++, u += ca, v -= sa) {
-            float fk = (u + 160.0f) * (1.0f / 8.0f), fr;
-            int r, g, b, li = -1;
+            float fk = (u + 160.0f) * (1.0f / 8.0f), fr, below = 1e9f;
+            int r, g, b, li = -1, j;
             if (fk < 0.0f)
                 fk = 0.0f;
             if (fk > (float)(VIZ_NS - 1) - 0.01f)
@@ -2486,21 +2508,34 @@ static void draw_viz(void)
                     r = (int)((float)c[0] * sh);
                     g = (int)((float)c[1] * sh);
                     b = (int)((float)c[2] * sh);
-                    if (dep < 2.0f && glow > 0.03f) {   /* the crest, lit */
-                        const float w = glow * (0.25f + 0.75f * m[i]) * (1.0f - dep * 0.5f) * 140.0f;
-                        r += (int)w;
-                        g += (int)w;
-                        b += (int)w;
+                    if (glow > 0.03f && dep < cw[i]) {   /* the crest, lit */
+                        float f = 1.0f - dep / cw[i], w;
+                        f *= f;
+                        w = cg[i] * f * (1.0f / 255.0f);
+                        r += (int)(w * (140.0f + (float)c[0] * 0.45f));
+                        g += (int)(w * (140.0f + (float)c[1] * 0.45f));
+                        b += (int)(w * (140.0f + (float)c[2] * 0.45f));
                     }
                     li = i;
                     break;
                 }
+                below = s;                       /* the next surface down from here */
             }
             if (li < 0) {                        /* the sky: top to bottom along gravity */
                 const float q = fm_clampf((v + 120.0f) * (1.0f / 240.0f), 0.0f, 1.0f);
                 r = (int)((float)S[0][0] + (float)(S[1][0] - S[0][0]) * q);
                 g = (int)((float)S[0][1] + (float)(S[1][1] - S[0][1]) * q);
                 b = (int)((float)S[0][2] + (float)(S[1][2] - S[0][2]) * q);
+            }
+            j = li + 1;                          /* the halo of the crest below, rising into this water or the sky */
+            if (glow > 0.03f && j <= 4 && below - v < hw[j]) {
+                const uint8_t *c = S[2 + j];
+                float f = 1.0f - (below - v) / hw[j], w;
+                f *= f;
+                w = hg[j] * f * (1.0f / 255.0f);
+                r += (int)(w * (float)c[0]);
+                g += (int)(w * (float)c[1]);
+                b += (int)(w * (float)c[2]);
             }
             r = r > 255 ? 255 : r;
             g = g > 255 ? 255 : g;
@@ -2781,7 +2816,7 @@ static void draw_inst_strips(int focus)
 {
     static const char *const TN[4] = {"Pad", "Melody", "Bass", "Drums"};
     static const char *const TK[4] = {"F#", "G#", "A#", "C#"};
-    static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
+    const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
     static const uint8_t TP[4] = {P_PAD, P_BELLS, P_BASS, P_PULSE};
     static const int NP[4] = {EN_NPAD, EN_NLOOP, 1, EN_NDRUM};
     char t[8];
@@ -2999,7 +3034,7 @@ static void draw_knobs(void)
         int k = VIEW_KNOB[ui.view][i], lo, hi, v, hot = now_touch && ui.touched == (int)i;
         int32_t x = (int32_t)i * 60, cx = x + 30;
         char t[16];
-        static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
+        const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
         uint16_t own = ui.view == V_MIX || ui.view == V_COLR || ui.view == V_SPACE ? TC[i] : ui.view == V_PAD ? K_PAD : ui.view == V_BELLS ? K_BELL :
                        ui.view == V_BASS ? K_BASS : ui.view == V_PULSE ? K_PULSE : K_PAD;   /* (an instrument's: its colour) */
         uint16_t bg = hot ? K_PANEL : K_BG, fill = hot ? K_ACC : own;
@@ -3581,6 +3616,7 @@ void ui_init(void)
     memset(&tr, 0, sizeof tr);
     memset(&bt, 0, sizeof bt);
     tr.pending = -1;
+    ui_th = THEMES[proj.sky < 5 ? proj.sky : 0];
     lcd_fill(0, 0, 240, 240, K_BG);
     if (!en_playing)
         en_play(1);                              /* it grows from the start */
@@ -3638,6 +3674,12 @@ void ui_frame(void)
     if (ui.dark) {
         ui.frame++;
         return;
+    }
+    if (THEMES[proj.sky < 5 ? proj.sky : 0] != ui_th) {   /* (0.8.26) the Sky turned: every band in its colours */
+        int b;
+        ui_th = THEMES[proj.sky < 5 ? proj.sky : 0];
+        for (b = 0; b < 4; b++)
+            ui.sig[b] ^= 0x5A5A5A5Au;
     }
     draw_head();
     draw_bar();

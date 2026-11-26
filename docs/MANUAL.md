@@ -572,5 +572,10 @@ time), StoryBox sheds work for a few seconds: the melody's faintest overtones an
 Tide: five layers of water under a sky, moving with the music (the deepest wave with the kick, the top crest with the
 melody, the middle with the pad). K1 Gravity: which way is down, 5 degrees a click, round and round; turned, the water
 sloshes and settles. K2 Tide: low under a wide sky .. high, flooding the screen. K3 Sky: Dawn, Dusk, Night, Deep sea,
-Ember. K4 Glow: the crests lit by the music. About 12 frames a second; once a second while a Bluetooth speaker plays
-(the radio's work comes first).
+Ember. K4 Glow: the crests lit by the music, a bright band and a halo above each, flaring with the kick and the melody
+(0.8.26: more dramatic). About 12 frames a second; once a second while a Bluetooth speaker plays (the radio's work
+comes first).
+
+(0.8.26) The Sky colours the whole interface too, and is kept. Dawn is the original look (yellow highlight, green
+pad); each other sky takes its hues for the background, panels, highlight and the four parts, at the same brightness
+as the original, so every sky stays as clear. Text and alerts (fuchsia) stay the same in all of them.

@@ -245,6 +245,8 @@ static int project_valid(void)                  /* an older format: the recipes 
         proj.bt_off = proj.bt_off != 0;          /* (0.6's settings, in bytes kept spare before) */
         if (proj.answer > 100)
             proj.answer = 100;
+        if (proj.sky > 4)
+            proj.sky = 0;
     }
     if (proj.magic != PROJ_MAGIC || !pool_ok(proj.pool) || !pars_ok(proj.par))
         return 0;
