@@ -548,3 +548,9 @@ Backbeat, Brushes and Lounge go round the toms, tuned to the chord.
 
 Bells (in tune: a handbell's; Bell tone adds a glockenspiel's clang), Kalimba, Marimba, Vibes, Guitar (nylon,
 fingerpicked), Glass, Felt piano, Koto (some notes pressed up into pitch, as a koto player does).
+
+### Palm Wine (0.8.20, F4, Warehouse's place)
+
+Afro-folk after West Africa's palm-wine music and highlife: G Mixolydian at 116, the kalimba, the Acid bass, and the
+new Highlife kit (Kit 5): the kick on one and three, the hats on the off-beats, a shaker, and an iron bell playing the
+West African timeline. Sunrise, Gathering, Dance, Embers.

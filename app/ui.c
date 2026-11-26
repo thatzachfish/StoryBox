@@ -475,7 +475,7 @@ static void tr_tick(void)
 /* StoryBox 0.5's keyboard, one zone a job: the acts F3 G3 A3 B3, the mix on the black keys around them (F#3 Pad,
  * G#3 Melody, A#3 Bass, C#4 Drums, D#4 the breakdown); the stories on the white keys from middle C (C4 .. E5); the
  * stings on the top black keys (C#5 D#5 F#5); F#4 G#4 A#4, F5 G5 spare. The stories by whose: C4 D4 E4 Zach's (Inside,
- * Fly, Fast and Slow), F4 .. B4 (Warehouse, Market, Rooftop, Sleep), C5 D5 E5 the show's (Pre-show, Intermission,
+ * Fly, Fast and Slow), F4 .. B4 (Palm Wine, Market, Rooftop, Sleep), C5 D5 E5 the show's (Pre-show, Intermission,
  * Post Show) */
 #define BLACK_KEY(k) ((0x0252A52Au >> (k)) & 1u)   /* F#3 G#3 A#3 C#4 D#4 F#4 G#4 A#4 C#5 D#5 F#5 */
 static const int8_t KEY_ACT[NKEYS] = {0, 30, 1, 31, 2, 32, 3, 15, 41, 16, 40, 14, 12, 50, 13, 51, 19, 52, 11, 10, 53, 17, -1, 18, -1, -1, -1};   /* (0.8.13:
@@ -2151,7 +2151,7 @@ static void draw_help(void)
 static void draw_map(void)
 {
     static const uint16_t TC[4] = {K_PAD, K_BELL, K_BASS, K_PULSE};
-    static const char *const SHORT[EN_NSTORY] = {"Pre-show", "Sleep", "Warehouse", "Market", "Fast & Slow", "Inside",
+    static const char *const SHORT[EN_NSTORY] = {"Pre-show", "Sleep", "Palm Wine", "Market", "Fast & Slow", "Inside",
                                                  "Fly", "Intermission", "Post Show", "Rooftop"};
     static const int8_t BANK[3][4] = {{5, 6, 4, -1}, {2, 3, 9, 1}, {0, 7, 8, -1}};
     int cur = proj.piece, goal = tr.pending >= 0 ? tr.pending : tr.on ? tr.piece : -1, blink = (plat_ms() / 300u) & 1u, k, r;

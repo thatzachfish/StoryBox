@@ -301,3 +301,8 @@ SP-1200's 12 bits at 26 kHz, Bright lightly saturated.
 Slide became Guitar (nylon, a plucked-string loop, its body), Music box Felt piano (modal), Banjo Koto (a plucked
 string, bright, some notes pressed up); the bells in tune (a handbell's harmonics, the glockenspiel's clang only with
 Bell tone). He'd also like a dulcimer someday.
+
+0.8.20: Warehouse (acid house) not his performance's style; of four genre sketches (bossa, Afro-folk, trip-hop, Japanese
+environmental) he liked Afro-folk best, with the acid bass, and the kalimba (narrowly). Built Palm Wine (F4): G
+Mixolydian, 116, kalimba, Acid bass, a new Highlife kit (the kick on one and three, off-beat hats, the shaker, an
+agogo bell's timeline). He found the Guitar quiet and indistinct: to improve.

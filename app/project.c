@@ -67,7 +67,7 @@ void project_defaults(void)
     proj.leds = 1;
     proj.wander = 51;                   /* (0.8.3: Pre-show's, about a minute an act) */
     proj.fade = 4;                       /* (0.8: 5 s; 0.8.14: a step a detent, 4 is 5 s) */
-    proj.recipes = 10;
+    proj.recipes = 11;
 }
 
 static int pool_ok(uint32_t p)                   /* the root and at least two more notes */
@@ -203,6 +203,13 @@ static void recipes_update(void)                /* (0.7) a saved act still on a 
         if (proj.piece / EN_NACT == 2 || proj.piece / EN_NACT == 9)
             take(&proj.slot[proj.piece]);
     }
+    if (proj.recipes < 11) {                     /* (11, 0.8.20: Palm Wine in Warehouse's place, from its recipe) */
+        int s;
+        for (s = 0; s < EN_NACT; s++)
+            recipe(2 * EN_NACT + s, &proj.slot[2 * EN_NACT + s]);
+        if (proj.piece / EN_NACT == 2)
+            take(&proj.slot[proj.piece]);
+    }
     if (proj.recipes < 10) {                     /* (10, 0.8.16: Tape Stop in Repeat's place: its knobs their defaults) */
         static const uint8_t TSP[4] = {P_STRATE, P_STMIX, P_STLEN, P_STPITCH};
         int s, q;
@@ -213,7 +220,7 @@ static void recipes_update(void)                /* (0.7) a saved act still on a 
         }
     }
     if (proj.recipes >= 2) {                     /* (1: 0.6.3's kits; 2: and Bows) */
-        proj.recipes = 10;
+        proj.recipes = 11;
         return;
     }
     for (i = 0; i < sizeof KIT_WAS / sizeof KIT_WAS[0]; i++) {
@@ -226,7 +233,7 @@ static void recipes_update(void)                /* (0.7) a saved act still on a 
         if (pc == proj.piece)
             proj.par[P_KIT] = r.par[P_KIT];
     }
-    proj.recipes = 10;
+    proj.recipes = 11;
 }
 
 static int project_valid(void)                  /* an older format: the recipes again */

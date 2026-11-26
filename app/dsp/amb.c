@@ -39,7 +39,7 @@ static const en_param_t PARAMS[P_NPARAMS] = {
     {"Swing", 0, 100, 0},     {"Hats", 0, 100, 50},     {"Freedom", 0, 100, 100},
     {"Tension", 0, 100, 0},   {"Meter", 0, 1, 0},       {"Energy", 0, 100, 50},
     {"Lead", 0, EN_NLEAD - 1, 0}, {"Lead level", 0, 100, 40}, {"Lead tone", 0, 100, 50}, {"Glide", 0, 100, 20},
-    {"Lead oct", -2, 2, 0},   {"Structure", 0, 100, 0}, {"Kit", 0, 4, 0},
+    {"Lead oct", -2, 2, 0},   {"Structure", 0, 100, 0}, {"Kit", 0, 5, 0},
     {"Interval", 0, 4, 1},    {"Mix", 0, 100, 60},     {"Stop", 0, 100, 40},     {"Mix", 0, 100, 100},
     {"Tone", 0, 100, 50},     {"Amount", 0, 100, 80},  {"Type", 0, 1, 0},        {"Amount", 0, 100, 50},
     {"Surf", 0, 100, 0},      {"Melody", 0, EN_NMEL - 1, 0},
@@ -88,15 +88,16 @@ static const struct {
         {50, 35, 25, 0, 25, 25, 65, 0, 35, 5, 58, 86, 28, 75, 20, 50, 0, 1, 52, 2, 6, -1, 1, -1, 45, 20, 0, 40, 100, 0, 0, 50, 2, 40, 30, 40, 0, 0, 0},
         {50, 20, 20, 0, 18, 20, 75, 0, 25, 5, 60, 88, 20, 80, 10, 45, 0, 1, 50, 2, 6, -1, 1, -1, 50, 15, 0, 40, 100, 0, 0, 50, 2, 40, 30, 40, 0, 0, 0},
         {45, 10, 10, 0, 12, 15, 85, 0, 20, 5, 60, 88, 15, 85, 5, 35, 0, 1, 48, 2, 6, -1, 1, -1, 50, 10, 0, 40, 100, 0, 0, 50, 2, 40, 30, 40, 0, 0, 0}}, {0}, 2, {0}, {0}},
-    /* (0.8.14) Warehouse: acid house in A minor, 120 bpm, four on the floor (the Bright kit), the 303-style Acid bass
-     * squelching over one chord, then two, then a turnaround; Sunrise lifts to F C G Am, the strings in */
-    {"Warehouse", {"Doors", "Squelch", "Strobe", "Sunrise"}, {
-        {30, 25, 72, 72, 35, 30, 30, 70, 30, 1, 40, 60, 45, 30, 55, 45, 0, 1, 120, 9, 5, 0, 2, 0, 5, 30, 5, 70, 15, 0, 0, 50, 1, 40, 50, 10, 0, 85, 4},
-        {35, 35, 78, 78, 45, 45, 25, 80, 35, 1, 40, 60, 55, 30, 60, 55, 0, 1, 120, 9, 5, 0, 2, 0, 5, 35, 5, 80, 15, 5, 0, 55, 1, 40, 50, 10, 0, 85, 4},
-        {40, 40, 80, 82, 55, 55, 20, 88, 35, 1, 45, 60, 65, 25, 65, 65, 0, 1, 120, 9, 5, 0, 2, 0, 5, 40, 0, 85, 15, 15, 0, 60, 1, 40, 50, 10, 0, 85, 4},
-        {55, 50, 62, 58, 40, 40, 30, 60, 45, 2, 55, 70, 70, 45, 55, 50, 0, 1, 118, 9, 5, 0, 2, 0, 10, 30, 5, 65, 15, 0, 0, 50, 1, 40, 50, 10, 0, 80, 4}},
-        {"Am:8", "Am:4 F:4", "Am:2 G:2 F:2 G:2", "F:4 C:4 G:4 Am:4"},
-        9, {"A4 C5 E5", "A3 E4 A4 C5 E5 A5"}, {"Stab", "Rise"}},
+    /* (0.8.20) Palm Wine: Afro-folk, after West Africa's palm-wine music and highlife, in G (Mixolydian), 116: the
+     * kalimba's bright lines, the Acid bass (Zach liked it under this), the Highlife kit: its bell's timeline, the
+     * shaker, the kick on one and three. Sunrise, Gathering, Dance (busier, a turnaround), Embers (easing down) */
+    {"Palm Wine", {"Sunrise", "Gathering", "Dance", "Embers"}, {
+        {35, 62, 58, 60, 50, 45, 25, 68, 30, 1, 35, 50, 60, 30, 60, 55, 0, 1, 116, 7, 4, 0, 3, 0, 5, 30, 10, 70, 10, 0, 0, 50, 1, 40, 50, 10, 0, 80, 5},
+        {38, 65, 62, 68, 55, 45, 25, 72, 30, 1, 35, 50, 62, 30, 60, 55, 0, 1, 116, 7, 4, 0, 3, 0, 5, 30, 10, 72, 10, 0, 0, 55, 1, 40, 50, 10, 0, 80, 5},
+        {40, 68, 66, 76, 62, 55, 20, 80, 30, 1, 35, 50, 66, 25, 64, 62, 0, 1, 116, 7, 4, 0, 3, 0, 5, 35, 10, 80, 10, 0, 0, 66, 1, 40, 50, 10, 0, 80, 5},
+        {45, 60, 55, 52, 45, 40, 30, 60, 35, 1, 45, 60, 56, 40, 55, 50, 0, 1, 112, 7, 4, 0, 3, 0, 5, 30, 10, 62, 10, 0, 0, 45, 1, 40, 50, 10, 0, 80, 5}},
+        {"G:2 C:2 D:2 C:2", "G:2 Em:2 C:2 D:2", "C:1 D:1 G:2 C:1 D:1 G:2", "Em:2 C:2 G:2 D:2"},
+        7, {"G5 B5 D6", "D5 E5 G5 A5 B5"}, {"Call", "Run"}},
     {"Market Day", {"Morning", "Crowds", "Siesta", "Lanterns"}, {
         {50, 58, 38, 35, 45, 40, 30, 40, 35, 2, 50, 65, 70, 45, 65, 50, 0, 1, 100, 2, 0, 1, 0, 0, 15, 35, 25, 65, 100, 0, 0, 50, 0, 40, 60, 10, 0, 15, 0},
         {45, 72, 55, 62, 70, 60, 20, 80, 40, 1, 45, 60, 78, 35, 75, 65, 0, 1, 104, 2, 4, 1, 0, 0, 10, 45, 30, 80, 100, 0, 0, 50, 0, 40, 60, 10, 0, 10, 0},
@@ -340,7 +341,7 @@ void en_piece(int i, int16_t *par, uint16_t *pool)
     /* StoryBox: each story's melody instrument (P_MSOUND), for every act */
     static const uint8_t STORY_MEL[EN_NSTORY][EN_NACT] = {
         {MEL_VIBES, MEL_VIBES, MEL_VIBES, MEL_VIBES},          {MEL_MUSICBOX, MEL_MUSICBOX, MEL_MUSICBOX, MEL_MUSICBOX},
-        {MEL_GLASS, MEL_MARIMBA, MEL_GLASS, MEL_GLASS},        {MEL_MARIMBA, MEL_MARIMBA, MEL_MARIMBA, MEL_MARIMBA},
+        {MEL_KALIMBA, MEL_KALIMBA, MEL_KALIMBA, MEL_KALIMBA},  {MEL_MARIMBA, MEL_MARIMBA, MEL_MARIMBA, MEL_MARIMBA},
         {MEL_MUSICBOX, MEL_GLASS, MEL_VIBES, MEL_GLASS},       {MEL_BELLS, MEL_BELLS, MEL_BELLS, MEL_BELLS},
         {MEL_SLIDE, MEL_SLIDE, MEL_SLIDE, MEL_GLASS},          /* Fly: the slide running through Entry (0.8.7),
                                                                 * Approach, Devour */
@@ -353,7 +354,7 @@ void en_piece(int i, int16_t *par, uint16_t *pool)
         par[p] = PARAMS[p].def;
     par[P_MSOUND] = STORY_MEL[i / EN_NACT][i % EN_NACT];
     {   /* each story's bass sound (0.5: the bass octave's place): Round, Upright, Synth, Sub */
-        static const uint8_t SBASS[EN_NSTORY] = {1, 3, 4, 1, 0, 0, 1, 1, 1, 3};   /* (Fast and Slow, 4: Round; 0.8.14: Warehouse
+        static const uint8_t SBASS[EN_NSTORY] = {1, 3, 4, 1, 0, 0, 1, 1, 1, 3};   /* (Fast and Slow, 4: Round; 0.8.14: Warehouse (0.8.20 Palm Wine)
                                                                                 * Acid, Rooftop Sub) */
         par[P_BSOUND] = SBASS[i / EN_NACT];
     }
@@ -412,7 +413,7 @@ void en_param_text(int i, int v, char *b)
     else if (i == P_SCPITCH)                     /* (0.8.14: its slices) */
         s = v >= 2 ? "1/8" : v ? "1/16" : "1/32";
     else if (i == P_KIT)
-        s = v == 4 ? "Bright" : v == 3 ? "Lounge" : v == 2 ? "Brushes" : v ? "Backbeat" : "Soft";
+        s = v == 5 ? "Highlife" : v == 4 ? "Bright" : v == 3 ? "Lounge" : v == 2 ? "Brushes" : v ? "Backbeat" : "Soft";
     else if (i == P_LSOUND)
         s = EN_LEAD_NAME[(unsigned)v < EN_NLEAD ? v : 0];
     else if (i == P_PADTONE)
@@ -981,7 +982,10 @@ static void snare_fire(float vel);             /* the backbeat kit's snare (belo
 static void ride_fire(float vel);              /* (0.8.18) the ride, the shaker, the toms (below) */
 static void shaker_fire(float vel);
 static void tom_fire(float vel, float f);
-static int32_t ride_wait, shk_wait, tom_wait;
+static int32_t ride_wait, shk_wait, tom_wait, agb_wait;
+static float agb_pend;
+static int agb_tone;
+static void agogo_fire(int hi, float vel);   /* (0.8.20) Highlife's bell (below) */
 static float ride_pend, shk_pend, tom_pend, tom_pf;
 static uint8_t fill_tom;                         /* (0.8.18) this bar's fill on the toms */
 static float pulse_vol, swing, hat_f = 0.9f, hat_open = 0.42f;
@@ -1533,6 +1537,13 @@ static void drum_publish(int d)
         drum_pat[1] = drum_k[1] >= 7 ? 0xEEEEu : 0x4444u;
     else if (par[P_KIT] == 4 && en_bar_len == 16 && d == 2)   /* an open hat lifting into each half */
         drum_pat[2] = drum_k[2] >= 2 ? 0x4040u : 0x4000u;
+    else if (par[P_KIT] == 5 && en_bar_len == 16 && d == 0)   /* (0.8.20) Highlife: the kick on one and three, with
+                                                  * Hits a push into three */
+        drum_pat[0] = drum_k[0] >= 3 ? 0x0501u : 0x0101u;
+    else if (par[P_KIT] == 5 && en_bar_len == 16 && d == 1)   /* the hats on the off-beats, sixteenths when busier */
+        drum_pat[1] = drum_k[1] >= 7 ? 0xEEEEu : 0x4444u;
+    else if (par[P_KIT] == 5 && en_bar_len == 16 && d == 2)   /* (no open hat: the bell is the top) */
+        drum_pat[2] = 0u;
     else if (par[P_KIT] && en_bar_len == 16 && d == 2)   /* and the open hat steps back for the snare */
         drum_pat[2] &= ~0x1010u;
     if (en_bar_len == 12 && d == 0)              /* 3/4: the thump always on the one */
@@ -1584,9 +1595,9 @@ static void drum_fire(int d, float vel)
     switch (d) {
     case 0: {                                   /* the kick: the chord's root, low (E1 .. Eb2), the beater's pitch falling to
                                                   * the skin's; (0.8.18) each kit its own drum */
-        static const float START[5] = {1.8f, 2.6f, 1.4f, 1.6f, 3.2f}, T60[5] = {0.4f, 0.5f, 0.28f, 0.32f, 0.55f},
-                           CLICK[5] = {0.12f, 0.25f, 0.06f, 0.1f, 0.35f};
-        const int k = par[P_KIT] >= 0 && par[P_KIT] <= 4 ? par[P_KIT] : 0;
+        static const float START[6] = {1.8f, 2.6f, 1.4f, 1.6f, 3.2f, 2.2f}, T60[6] = {0.4f, 0.5f, 0.28f, 0.32f, 0.55f, 0.38f},
+                           CLICK[6] = {0.12f, 0.25f, 0.06f, 0.1f, 0.35f, 0.15f};
+        const int k = par[P_KIT] >= 0 && par[P_KIT] <= 5 ? par[P_KIT] : 0;
         float f = mtof((float)(28 + (chord_pcs[0] + 8) % 12));
         v->note = DRUM_GM[0];
         v->inc = f * START[k] * (1.0f / EN_SR);
@@ -1618,16 +1629,17 @@ static void drum_fire(int d, float vel)
  * tight. And every hit a few milliseconds loose (Magenta's GrooVAE, learned from drummers, shows the timing and the
  * loudness of each hit are much of a groove), less so with Structure (Groove). In ms: kick, hat, open hat, snare (late);
  * then the looseness either way */
-static const int8_t FEEL_MS[5][5] = {
+static const int8_t FEEL_MS[6][5] = {
     {0, 2, 2, 0, 4},                             /* 0, the thump: barely */
     {0, 7, 5, 22, 6},                            /* 1, backbeat (boom-bap, lo-fi): the snare well back, the hats dragging */
     {0, 6, 8, 12, 8},                            /* 2, brushes: loose */
     {0, 4, 4, 14, 5},                            /* 3, Lounge: the ride a hair late, the cross-stick back */
     {0, 0, 0, 3, 2},                             /* 4, Bright: four on the floor, tight */
+    {0, 3, 3, 8, 4},                             /* 5, Highlife (0.8.20): easy, the snare a touch back */
 };
 static int32_t feel_wait(int d)                  /* d 0..2 the drums, 3 the snare: samples late */
 {
-    const int k = par[P_KIT] >= 0 && par[P_KIT] <= 4 ? par[P_KIT] : 0;
+    const int k = par[P_KIT] >= 0 && par[P_KIT] <= 5 ? par[P_KIT] : 0;
     float ms = (float)FEEL_MS[k][d] + (frand() - 0.5f) * 2.0f * (float)FEEL_MS[k][4] * (1.0f - (float)par[P_GROOVE] / 150.0f);
     return ms > 0.0f ? (int32_t)(ms * (EN_SR / 1000.0f)) : 0;
 }
@@ -1663,6 +1675,15 @@ static void drum_hit(int d, float vel, int off)  /* off: an off sixteenth, which
     }
 }
 
+static void bell_hit(int hi, float vel, int off)   /* (0.8.20) the bell, felt as the hats */
+{
+    int32_t w = (off ? (int32_t)(swing * step_len) : 0) + feel_wait(1);
+    if (w > 0)
+        agb_wait = w, agb_pend = vel, agb_tone = hi;
+    else
+        agogo_fire(hi, vel);
+}
+
 static void perc_hit(int which, float vel, int off, float f)   /* (0.8.18) 0 shaker, 1 tom (f Hz): swung, felt */
 {
     int32_t w = (off ? (int32_t)(swing * step_len) : 0) + feel_wait(1);
@@ -1685,6 +1706,8 @@ static int32_t drums_wait(void)                 /* samples to the next hit that 
     int d;
     if (ride_wait > 0 && (!m || ride_wait < m))
         m = ride_wait;
+    if (agb_wait > 0 && (!m || agb_wait < m))
+        m = agb_wait;
     if (shk_wait > 0 && (!m || shk_wait < m))
         m = shk_wait;
     if (tom_wait > 0 && (!m || tom_wait < m))
@@ -1712,6 +1735,10 @@ static void drums_wait_step(int32_t k)          /* k samples went by: hits whose
     if (ride_wait > 0 && (ride_wait -= k) <= 0) {
         ride_wait = 0;
         ride_fire(ride_pend);
+    }
+    if (agb_wait > 0 && (agb_wait -= k) <= 0) {
+        agb_wait = 0;
+        agogo_fire(agb_tone, agb_pend);
     }
     if (shk_wait > 0 && (shk_wait -= k) <= 0) {
         shk_wait = 0;
@@ -1922,7 +1949,13 @@ static void tick(void)
         else if (!par[P_KIT] && f == 2)
             drum_hit(0, 0.6f * pa, 0);
     }
-    if ((par[P_KIT] == 1 || par[P_KIT] == 4) && !pulse_rest && !bd && par[P_PULSE] > 0 && drum_kb[1] > 0) {   /* (0.8.18)
+    if (par[P_KIT] == 5 && !pulse_rest && !bd && par[P_PULSE] > 0 && en_bar_len == 16 &&
+        (0x5AB5u >> (bar_pos & 15) & 1u)) {     /* (0.8.20) Highlife's bell: the West African timeline (x.x.x.xx.x.x.x.x
+                                                  * reversed into bits), the low tone on its last two strokes of a half */
+        const int p = bar_pos & 15;
+        bell_hit(p == 5 || p == 12 ? 0 : 1, (p == 0 ? 0.75f : 0.55f) + 0.1f * frand(), (int)(sixteenth & 1u));
+    }
+    if ((par[P_KIT] == 1 || par[P_KIT] == 4 || par[P_KIT] == 5) && !pulse_rest && !bd && par[P_PULSE] > 0 && drum_kb[1] > 0) {   /* (0.8.18)
                                                   * the shaker: the eighths, and with Energy the sixteenths between */
         const float e = (energy + 1.0f) * 0.5f;
         if (!(sixteenth & 1u))
@@ -3364,12 +3397,58 @@ static void render_tom(uint32_t n, float g)
     tom.on = tom.amp > 0.0005f;
 }
 
+/* (0.8.20) the bell (an agogo, a gankogui): two iron bells, high and low, a ring of three inharmonic modes and the
+ * stick's click */
+static struct {
+    float ph[3], inc[3], amp, ck;
+    uint8_t on;
+} agb;
+static void agogo_fire(int hi, float vel)
+{
+    static const float R[3] = {1.0f, 2.42f, 4.07f};
+    const float f = hi ? 930.0f : 700.0f;
+    int k;
+    for (k = 0; k < 3; k++) {
+        agb.inc[k] = f * R[k] / EN_SR;
+        agb.ph[k] = 0.0f;
+    }
+    agb.amp = vel;
+    agb.ck = vel;
+    agb.on = 1;
+    midi(0x99, hi ? 67u : 68u, (uint32_t)(vel * 110.0f));
+    midi(0x89, hi ? 67u : 68u, 0);
+}
+static void render_agogo(uint32_t n, float g)
+{
+    const float d = fm_expf(-6.9f / (0.22f * EN_SR)), cd = fm_expf(-6.9f / (0.002f * EN_SR));
+    uint32_t j;
+    int k;
+    if (!agb.on)
+        return;
+    for (j = 0; j < n; j++) {
+        float x = 0.0f;
+        for (k = 0; k < 3; k++) {
+            agb.ph[k] += agb.inc[k];
+            if (agb.ph[k] >= 1.0f)
+                agb.ph[k] -= 1.0f;
+            x += sine(agb.ph[k]) * (k == 0 ? 1.0f : k == 1 ? 0.45f : 0.2f);
+        }
+        x = (x * agb.amp + dnoise() * agb.ck * 0.4f) * g;
+        dbl[j] += x * 1.0f;
+        dbr[j] += x * 0.65f;
+        agb.amp *= d;
+        agb.ck *= cd;
+    }
+    agb.ck = fm_flush(agb.ck);
+    agb.on = agb.amp > 0.0005f;
+}
+
 static void render_drums(uint32_t n)
 {
     uint32_t j;
     const float g = pulse_vol * 1.45f * mg[3];   /* (StoryBox 0.3: louder) */
-    const int kit = par[P_KIT] >= 0 && par[P_KIT] <= 4 ? par[P_KIT] : 0, dusty = kit == 1 || kit == 4;
-    static const float KG[5] = {1.28f, 1.18f, 1.35f, 1.55f, 1.2f};   /* (each kit as loud as it was)*/
+    const int kit = par[P_KIT] >= 0 && par[P_KIT] <= 5 ? par[P_KIT] : 0, dusty = kit == 1 || kit == 4;
+    static const float KG[6] = {1.28f, 1.18f, 1.35f, 1.55f, 1.2f, 1.25f};   /* (each kit as loud as it was)*/
     for (j = 0; j < n; j++)
         dbl[j] = dbr[j] = 0.0f;
     render_kick(n, g);
@@ -3379,6 +3458,7 @@ static void render_drums(uint32_t n)
     render_ride(n, g * 0.16f);
     render_shaker(n, g * 0.13f);
     render_tom(n, g * 0.55f);
+    render_agogo(n, g * 0.16f);
     for (j = 0; j < n; j++) {
         float l = dbl[j], r = dbr[j], m = 0.5f * (l + r), e = 0.0f;
         int t;
