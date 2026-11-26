@@ -304,5 +304,5 @@ Bell tone). He'd also like a dulcimer someday.
 
 0.8.20: Warehouse (acid house) not his performance's style; of four genre sketches (bossa, Afro-folk, trip-hop, Japanese
 environmental) he liked Afro-folk best, with the acid bass, and the kalimba (narrowly). Built Palm Wine (F4): G
-Mixolydian, 116, kalimba, Acid bass, a new Highlife kit (the kick on one and three, off-beat hats, the shaker, an
+Mixolydian, 116, kalimba, the Round bass (not the Acid: his mistake, he said), a new Highlife kit (the kick on one and three, off-beat hats, the shaker, an
 agogo bell's timeline). He found the Guitar quiet and indistinct: to improve.

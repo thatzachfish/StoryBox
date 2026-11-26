@@ -89,7 +89,7 @@ static const struct {
         {50, 20, 20, 0, 18, 20, 75, 0, 25, 5, 60, 88, 20, 80, 10, 45, 0, 1, 50, 2, 6, -1, 1, -1, 50, 15, 0, 40, 100, 0, 0, 50, 2, 40, 30, 40, 0, 0, 0},
         {45, 10, 10, 0, 12, 15, 85, 0, 20, 5, 60, 88, 15, 85, 5, 35, 0, 1, 48, 2, 6, -1, 1, -1, 50, 10, 0, 40, 100, 0, 0, 50, 2, 40, 30, 40, 0, 0, 0}}, {0}, 2, {0}, {0}},
     /* (0.8.20) Palm Wine: Afro-folk, after West Africa's palm-wine music and highlife, in G (Mixolydian), 116: the
-     * kalimba's bright lines, the Acid bass (Zach liked it under this), the Highlife kit: its bell's timeline, the
+     * kalimba's bright lines, the Round bass, the Highlife kit: its bell's timeline, the
      * shaker, the kick on one and three. Sunrise, Gathering, Dance (busier, a turnaround), Embers (easing down) */
     {"Palm Wine", {"Sunrise", "Gathering", "Dance", "Embers"}, {
         {35, 62, 58, 60, 50, 45, 25, 68, 30, 1, 35, 50, 60, 30, 60, 55, 0, 1, 116, 7, 4, 0, 3, 0, 5, 30, 10, 70, 10, 0, 0, 50, 1, 40, 50, 10, 0, 80, 5},
@@ -354,7 +354,7 @@ void en_piece(int i, int16_t *par, uint16_t *pool)
         par[p] = PARAMS[p].def;
     par[P_MSOUND] = STORY_MEL[i / EN_NACT][i % EN_NACT];
     {   /* each story's bass sound (0.5: the bass octave's place): Round, Upright, Synth, Sub */
-        static const uint8_t SBASS[EN_NSTORY] = {1, 3, 4, 1, 0, 0, 1, 1, 1, 3};   /* (Fast and Slow, 4: Round; 0.8.14: Warehouse (0.8.20 Palm Wine)
+        static const uint8_t SBASS[EN_NSTORY] = {1, 3, 0, 1, 0, 0, 1, 1, 1, 3};   /* (Fast and Slow, 4: Round; 0.8.14: Warehouse (0.8.20 Palm Wine)
                                                                                 * Acid, Rooftop Sub) */
         par[P_BSOUND] = SBASS[i / EN_NACT];
     }

@@ -551,6 +551,6 @@ fingerpicked), Glass, Felt piano, Koto (some notes pressed up into pitch, as a k
 
 ### Palm Wine (0.8.20, F4, Warehouse's place)
 
-Afro-folk after West Africa's palm-wine music and highlife: G Mixolydian at 116, the kalimba, the Acid bass, and the
+Afro-folk after West Africa's palm-wine music and highlife: G Mixolydian at 116, the kalimba, a round bass, and the
 new Highlife kit (Kit 5): the kick on one and three, the hats on the off-beats, a shaker, and an iron bell playing the
 West African timeline. Sunrise, Gathering, Dance, Embers.
